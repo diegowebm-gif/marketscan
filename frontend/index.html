@@ -21,7 +21,6 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
 
-/* Header */
 header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
@@ -36,7 +35,6 @@ header {
 .btn-logout { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: 'Inter', sans-serif; transition: all .2s; }
 .btn-logout:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-dim); }
 
-/* Auth & Planos */
 .auth-tabs { display:flex; gap:0; margin-bottom:1.5rem; background:var(--surface2); border-radius:var(--radius-sm); padding:4px; }
 .auth-tab { flex:1; padding:8px; border:none; background:transparent; font-family:'Inter',sans-serif; font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; border-radius:6px; transition:all .2s; }
 .auth-tab.active { background:var(--surface); color:var(--text); box-shadow:var(--shadow); }
@@ -46,12 +44,10 @@ header {
 .auth-error { font-size:12px; color:var(--danger); background:var(--danger-dim); padding:8px 12px; border-radius:var(--radius-sm); display:none; }
 .auth-error.show { display:block; }
 
-/* Badge de plano */
 .plan-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; }
 .plan-badge.free { background:#f3f4f6; color:#6b7280; }
 .plan-badge.pro { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; }
 
-/* Modal de upgrade */
 .upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
 .upgrade-overlay.show { display:flex; }
 .upgrade-modal { background:var(--surface); border-radius:var(--radius); padding:2rem; max-width:480px; width:90%; box-shadow:var(--shadow-md); }
@@ -72,13 +68,6 @@ header {
 .btn-upgrade:hover { opacity:.9; transform:translateY(-1px); }
 .btn-close-modal { background:none; border:none; color:var(--text2); cursor:pointer; font-size:13px; text-decoration:underline; display:block; text-align:center; margin-top:8px; font-family:'Inter',sans-serif; }
 
-/* Lock overlay em features pro */
-.pro-lock { position:relative; }
-.pro-lock-overlay { position:absolute; inset:0; background:rgba(255,255,255,0.85); border-radius:var(--radius-sm); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; z-index:10; }
-.pro-lock-overlay span { font-size:1.2rem; }
-.pro-lock-overlay p { font-size:11px; font-weight:600; color:var(--accent); }
-
-/* Auth */
 #screen-auth { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; gap: 1.5rem; padding: 2rem; }
 .auth-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--accent-dim); border: 2px solid var(--accent-dim2); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: var(--shadow-md); }
 .auth-title { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--text); }
@@ -86,17 +75,14 @@ header {
 .auth-steps { display: flex; gap: 1.5rem; }
 .step { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); max-width: 110px; text-align: center; }
 .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--accent); }
-.btn-primary { padding: 13px 28px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #000; font-weight: 600; font-size: 14px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; }
+.btn-primary { padding: 13px 28px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #fff; font-weight: 600; font-size: 14px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; }
 .btn-primary:hover { opacity: .85; }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
-#btn-confirm-login { display: none; padding: 9px 20px; border-radius: var(--radius-sm); border: 1px solid var(--accent); background: transparent; color: var(--accent); font-family: 'Inter', sans-serif; font-size: 13px; cursor: pointer; }
 #auth-status { font-size: 13px; color: var(--text2); height: 18px; }
 
-/* App layout */
 #screen-app { display: none; }
 .app-layout { display: flex; min-height: calc(100vh - 56px); }
 
-/* Sidebar */
 .sidebar {
   width: 300px; min-width: 300px; background: var(--surface);
   border-right: 1px solid var(--border); padding: 1.5rem 1.25rem;
@@ -106,7 +92,6 @@ header {
   box-shadow: var(--shadow);
 }
 
-/* Mobile */
 @media (max-width: 768px) {
   .sidebar {
     position: fixed; top: 56px; left: 0; z-index: 200;
@@ -147,12 +132,10 @@ header {
 .btn-search-sidebar:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 .sidebar-divider { border: none; border-top: 1px solid var(--border); }
 
-/* Toggles */
 .toggle-check { display: flex; align-items: center; gap: 7px; cursor: pointer; padding: 7px 11px; border-radius: var(--radius-sm); border: 1.5px solid var(--border2); background: var(--surface2); font-size: 12px; color: var(--text2); font-family: 'Inter', sans-serif; transition: all .2s; width: 100%; margin-bottom: 5px; }
 .toggle-check.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 500; }
 .toggle-check .dot-toggle { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 8px; flex-shrink: 0; }
 
-/* Palavras bloqueadas */
 .blocked-words { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; min-height: 10px; }
 .blocked-tag { display: flex; align-items: center; gap: 4px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 20px; padding: 3px 8px 3px 10px; font-size: 11px; color: var(--text2); }
 .blocked-tag button { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 1px; transition: color .2s; }
@@ -163,7 +146,6 @@ header {
 .btn-add-word { padding: 7px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: transparent; color: var(--text2); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; transition: all .2s; }
 .btn-add-word:hover { border-color: var(--accent); color: var(--accent); }
 
-/* Alertas sidebar */
 .perm-box { background: var(--accent-dim); border: 1px solid var(--accent-dim2); border-radius: var(--radius-sm); padding: .75rem; }
 .perm-box p { font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
 .btn-allow { width: 100%; padding: 8px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #000; font-weight: 600; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; }
@@ -182,10 +164,8 @@ header {
 .btn-remove-monitor:hover { color: var(--danger); }
 .monitor-empty { font-size: 12px; color: var(--text3); text-align: center; padding: .5rem 0; }
 
-/* Main content */
 .main-content { flex: 1; padding: 1.5rem; overflow-x: hidden; min-width: 0; }
 
-/* Stats */
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
 .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; box-shadow: var(--shadow); transition: box-shadow .2s; }
 .stat-card:hover { box-shadow: var(--shadow-md); }
@@ -194,17 +174,14 @@ header {
 .stat-value.green { color: #16a34a; }
 .stat-value.warn { color: var(--warn); }
 
-/* Chart */
 #chart-container { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; }
 
-/* Filters bar */
 .filters { display: flex; gap: 8px; margin-bottom: 1.25rem; align-items: center; flex-wrap: wrap; }
 .filter-label { font-size: 12px; color: var(--text2); }
 .filter-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; box-shadow: var(--shadow); }
 .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
 .sort-select { margin-left: auto; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'Inter', sans-serif; font-size: 12px; padding: 5px 8px; outline: none; cursor: pointer; }
 
-/* Cards */
 .listings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .listing-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: box-shadow .2s, transform .2s; position: relative; box-shadow: var(--shadow); }
 .listing-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
@@ -222,12 +199,10 @@ header {
 .btn-link { display: block; text-align: center; padding: 8px; border-radius: var(--radius-sm); border: 1.5px solid var(--accent); color: var(--accent); font-size: 12px; text-decoration: none; transition: all .2s; font-weight: 500; }
 .btn-link:hover { background: var(--accent); color: #fff; }
 
-/* Empty / Loading */
 .empty { text-align: center; padding: 3rem 1rem; color: var(--text2); grid-column: 1/-1; }
 .spinner { display: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Comparador */
 .compare-btn { width:100%; padding:9px; border-radius:var(--radius-sm); border:1.5px solid var(--accent); background:transparent; color:var(--accent); font-weight:600; font-size:12px; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s; margin-top:6px; }
 .compare-btn:hover { background:var(--accent); color:#fff; }
 .compare-btn:disabled { opacity:.4; cursor:not-allowed; }
@@ -259,7 +234,6 @@ header {
 .compare-mini-link:hover { color:var(--accent); }
 .no-results { font-size:12px;color:var(--text3);text-align:center;padding:.75rem 0; }
 
-/* Histórico de preços */
 #history-container { display:none; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; margin-bottom:1.25rem; box-shadow:var(--shadow); }
 .history-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem; flex-wrap:wrap; gap:8px; }
 .history-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
@@ -267,7 +241,6 @@ header {
 .history-badge.down { background:rgba(0,230,118,0.12); color:#00e676; }
 .history-badge.flat { background:rgba(136,136,136,0.12); color:#888; }
 
-/* Calculadora de lucro */
 .calc-btn { width:100%; padding:6px; border-radius:var(--radius-sm); border:1px solid var(--border2); background:transparent; color:var(--text2); font-size:11px; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s; margin-top:6px; }
 .calc-btn:hover { border-color:var(--accent); color:var(--accent); }
 .calc-panel { display:none; margin-top:8px; padding:10px; background:var(--surface2); border-radius:var(--radius-sm); border:1px solid var(--border); }
@@ -282,7 +255,6 @@ header {
 .calc-result .profit { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:700; display:block; }
 .calc-result .margin { font-size:11px; margin-top:2px; }
 
-/* Loading overlay */
 #loading-overlay {
   display: none; position: fixed; inset: 0; z-index: 500;
   background: rgba(13,13,13,0.85); backdrop-filter: blur(6px);
@@ -306,7 +278,6 @@ header {
 .loading-sub { font-size: 12px; color: var(--text3); margin-top: -1rem; }
 @keyframes pulse-icon { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: .8; } }
 
-/* Toast */
 #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: none; border-radius: var(--radius); padding: .8rem 1.2rem; font-size: 13px; color: var(--text); max-width: 300px; transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; box-shadow: var(--shadow-md); }
 #toast.show { transform: translateY(0); opacity: 1; }
 #toast.success { background: #f0fdf4; color: #15803d; box-shadow: 0 4px 16px rgba(22,163,74,0.15); }
@@ -328,7 +299,6 @@ header {
   </div>
 </header>
 
-<!-- Modal de upgrade -->
 <div class="upgrade-overlay" id="upgrade-overlay">
   <div class="upgrade-modal">
     <h2>Desbloqueie o MarketScan Pro</h2>
@@ -369,7 +339,6 @@ header {
   </div>
 </div>
 
-<!-- Tela de login -->
 <div id="screen-auth">
   <div class="auth-icon">🔍</div>
   <h1 class="auth-title">MarketScan</h1>
@@ -381,7 +350,6 @@ header {
       <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Criar conta</button>
     </div>
 
-    <!-- Login -->
     <div id="form-login">
       <div class="auth-form">
         <input type="email" id="login-email" placeholder="Seu e-mail" />
@@ -391,7 +359,6 @@ header {
       </div>
     </div>
 
-    <!-- Cadastro -->
     <div id="form-register" style="display:none">
       <div class="auth-form">
         <input type="email" id="reg-email" placeholder="Seu e-mail" />
@@ -405,14 +372,11 @@ header {
   </div>
 </div>
 
-<!-- Tela principal -->
 <div id="screen-app">
   <div class="app-layout">
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
-
       <div>
         <p class="sidebar-section-title">Busca</p>
         <label>Produto</label>
@@ -434,11 +398,9 @@ header {
 
       <div>
         <p class="sidebar-section-title">Filtros</p>
-
         <button class="toggle-check on" id="tog-noprice" onclick="toggleFilter(this)" style="margin-bottom:12px">
           <span class="dot-toggle">✕</span> Ocultar sem preço
         </button>
-
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
           <label style="font-size:11px;color:var(--text2)">Palavras bloqueadas no título</label>
           <button onclick="clearBlockedWords()" style="background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;padding:0;transition:color .2s" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text3)'">Limpar tudo</button>
@@ -448,14 +410,11 @@ header {
           <input type="text" id="word-input" placeholder="ex: caixa, defeito…" onkeydown="if(event.key==='Enter')addBlockedWord()" />
           <button class="btn-add-word" onclick="addBlockedWord()">+ Add</button>
         </div>
-
       </div>
 
       <hr class="sidebar-divider">
 
-      <!-- ALERTAS — destaque visual -->
       <div style="background:linear-gradient(135deg,rgba(106,13,173,0.06),rgba(106,13,173,0.02));border:1px solid rgba(106,13,173,0.18);border-radius:var(--radius);padding:1rem;margin:-0.25rem">
-
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
           <div style="width:28px;height:28px;border-radius:50%;background:rgba(106,13,173,0.12);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔔</div>
           <div>
@@ -463,14 +422,10 @@ header {
             <p style="font-size:10px;color:var(--text3);margin:0">Notificação automática de oportunidades</p>
           </div>
         </div>
-
-        <!-- Banner permissão -->
         <div id="permission-banner" style="display:none">
           <p style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px">Ative as notificações para ser avisado no celular ou computador assim que aparecer um anúncio abaixo do preço que você definir.</p>
           <button class="btn-allow" id="btn-allow-notif" onclick="requestNotificationPermission()" style="background:var(--accent);color:#000;font-weight:600;font-size:12px;padding:9px;border-radius:var(--radius-sm);border:none;width:100%;cursor:pointer;font-family:'Inter',sans-serif">🔔 Ativar notificações</button>
         </div>
-
-        <!-- Painel monitores -->
         <div id="monitor-panel" style="display:none">
           <button class="btn-add-monitor" onclick="toggleMonitorForm()" style="background:var(--accent);color:#000;font-weight:600;border:none;font-size:12px;padding:9px;border-radius:var(--radius-sm);width:100%;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:10px">+ Criar novo alerta</button>
           <div class="monitor-form" id="monitor-form">
@@ -495,14 +450,10 @@ header {
           </div>
         </div>
       </div>
-
     </aside>
 
-    <!-- Conteúdo principal -->
     <main class="main-content">
-
       <div class="stats-grid" id="stats-grid" style="display:none"></div>
-
       <div id="location-tip" style="display:none;align-items:flex-start;gap:12px;background:#eef2ff;border:2px solid #818cf8;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem">
         <span style="font-size:1.4rem;flex-shrink:0;margin-top:1px">📍</span>
         <div>
@@ -511,9 +462,6 @@ header {
         </div>
       </div>
 
-
-
-      <!-- Histórico de preços -->
       <div id="history-container">
         <div class="history-header">
           <div>
@@ -548,7 +496,6 @@ header {
           <p>Faça uma busca para encontrar anúncios e oportunidades.</p>
         </div>
       </div>
-
     </main>
   </div>
 </div>
@@ -564,7 +511,6 @@ header {
 <div id="toast"></div>
 
 <script>
-// ── Sidebar mobile ───────────────────────────────────────
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
@@ -576,7 +522,6 @@ function closeSidebar() {
   document.getElementById('sidebar-overlay').classList.remove('show');
 }
 
-// ── Estado global ──────────────────────────────────────────
 let sessionId = localStorage.getItem('mkt_session');
 let authToken = localStorage.getItem('mkt_token');
 let currentUser = null;
@@ -585,10 +530,7 @@ let currentFilter = 'all';
 let currentStats = null;
 let checkInterval = null;
 
-
-// ── Init ──────────────────────────────────────────────────
 window.onload = async () => {
-  // Verifica se voltou de pagamento
   const params = new URLSearchParams(window.location.search);
   if (params.get('upgraded') === 'true') {
     toast('🎉 Plano Pro ativado com sucesso!', 'success');
@@ -599,12 +541,10 @@ window.onload = async () => {
     window.history.replaceState({}, '', '/');
   }
   populateStates();
-  // Primeiro verifica autenticação própria
   if (authToken) {
     const res = await api('GET', '/api/auth/me');
     if (res?.ok) {
       currentUser = res;
-      // Verifica sessão do Facebook
       if (sessionId) {
         const fbRes = await api('GET', `/api/session/${sessionId}/check`);
         if (fbRes?.loggedIn) { showApp(); return; }
@@ -620,7 +560,6 @@ window.onload = async () => {
   showAuth();
 };
 
-// ── Auth própria ──────────────────────────────────────────
 function switchAuthTab(tab) {
   document.getElementById('tab-login').classList.toggle('active', tab === 'login');
   document.getElementById('tab-register').classList.toggle('active', tab === 'register');
@@ -660,15 +599,12 @@ async function doRegister() {
 }
 
 async function showFacebookConnect() {
-  // Busca dados atualizados do usuário incluindo plano
   if (authToken) {
     const me = await api('GET', '/api/auth/me');
     if (me?.ok) currentUser = me;
   }
-  // Mostra tela de auth mas com a etapa de conectar Facebook
   document.getElementById('screen-auth').style.display = 'flex';
   document.getElementById('screen-app').style.display = 'none';
-  // Muda conteúdo para conectar Facebook
   document.getElementById('form-login').style.display = 'none';
   document.getElementById('form-register').style.display = 'none';
   document.querySelector('.auth-tabs').style.display = 'none';
@@ -676,41 +612,26 @@ async function showFacebookConnect() {
   document.querySelector('.auth-title').innerHTML = 'Conectar Facebook';
   document.querySelector('.auth-sub').textContent = 'Conecte sua conta do Facebook uma única vez para buscar anúncios.';
 
-  // Adiciona steps e botão de connect se não existirem
   let stepsEl = document.getElementById('fb-connect-steps');
   if (!stepsEl) {
     const div = document.createElement('div');
     div.id = 'fb-connect-steps';
+    div.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem';
     div.innerHTML = `
-      <div class="auth-steps">
-        <div class="step"><div class="step-num">1</div>Clique em Conectar</div>
-        <div class="step"><div class="step-num">2</div>Faça login no Facebook</div>
-        <div class="step"><div class="step-num">3</div>Feche a janela e busque</div>
-      </div>
       <button class="btn-primary" id="btn-connect" onclick="startLogin()">Conectar Facebook</button>
-      <button id="btn-confirm-login" style="display:none;padding:9px 20px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'Inter',sans-serif;font-size:13px;cursor:pointer" onclick="confirmLogin()">✓ Já fiz o login — Continuar</button>
       <p id="auth-status" style="font-size:13px;color:var(--text2);height:18px"></p>
     `;
     document.getElementById('screen-auth').appendChild(div);
   } else {
     stepsEl.style.display = 'flex';
-    stepsEl.style.flexDirection = 'column';
-    stepsEl.style.alignItems = 'center';
-    stepsEl.style.gap = '1.5rem';
   }
 }
 
-// ── Upgrade modal ──────────────────────────────────────────
-function showUpgradeModal() {
-  document.getElementById('upgrade-overlay').classList.add('show');
-}
-function closeUpgradeModal() {
-  document.getElementById('upgrade-overlay').classList.remove('show');
-}
+function showUpgradeModal() { document.getElementById('upgrade-overlay').classList.add('show'); }
+function closeUpgradeModal() { document.getElementById('upgrade-overlay').classList.remove('show'); }
 async function handleUpgrade() {
   const btn = document.querySelector('.btn-upgrade');
   if (btn) { btn.disabled = true; btn.textContent = 'Aguarde…'; }
-
   const res = await api('POST', '/api/stripe/checkout', {});
   if (res?.ok && res?.url) {
     window.location.href = res.url;
@@ -720,16 +641,12 @@ async function handleUpgrade() {
   }
 }
 
-// Intercepta recursos Pro e mostra modal
 function checkProFeature(featureName) {
-  if (currentUser?.plan !== 'pro') {
-    showUpgradeModal();
-    return false;
-  }
+  if (currentUser?.plan !== 'pro') { showUpgradeModal(); return false; }
   return true;
 }
 
-// ── Autenticação Facebook ──────────────────────────────────
+// ── LOGIN FACEBOOK — FLUXO CORRIGIDO ──────────────────────
 async function startLogin() {
   const btn = document.getElementById('btn-connect');
   btn.disabled = true; btn.textContent = 'Aguarde…';
@@ -744,42 +661,35 @@ async function startLogin() {
   sessionId = res.sessionId;
   localStorage.setItem('mkt_session', sessionId);
 
-  // Abre o Facebook no próprio navegador do usuário
-  // Após login, o Facebook redireciona para nossa página de callback
-  const callbackUrl = encodeURIComponent(window.location.origin + '/facebook-callback?sessionId=' + sessionId);
-  const loginUrl = `https://www.facebook.com/login?next=${encodeURIComponent('https://www.facebook.com/marketplace/')}`;
+  // URL do Facebook para login
+  const fbLoginUrl = 'https://www.facebook.com/login';
+  // URL do callback — onde os cookies serão capturados
+  const callbackUrl = window.location.origin + '/facebook-callback?sessionId=' + sessionId;
 
-  btn.textContent = 'Facebook aberto…';
-  setAuthStatus('');
-
-  // Mostra instruções claras
   const stepsEl = document.getElementById('fb-connect-steps');
   if (stepsEl) {
     stepsEl.innerHTML = `
-      <div style="background:#0d1520;border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:1.25rem;max-width:360px;text-align:left">
-        <p style="font-size:13px;font-weight:700;color:#38bdf8;margin-bottom:.75rem">📘 Instruções de conexão:</p>
-        <ol style="font-size:13px;color:#94a3b8;line-height:2;padding-left:1.25rem">
-          <li>Clique em <strong style="color:#e2e8f0">Abrir Facebook</strong> abaixo</li>
-          <li>Faça login normalmente</li>
-          <li>Volte para esta aba — a conexão será detectada automaticamente</li>
+      <div style="background:#f8f9ff;border:2px solid #818cf8;border-radius:12px;padding:1.25rem;max-width:380px;text-align:left">
+        <p style="font-size:13px;font-weight:700;color:#3730a3;margin-bottom:.75rem">📘 Como conectar:</p>
+        <ol style="font-size:13px;color:#4338ca;line-height:2.2;padding-left:1.25rem">
+          <li>Clique em <strong>Abrir Facebook</strong> e faça login normalmente</li>
+          <li>Após logar, volte aqui e clique em <strong>Já fiz o login</strong></li>
         </ol>
       </div>
-      <a href="${loginUrl}" target="_blank" onclick="startPolling()" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:#1877f2;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;margin-top:.5rem">
+
+      <a href="${fbLoginUrl}" target="_blank"
+         style="display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:#1877f2;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(24,119,242,0.35)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
         Abrir Facebook
       </a>
-      <p id="auth-status" style="font-size:12px;color:#94a3b8;margin-top:.5rem;height:18px"></p>
+
+      <a href="${callbackUrl}"
+         style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(106,13,173,0.3)">
+        ✓ Já fiz o login — Conectar
+      </a>
+
+      <p id="auth-status" style="font-size:12px;color:var(--text2);height:18px"></p>
     `;
-  }
-
-  // Começa a verificar se o usuário já fez login
-  checkInterval = setInterval(autoCheckLogin, 3000);
-}
-
-function startPolling() {
-  // Garante que o polling está rodando quando usuário clica no link
-  if (!checkInterval) {
-    checkInterval = setInterval(autoCheckLogin, 3000);
   }
 }
 
@@ -791,16 +701,7 @@ async function autoCheckLogin() {
     checkInterval = null;
     setAuthStatus('✅ Conectado! Carregando…');
     await showApp();
-  } else {
-    setAuthStatus('Aguardando login no Facebook…');
   }
-}
-
-async function confirmLogin() {
-  setAuthStatus('Verificando…');
-  const res = await api('GET', `/api/session/${sessionId}/check`);
-  if (res?.loggedIn) { clearInterval(checkInterval); showApp(); }
-  else setAuthStatus('Login não detectado ainda. Tente novamente.');
 }
 
 async function logout() {
@@ -891,7 +792,6 @@ function onMonStateChange(preselect) {
   if (preselect) citySelect.value = preselect;
 }
 
-// ── Busca ─────────────────────────────────────────────────
 async function doSearch() {
   const keyword = document.getElementById('input-keyword').value.trim();
   const state = document.getElementById('input-state').value;
@@ -909,7 +809,6 @@ async function doSearch() {
   btn.disabled = true; btn.textContent = 'Buscando…';
   document.getElementById('listings-grid').innerHTML = '';
   document.getElementById('stats-grid').style.display = 'none';
-
   document.getElementById('filters').style.display = 'none';
   showLoading();
 
@@ -937,7 +836,6 @@ async function doSearch() {
   toast(`${allListings.length} anúncios encontrados!`, 'success');
 }
 
-// ── Render Stats ──────────────────────────────────────────
 function renderStats() {
   const grid = document.getElementById('stats-grid');
   if (!currentStats) { grid.style.display = 'none'; return; }
@@ -955,9 +853,6 @@ function renderStats() {
   document.getElementById('location-tip').style.display = 'flex';
 }
 
-
-
-// ── Render Listings ───────────────────────────────────────
 function renderListings() {
   const sort = document.getElementById('sort-select')?.value || 'price_asc';
   let list = allListings.filter(l => !isBlockedByWords(l.title || ''));
@@ -971,7 +866,6 @@ function renderListings() {
       return 0;
     });
   }
-  // proximity = mantém ordem original do servidor (já ordenado por distância)
   const grid = document.getElementById('listings-grid');
   if (!list.length) { grid.innerHTML = '<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">🔍</div><p>Nenhum anúncio com esse filtro.</p></div>'; return; }
   grid.innerHTML = list.map(l => {
@@ -995,7 +889,6 @@ function renderListings() {
   }).join('');
 }
 
-// ── Filtros ───────────────────────────────────────────────
 function setFilter(f, btn) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -1007,23 +900,11 @@ function toggleFilter(btn) {
   btn.querySelector('.dot-toggle').textContent = btn.classList.contains('on') ? '✕' : '';
 }
 
-// ── Palavras bloqueadas ───────────────────────────────────
 let blockedWords = JSON.parse(localStorage.getItem('blocked_words') || '[]');
 
-function initBlockedWords() {
-  renderBlockedTags();
-}
-
-function saveBlockedWords() {
-  localStorage.setItem('blocked_words', JSON.stringify(blockedWords));
-}
-
-function clearBlockedWords() {
-  blockedWords = [];
-  saveBlockedWords();
-  renderBlockedTags();
-}
-
+function initBlockedWords() { renderBlockedTags(); }
+function saveBlockedWords() { localStorage.setItem('blocked_words', JSON.stringify(blockedWords)); }
+function clearBlockedWords() { blockedWords = []; saveBlockedWords(); renderBlockedTags(); }
 function addBlockedWord(word) {
   const input = document.getElementById('word-input');
   const w = (word || input.value).trim().toLowerCase();
@@ -1033,13 +914,11 @@ function addBlockedWord(word) {
   if (input) input.value = '';
   renderBlockedTags();
 }
-
 function removeBlockedWord(word) {
   blockedWords = blockedWords.filter(w => w !== word);
   saveBlockedWords();
   renderBlockedTags();
 }
-
 function renderBlockedTags() {
   const container = document.getElementById('blocked-words');
   if (!blockedWords.length) {
@@ -1047,14 +926,8 @@ function renderBlockedTags() {
     return;
   }
   container.innerHTML = blockedWords.map(w => `
-    <span class="blocked-tag">
-      ${esc(w)}
-      <button onclick="removeBlockedWord('${esc(w)}')" title="Remover">×</button>
-    </span>`).join('');
+    <span class="blocked-tag">${esc(w)}<button onclick="removeBlockedWord('${esc(w)}')" title="Remover">×</button></span>`).join('');
 }
-
-
-
 function isBlockedByWords(title) {
   if (!blockedWords.length) return false;
   const t = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -1064,167 +937,32 @@ function isBlockedByWords(title) {
   });
 }
 
-// ── Comparador Facebook vs OLX ────────────────────────────
-async function doCompare() {
-  if (!checkProFeature('compare')) return;
-  const keyword = document.getElementById('input-keyword').value.trim();
-  const state = document.getElementById('input-state').value;
-  const city = document.getElementById('input-city').value;
-  const removeNoPrice = document.getElementById('tog-noprice').classList.contains('on');
-
-  if (!keyword) { toast('Digite o produto para comparar.', 'error'); return; }
-  if (!state || !city) { toast('Selecione estado e cidade primeiro.', 'error'); return; }
-
-  const location = `${city}, ${state}`;
-  const btn = document.getElementById('btn-compare');
-  btn.disabled = true; btn.textContent = 'Comparando…';
-  showLoading();
-  document.getElementById('loading-text').textContent = 'Comparando mercados…';
-
-  const res = await api('POST', '/api/compare', { sessionId, keyword, location, city, removeNoPrice, blockedWords });
-
-  btn.disabled = false; btn.textContent = 'Comparar com OLX';
-  hideLoading();
-  document.getElementById('loading-text').textContent = 'Buscando anúncios…';
-
-  if (!res?.ok) { toast('Erro: ' + (res?.error || 'tente novamente'), 'error'); return; }
-
-  renderComparePanel(res);
-  document.getElementById('compare-panel').scrollIntoView({ behavior: 'smooth' });
-}
-
-function renderComparePanel(data) {
-  const panel = document.getElementById('compare-panel');
-  const { facebook: fb, olx, arbitrage, keyword } = data;
-
-  let arbitrageHtml = '';
-  if (arbitrage && arbitrage.profit > 0) {
-    const isGood = arbitrage.margin >= 20;
-    arbitrageHtml = `
-      <div class="arbitrage-box ${isGood ? '' : 'warn'}">
-        <div class="arbitrage-title ${isGood ? '' : 'warn'}">
-          ${isGood ? '💰' : '💡'} Oportunidade de arbitragem detectada!
-        </div>
-        <div class="arbitrage-numbers">
-          <div class="arb-stat" style="color:${isGood?'#166534':'#92400e'}">
-            <strong>R$ ${fmt(arbitrage.buy_price)}</strong>
-            Comprar em ${esc(arbitrage.buy_source)}
-          </div>
-          <div class="arb-stat" style="color:${isGood?'#166534':'#92400e'}">
-            <strong>→</strong>&nbsp;
-          </div>
-          <div class="arb-stat" style="color:${isGood?'#166534':'#92400e'}">
-            <strong>R$ ${fmt(arbitrage.sell_price)}</strong>
-            Vender em ${esc(arbitrage.sell_source)}
-          </div>
-        </div>
-        <p style="font-size:12px;color:${isGood?'#166534':'#92400e'};margin:0">
-          Lucro potencial: <strong>R$ ${fmt(arbitrage.profit)}</strong> (${arbitrage.margin}% de margem)
-        </p>
-      </div>`;
-  } else {
-    arbitrageHtml = `<div style="background:#f8fafc;border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;font-size:12px;color:var(--text2)">
-      ℹ️ Nenhuma oportunidade clara de arbitragem encontrada para <strong>${esc(keyword)}</strong> no momento.
-    </div>`;
-  }
-
-  const fbStats = fb.stats;
-  const olxStats = olx.stats;
-
-  function statsHtml(stats, listings, source, emoji) {
-    if (!stats) return `<div class="compare-col">
-      <div class="compare-col-title">${emoji} ${source}</div>
-      <div class="no-results">Nenhum resultado encontrado</div>
-    </div>`;
-
-    const topListings = listings.slice(0,3).map(l => `
-      <div class="compare-mini-card">
-        ${l.image_url ? `<img class="compare-mini-img" src="${esc(l.image_url)}" onerror="this.style.display='none'">` : ''}
-        <div class="compare-mini-info">
-          <div class="compare-mini-title">${esc(l.title)}</div>
-          <div class="compare-mini-price">R$ ${fmt(l.price)}</div>
-        </div>
-        <a class="compare-mini-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver →</a>
-      </div>`).join('');
-
-    return `<div class="compare-col">
-      <div class="compare-col-title">${emoji} ${source}</div>
-      <div class="compare-stat-row"><span>Anúncios</span><span>${stats.total}</span></div>
-      <div class="compare-stat-row"><span>Preço médio</span><span>R$ ${fmt(stats.avg)}</span></div>
-      <div class="compare-stat-row"><span>Menor preço</span><span style="color:#16a34a;font-weight:600">R$ ${fmt(stats.min)}</span></div>
-      <div class="compare-stat-row"><span>Maior preço</span><span>R$ ${fmt(stats.max)}</span></div>
-      <div class="compare-stat-row"><span>Mediana</span><span>R$ ${fmt(stats.median)}</span></div>
-      <p style="font-size:11px;color:var(--text2);margin:8px 0 4px">Menores preços encontrados:</p>
-      ${topListings || '<div class="no-results">Sem anúncios com preço</div>'}
-    </div>`;
-  }
-
-  panel.style.display = 'block';
-  panel.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-      <p style="font-size:14px;font-weight:600;margin:0">Comparação: <span style="color:var(--accent)">${esc(keyword)}</span></p>
-      <button onclick="document.getElementById('compare-panel').style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px">×</button>
-    </div>
-    ${arbitrageHtml}
-    <div class="compare-grid">
-      ${statsHtml(fbStats, fb.listings || [], 'Facebook Marketplace', '📘')}
-      ${statsHtml(olxStats, olx.listings || [], 'OLX', '🟠')}
-    </div>
-  `;
-}
-
-// ── Histórico de preços ───────────────────────────────────
 let historyChartInstance = null;
-
 async function loadPriceHistory(keyword, city) {
   if (!keyword || !city) return;
   const res = await api('GET', `/api/price-history?keyword=${encodeURIComponent(keyword)}&city=${encodeURIComponent(city)}&days=30`);
-  if (!res?.ok || !res.history?.length) {
-    document.getElementById('history-container').style.display = 'none';
-    return;
-  }
+  if (!res?.ok || !res.history?.length) { document.getElementById('history-container').style.display = 'none'; return; }
   renderHistoryChart(res.history);
 }
 
 function renderHistoryChart(history) {
   if (history.length < 2) { document.getElementById('history-container').style.display = 'none'; return; }
-
-  const labels = history.map(h => {
-    const d = new Date(h.date);
-    return `${d.getDate()}/${d.getMonth()+1}`;
-  });
+  const labels = history.map(h => { const d = new Date(h.date); return `${d.getDate()}/${d.getMonth()+1}`; });
   const avgs = history.map(h => Math.round(h.avg));
-
-  // Variação vs primeira entrada
   const first = avgs[0], last = avgs[avgs.length - 1];
   const pct = Math.round(((last - first) / first) * 100);
   const badge = document.getElementById('history-badge');
   if (pct < -3) { badge.className = 'history-badge down'; badge.textContent = `↓ ${Math.abs(pct)}% vs início`; }
   else if (pct > 3) { badge.className = 'history-badge up'; badge.textContent = `↑ ${pct}% vs início`; }
   else { badge.className = 'history-badge flat'; badge.textContent = 'Estável'; }
-
   const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
   const tc = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)';
   const gc = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
-
   document.getElementById('history-container').style.display = 'block';
   if (historyChartInstance) { historyChartInstance.destroy(); historyChartInstance = null; }
-
   historyChartInstance = new Chart(document.getElementById('history-chart'), {
     type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        data: avgs,
-        borderColor: '#00e676',
-        backgroundColor: 'rgba(0,230,118,0.08)',
-        borderWidth: 2,
-        pointBackgroundColor: '#00e676',
-        pointRadius: 4,
-        fill: true,
-        tension: 0.3,
-      }]
-    },
+    data: { labels, datasets: [{ data: avgs, borderColor: '#6a0dad', backgroundColor: 'rgba(106,13,173,0.08)', borderWidth: 2, pointBackgroundColor: '#6a0dad', pointRadius: 4, fill: true, tension: 0.3 }] },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` R$ ${fmt(ctx.raw)}` } } },
@@ -1236,20 +974,13 @@ function renderHistoryChart(history) {
   });
 }
 
-// ── Calculadora de lucro ──────────────────────────────────
 function toggleCalc(btn, buyPrice, avgPrice) {
   const panel = btn.nextElementSibling;
   const isOpen = panel.classList.contains('open');
-  // Fecha todos os outros
   document.querySelectorAll('.calc-panel.open').forEach(p => p.classList.remove('open'));
   document.querySelectorAll('.calc-btn').forEach(b => b.textContent = 'Calcular lucro');
-  if (!isOpen) {
-    panel.classList.add('open');
-    btn.textContent = 'Fechar calculadora';
-    updateCalc(panel.querySelector('.calc-buy'));
-  }
+  if (!isOpen) { panel.classList.add('open'); btn.textContent = 'Fechar calculadora'; updateCalc(panel.querySelector('.calc-buy')); }
 }
-
 function updateCalc(input) {
   const panel = input.closest('.calc-panel');
   const buy = parseFloat(panel.querySelector('.calc-buy').value) || 0;
@@ -1260,44 +991,25 @@ function updateCalc(input) {
   const result = panel.querySelector('.calc-result');
   const profitEl = result.querySelector('.profit');
   const marginEl = result.querySelector('.margin');
-
   profitEl.textContent = (profit >= 0 ? '+' : '') + 'R$ ' + fmt(profit);
   marginEl.textContent = `Margem: ${margin.toFixed(1)}%`;
-
   result.className = 'calc-result';
   if (profit <= 0) { result.classList.add('bad'); profitEl.style.color = '#ff5252'; }
   else if (margin < 15) { result.classList.add('warn'); profitEl.style.color = '#ffb300'; }
   else { result.classList.add('good'); profitEl.style.color = '#00e676'; }
 }
 
-// ── Loading overlay ──────────────────────────────────────
-const LOADING_MSGS = [
-  'Acessando o Marketplace…',
-  'Coletando anúncios…',
-  'Calculando médias de preço…',
-  'Identificando oportunidades…',
-  'Quase pronto…',
-];
+const LOADING_MSGS = ['Acessando o Marketplace…','Coletando anúncios…','Calculando médias de preço…','Identificando oportunidades…','Quase pronto…'];
 let loadingInterval = null;
-
 function showLoading() {
   const overlay = document.getElementById('loading-overlay');
   const sub = document.getElementById('loading-sub');
   overlay.classList.add('show');
-  let i = 0;
-  sub.textContent = LOADING_MSGS[0];
-  loadingInterval = setInterval(() => {
-    i = (i + 1) % LOADING_MSGS.length;
-    sub.textContent = LOADING_MSGS[i];
-  }, 2500);
+  let i = 0; sub.textContent = LOADING_MSGS[0];
+  loadingInterval = setInterval(() => { i = (i + 1) % LOADING_MSGS.length; sub.textContent = LOADING_MSGS[i]; }, 2500);
 }
+function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); clearInterval(loadingInterval); }
 
-function hideLoading() {
-  document.getElementById('loading-overlay').classList.remove('show');
-  clearInterval(loadingInterval);
-}
-
-// ── Push / Alertas ────────────────────────────────────────
 async function initPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
@@ -1307,9 +1019,7 @@ async function initPush() {
     else if (perm !== 'denied') showPermissionBanner();
   } catch (err) { console.warn('SW erro:', err); }
 }
-
 function showPermissionBanner() { document.getElementById('permission-banner').style.display = 'block'; }
-
 async function requestNotificationPermission() {
   const btn = document.getElementById('btn-allow-notif');
   btn.disabled = true; btn.textContent = 'Aguardando…';
@@ -1321,12 +1031,8 @@ async function requestNotificationPermission() {
     await subscribePush(reg);
     showMonitorPanel();
     await api('POST', '/api/push/test', { sessionId });
-  } else {
-    toast('Permissão negada.', 'error');
-    btn.disabled = false; btn.textContent = 'Permitir notificações';
-  }
+  } else { toast('Permissão negada.', 'error'); btn.disabled = false; btn.textContent = 'Permitir notificações'; }
 }
-
 async function subscribePush(reg) {
   try {
     const res = await api('GET', '/api/push/vapid-key');
@@ -1335,12 +1041,7 @@ async function subscribePush(reg) {
     await api('POST', '/api/push/subscribe', { sessionId, subscription: sub.toJSON() });
   } catch (err) { console.warn('Push subscribe erro:', err); }
 }
-
-function showMonitorPanel() {
-  document.getElementById('monitor-panel').style.display = 'block';
-  loadMonitors();
-}
-
+function showMonitorPanel() { document.getElementById('monitor-panel').style.display = 'block'; loadMonitors(); }
 function toggleMonitorForm() {
   const form = document.getElementById('monitor-form');
   form.classList.toggle('visible');
@@ -1350,7 +1051,6 @@ function toggleMonitorForm() {
   const curCity = document.getElementById('input-city').value;
   if (curState) { document.getElementById('mon-state').value = curState; onMonStateChange(curCity); }
 }
-
 async function saveMonitor() {
   if (!checkProFeature('alerts')) return;
   const keyword = document.getElementById('mon-keyword').value.trim();
@@ -1372,7 +1072,6 @@ async function saveMonitor() {
     loadMonitors();
   } else toast('Erro ao salvar: ' + (res?.error || ''), 'error');
 }
-
 async function loadMonitors() {
   if (!sessionId) return;
   const res = await api('GET', `/api/monitor/${sessionId}`);
@@ -1384,45 +1083,29 @@ async function loadMonitors() {
       <button class="btn-remove-monitor" onclick="deleteMonitor('${m.id}')">×</button>
     </div>`).join('');
 }
-
-async function deleteMonitor(id) {
-  await api('DELETE', `/api/monitor/${id}`);
-  loadMonitors(); toast('Alerta removido.', '');
-}
-
+async function deleteMonitor(id) { await api('DELETE', `/api/monitor/${id}`); loadMonitors(); toast('Alerta removido.', ''); }
 function urlBase64ToUint8Array(b) {
   const padding = '='.repeat((4 - b.length % 4) % 4);
   const base64 = (b + padding).replace(/-/g, '+').replace(/_/g, '/');
   return Uint8Array.from([...atob(base64)].map(c => c.charCodeAt(0)));
 }
 
-// ── UI helpers ────────────────────────────────────────────
 function showAuth() {
   document.getElementById('screen-auth').style.display = 'flex';
   document.getElementById('screen-app').style.display = 'none';
   document.getElementById('status-dot').className = 'dot';
   document.getElementById('status-text').textContent = 'Desconectado';
   document.getElementById('btn-logout').style.display = 'none';
-  document.getElementById('btn-connect').disabled = false;
-  document.getElementById('btn-connect').textContent = 'Conectar Facebook';
-  document.getElementById('btn-confirm-login').style.display = 'none';
   setAuthStatus('');
 }
 
 async function showApp() {
-  // Busca plano atualizado do servidor
-  if (authToken) {
-    const me = await api('GET', '/api/auth/me');
-    if (me?.ok) currentUser = me;
-  }
-
+  if (authToken) { const me = await api('GET', '/api/auth/me'); if (me?.ok) currentUser = me; }
   document.getElementById('screen-auth').style.display = 'none';
   document.getElementById('screen-app').style.display = 'block';
   document.getElementById('status-dot').className = 'dot online';
   document.getElementById('status-text').textContent = currentUser?.email || 'Conectado';
   document.getElementById('btn-logout').style.display = 'inline-block';
-
-  // Badge de plano
   const badge = document.getElementById('plan-badge');
   if (badge) {
     badge.style.display = 'inline-block';
@@ -1430,7 +1113,6 @@ async function showApp() {
     badge.textContent = isPro ? '⭐ Pro' : 'Free';
     badge.className = `plan-badge ${isPro ? 'pro' : 'free'}`;
   }
-
   applyPlanLimits();
   initPush();
   initBlockedWords();
@@ -1439,41 +1121,20 @@ async function showApp() {
 function applyPlanLimits() {
   const isPro = currentUser?.plan === 'pro';
   const maxAllowed = isPro ? 100 : 20;
-
-  // Limitar qtd máxima
   const maxInput = document.getElementById('input-max');
   if (maxInput) {
     maxInput.max = maxAllowed;
-    if (!isPro) {
-      maxInput.value = Math.min(parseInt(maxInput.value) || 20, 20);
-      maxInput.title = 'Plano free: máximo 20 resultados';
-    }
+    if (!isPro) { maxInput.value = Math.min(parseInt(maxInput.value) || 20, 20); maxInput.title = 'Plano free: máximo 20 resultados'; }
   }
-
-  // Botão Comparar com OLX
   const compareBtn = document.getElementById('btn-compare');
   if (compareBtn) {
-    if (!isPro) {
-      compareBtn.onclick = (e) => { e.preventDefault(); showUpgradeModal(); };
-      compareBtn.style.opacity = '0.6';
-      compareBtn.title = '🔒 Recurso Pro — Clique para ver planos';
-    } else {
-      compareBtn.onclick = doCompare;
-      compareBtn.style.opacity = '1';
-      compareBtn.title = '';
-    }
+    if (!isPro) { compareBtn.onclick = (e) => { e.preventDefault(); showUpgradeModal(); }; compareBtn.style.opacity = '0.6'; }
+    else { compareBtn.onclick = doCompare; compareBtn.style.opacity = '1'; }
   }
-
-  // Campo de palavras bloqueadas
   const wordInput = document.getElementById('word-input');
   const addWordBtn = document.querySelector('.btn-add-word');
-  if (wordInput) {
-    wordInput.disabled = !isPro;
-    wordInput.placeholder = isPro ? 'ex: caixa, defeito…' : '🔒 Recurso Pro';
-  }
+  if (wordInput) { wordInput.disabled = !isPro; wordInput.placeholder = isPro ? 'ex: caixa, defeito…' : '🔒 Recurso Pro'; }
   if (addWordBtn) addWordBtn.disabled = !isPro;
-
-  // Painel de alertas
   const monitorPanel = document.getElementById('monitor-panel');
   if (monitorPanel && !isPro) {
     monitorPanel.style.display = 'block';
@@ -1485,11 +1146,12 @@ function applyPlanLimits() {
         <p style="font-size:11px;color:#7c3aed;font-weight:600;margin-top:6px">Clique para ver planos →</p>
       </div>`;
   }
-
-  console.log(`[Plano] ${isPro ? 'Pro ✓' : 'Free — limite ' + maxAllowed}`);
 }
 
-function setAuthStatus(msg) { document.getElementById('auth-status').textContent = msg; }
+function setAuthStatus(msg) {
+  const el = document.getElementById('auth-status');
+  if (el) el.textContent = msg;
+}
 function fmt(n) { if (n == null) return '—'; return Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
 function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -1499,11 +1161,8 @@ async function api(method, url, body) {
     if (authToken) opts.headers['x-auth-token'] = authToken;
     if (body) opts.body = JSON.stringify(body);
     const res = await (await fetch(url, opts)).json();
-    // Se token expirado, desloga
     if (res?.error?.includes('autenticado') && url !== '/api/auth/login') {
-      localStorage.removeItem('mkt_token');
-      authToken = null; currentUser = null;
-      showAuth();
+      localStorage.removeItem('mkt_token'); authToken = null; currentUser = null; showAuth();
     }
     return res;
   } catch { return null; }
