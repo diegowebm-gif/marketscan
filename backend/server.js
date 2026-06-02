@@ -13,8 +13,49 @@ const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMoni
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 app.use(cors());
+
+// ⚠️  WEBHOOK STRIPE: registrado ANTES do express.json()
+// O Stripe precisa do body raw para validar a assinatura
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+  try {
+    if (webhookSecret) {
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } else {
+      // Sem secret configurado (dev local), aceita sem validar
+      event = JSON.parse(req.body.toString());
+    }
+  } catch (err) {
+    console.error('[Stripe] Webhook error:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  console.log('[Stripe] Evento recebido:', event.type);
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const token = session.metadata?.userToken;
+    if (token) {
+      upgradeToPro(token, 1);
+      console.log(`[Stripe] Plano Pro ativado para token: ${token.slice(0, 8)}...`);
+    }
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    console.log('[Stripe] Assinatura cancelada:', event.data.object.id);
+    // TODO: revogar plano Pro do usuário correspondente
+  }
+
+  res.json({ received: true });
+});
+
+// Agora sim: JSON parser para o resto das rotas
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
 
@@ -55,7 +96,6 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
   res.json({ ok: true, email: req.user.email, plan: req.user.plan, limits: req.limits, planExpiresAt: req.user.planExpiresAt });
 });
 
-// Rota admin para upgrade (em produção seria via webhook do pagamento)
 app.post('/api/auth/upgrade', requireAuth, (req, res) => {
   const { months = 1 } = req.body;
   const result = upgradeToPro(req.headers['x-auth-token'] || req.body?.authToken, months);
@@ -63,19 +103,24 @@ app.post('/api/auth/upgrade', requireAuth, (req, res) => {
 });
 
 // ── Sessão Facebook ───────────────────────────────────────
+// FIX: não chama mais Puppeteer aqui — só monta a URL e devolve pro frontend
 app.post('/api/session/start', requireAuth, async (req, res) => {
   try {
     const sessionId = uuidv4();
     createSession(sessionId);
-    const result = await openLoginWindow(sessionId);
-    res.json({ ok: true, sessionId, loginUrl: result.loginUrl });
+
+    // O frontend vai abrir esta URL numa nova aba/popup
+    // Após o login, o Facebook redireciona para /facebook-callback?sessionId=...
+    const loginUrl = `https://www.facebook.com/login?next=${encodeURIComponent('https://www.facebook.com/marketplace')}`;
+
+    res.json({ ok: true, sessionId, loginUrl });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
 
-// Página de callback — usuário chega aqui após fazer login no Facebook
-// O JavaScript desta página captura os cookies e envia para o servidor
+// Página de callback — o usuário chega aqui após fazer login no Facebook
+// O JS desta página lê os cookies do browser e envia para o servidor
 app.get('/facebook-callback', (req, res) => {
   const { sessionId } = req.query;
   if (!sessionId) return res.redirect('/');
@@ -92,7 +137,6 @@ app.get('/facebook-callback', (req, res) => {
   <p id="msg">Verificando login no Facebook...</p>
   <script>
     async function sendCookies() {
-      // Envia os cookies do Facebook para o servidor via API
       const res = await fetch('/api/session/cookies', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
@@ -104,8 +148,8 @@ app.get('/facebook-callback', (req, res) => {
       });
       const data = await res.json();
       if (data.ok) {
-        document.getElementById('msg').textContent = 'Conectado! Redirecionando...';
-        setTimeout(() => window.close(), 1000);
+        document.getElementById('msg').textContent = 'Conectado! Pode fechar esta janela.';
+        setTimeout(() => window.close(), 1500);
       } else {
         document.getElementById('msg').textContent = 'Erro: ' + (data.error || 'tente novamente');
       }
@@ -115,26 +159,24 @@ app.get('/facebook-callback', (req, res) => {
 </body></html>`);
 });
 
-// Recebe cookies do browser do usuário
+// Recebe cookies do browser do usuário e salva para uso no Puppeteer
 app.post('/api/session/cookies', async (req, res) => {
   const { sessionId, cookies, userAgent } = req.body;
   if (!sessionId) return res.status(400).json({ ok: false, error: 'sessionId obrigatório' });
 
   try {
-    // Parseia cookies da string do browser
     const cookieObj = {};
     (cookies || '').split(';').forEach(c => {
-      const [k, v] = c.trim().split('=');
-      if (k) cookieObj[k.trim()] = v || '';
+      const [k, ...rest] = c.trim().split('=');
+      if (k) cookieObj[k.trim()] = rest.join('=') || '';
     });
 
-    // Verifica se tem cookie de sessão do Facebook
+    // Verifica se tem cookie de sessão ativa do Facebook
     const hasSession = cookieObj['c_user'] || cookieObj['xs'];
     if (!hasSession) {
-      return res.json({ ok: false, error: 'Login no Facebook não detectado. Faça login primeiro.' });
+      return res.json({ ok: false, error: 'Login no Facebook não detectado. Faça login no Facebook primeiro e tente novamente.' });
     }
 
-    // Converte para formato do Puppeteer e salva
     const puppeteerCookies = Object.entries(cookieObj).map(([name, value]) => ({
       name, value,
       domain: '.facebook.com',
@@ -145,7 +187,7 @@ app.post('/api/session/cookies', async (req, res) => {
 
     saveCookies(sessionId, puppeteerCookies);
     touchSession(sessionId);
-    console.log('[Auth] Cookies salvos para sessão ' + sessionId.slice(0,8) + '...');
+    console.log('[Auth] Cookies salvos para sessão ' + sessionId.slice(0, 8) + '...');
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
@@ -254,59 +296,24 @@ app.post('/api/push/test', requireAuth, requirePro, async (req, res) => {
 });
 
 // ── Stripe Checkout ───────────────────────────────────────
-
-// Cria sessão de checkout
 app.post('/api/stripe/checkout', requireAuth, async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
-      success_url: `http://localhost:${process.env.PORT || 3000}/success?session_id={CHECKOUT_SESSION_ID}&token=${req.headers['x-auth-token']}`,
-      cancel_url: `http://localhost:${process.env.PORT || 3000}/?canceled=true`,
+      // FIX: usa BASE_URL em vez de localhost hardcoded
+      success_url: `${BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}&token=${req.headers['x-auth-token']}`,
+      cancel_url: `${BASE_URL}/?canceled=true`,
       customer_email: req.user.email,
       metadata: { userToken: req.headers['x-auth-token'] },
       locale: 'pt-BR',
     });
     res.json({ ok: true, url: session.url });
   } catch (err) {
-    console.error('Stripe checkout error:', err);
+    console.error('[Stripe] Checkout error:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
-});
-
-// Webhook do Stripe — precisa do body raw
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  let event;
-  try {
-    if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } else {
-      event = JSON.parse(req.body);
-    }
-  } catch (err) {
-    console.error('Webhook error:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object;
-    const token = session.metadata?.userToken;
-    if (token) {
-      upgradeToPro(token, 1);
-      console.log(`[Stripe] Plano Pro ativado para token: ${token.slice(0, 8)}...`);
-    }
-  }
-
-  if (event.type === 'customer.subscription.deleted') {
-    console.log('[Stripe] Assinatura cancelada:', event.data.object.id);
-    // Aqui você pode revogar o plano pro quando a assinatura for cancelada
-  }
-
-  res.json({ received: true });
 });
 
 // Página de sucesso após pagamento
@@ -318,7 +325,7 @@ app.get('/success', async (req, res) => {
       if (session.payment_status === 'paid') {
         upgradeToPro(token, 1);
       }
-    } catch (e) { console.error('Success page error:', e); }
+    } catch (e) { console.error('[Stripe] Success page error:', e); }
   }
   res.redirect('/?upgraded=true');
 });
@@ -327,4 +334,4 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../frontend/index.
 
 startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies);
 
-app.listen(PORT, () => console.log(`\n🚀 MarketScan rodando em http://localhost:${PORT}\n`));
+app.listen(PORT, () => console.log(`\n🚀 MarketScan rodando em ${BASE_URL}\n`));

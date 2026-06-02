@@ -6,7 +6,6 @@ const path = require('path');
 const activeBrowsers = {};
 const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 
-// Garante que a pasta de cookies existe
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
 // ─── Filtros de qualidade ─────────────────────────────────
@@ -21,7 +20,6 @@ const ACCESSORY_KEYWORDS = [
   'bateria externa', 'powerbank', 'power bank', 'fonte carregador',
   'película vidro', 'película gel', 'caneta stylus', 'stylus',
   'suporte veicular', 'suporte celular', 'película fosca',
-  // Acessórios que passavam antes
   'smartwatch', 'smart watch', 'relogio inteligente', 'relógio inteligente',
   'fone bluetooth', 'fone sem fio', 'cabo original', 'carregador original',
   'fonte original', 'adaptador original', 'kit cabo', 'kit carregador',
@@ -41,19 +39,16 @@ const DEFECT_KEYWORDS = [
   'danificado', 'avariado', 'tela manchada', 'burn-in',
 ];
 
-// Normaliza texto removendo acentos e deixando minúsculo
 function normalize(str) {
   return str.toLowerCase()
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '');
 }
 
-// Verifica se o título é claramente um acessório
 function isAccessory(title) {
   const t = normalize(title);
   if (ACCESSORY_KEYWORDS.some(kw => t.includes(normalize(kw)))) return true;
-  // Títulos que começam com "cabo" ou "carregador" sozinhos
-  if (/^(cabo|carregador|fonte|adaptador|suporte|pelicula|capinha|capa|fone|kit)/.test(t)) return true;
+  if (/^(cabo|carregador|fonte|adaptador|suporte|pelicula|capinha|capa|fone|kit)/.test(t)) return true;
   return false;
 }
 
@@ -62,29 +57,17 @@ function hasDefect(title) {
   return DEFECT_KEYWORDS.some(kw => t.includes(normalize(kw)));
 }
 
-// Verifica se o anúncio é relevante para a keyword buscada
-// Ex: buscou "iphone 12" mas veio "Fone Bluetooth Samsung"
 function isRelevant(title, keyword) {
   if (!keyword) return true;
   const t = normalize(title);
   const kw = normalize(keyword);
-
-  // Se o título contém a keyword inteira, é relevante
   if (t.includes(kw)) return true;
-
-  // Pega as palavras principais da keyword (ignora palavras curtas e stopwords)
   const stopwords = ['de', 'do', 'da', 'os', 'as', 'um', 'uma', 'para', 'com', 'sem', 'pro', 'pra', 'e'];
   const words = kw.split(/\s+/).filter(w => w.length > 2 && !stopwords.includes(w));
-
   if (words.length === 0) return true;
-
-  // Basta conter QUALQUER palavra principal da busca
-  // Ex: "iphone 11" → título com "iphone" já passa
-  const matched = words.filter(w => t.includes(w));
-  return matched.length >= 1;
+  return words.filter(w => t.includes(w)).length >= 1;
 }
 
-// Palavras que indicam que é acessório/embalagem, não o produto
 const PACKAGE_KEYWORDS = [
   'caixa', 'embalagem', 'box', 'apenas caixa', 'só caixa', 'somente caixa',
   'caixa vazia', 'manual', 'acessório', 'acessorios',
@@ -100,25 +83,21 @@ function filterListings(listings, options = {}) {
   return listings.filter(item => {
     const title = item.title || '';
     const loc = normalize(item.location || '');
-
     if (removeNoPrice && (item.price === null || item.price <= 0)) return false;
     if (removeDefects && hasDefect(title)) return false;
     if (removeAccessories && isAccessory(title)) return false;
     if (removeAccessories && isPackage(title)) return false;
     if (keyword && !isRelevant(title, keyword)) return false;
     if (city && loc && !loc.includes(normalize(city))) return false;
-
-    // Filtro de palavras bloqueadas personalizadas
     if (blockedWords && blockedWords.length > 0) {
       const t = normalize(title);
       if (blockedWords.some(w => w && t.includes(normalize(w)))) return false;
     }
-
     return true;
   });
 }
 
-
+// ─── Cookies ──────────────────────────────────────────────
 
 function cookiePath(sessionId) {
   return path.join(COOKIES_DIR, `${sessionId}.json`);
@@ -137,73 +116,71 @@ function loadCookies(sessionId) {
 function hasSavedCookies(sessionId) {
   const cookies = loadCookies(sessionId);
   if (!cookies) return false;
-  // Verifica se o cookie principal do Facebook ainda existe
   return cookies.some(c => c.name === 'c_user');
 }
 
-// Detecta o Chrome instalado
+// ─── Browser ──────────────────────────────────────────────
+
+// FIX: detecta o Chromium correto no Railway (Linux headless)
 function findChromePath() {
   const candidates = [
+    // Railway/Linux (nixpacks instala aqui)
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    // Variável de ambiente (Railway permite configurar)
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    // Puppeteer bundled
+    path.join(os.homedir(), '.cache', 'puppeteer', 'chrome', 'linux-131.0.6778.204', 'chrome-linux64', 'chrome'),
+    path.join(os.homedir(), '.cache', 'puppeteer', 'chrome', 'linux-120.0.6099.109', 'chrome-linux64', 'chrome'),
+    // Windows (dev local)
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    path.join(os.homedir(), '.cache', 'puppeteer', 'chrome', 'win64-121.0.6167.85', 'chrome-win64', 'chrome.exe'),
-    '/usr/bin/google-chrome',
-    '/usr/bin/chromium-browser',
-  ];
+  ].filter(Boolean);
+
   for (const c of candidates) {
     if (fs.existsSync(c)) {
-      console.log('Chrome encontrado em:', c);
+      console.log('[Browser] Chrome encontrado em:', c);
       return c;
     }
   }
+
+  console.warn('[Browser] Chrome não encontrado nos candidatos — Puppeteer vai tentar o padrão');
   return undefined;
 }
 
-async function launchBrowser(headless = false) {
+// FIX: sempre headless no servidor — sem opção de janela visível
+async function launchBrowser() {
+  const executablePath = findChromePath();
   return puppeteer.launch({
-    headless,
-    defaultViewport: null,
-    executablePath: findChromePath(),
+    headless: 'new',           // modo headless moderno
+    defaultViewport: { width: 1280, height: 900 },
+    executablePath,
     args: [
-      '--start-maximized',
       '--no-sandbox',
       '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',    // evita crash por memória limitada
+      '--disable-gpu',
+      '--single-process',           // Railway tem 1 CPU virtual — reduz overhead
+      '--no-zygote',
       '--disable-blink-features=AutomationControlled',
     ],
     ignoreDefaultArgs: ['--enable-automation'],
   });
 }
 
-// Abre janela de login para o usuário autenticar
+// ─── Login ────────────────────────────────────────────────
+
+// FIX: não abre mais janela de browser no servidor
+// Apenas retorna a URL — o frontend abre no browser do usuário
 async function openLoginWindow(sessionId) {
-  if (activeBrowsers[sessionId]) {
-    await closeBrowser(sessionId);
-  }
-
-  const browser = await launchBrowser(false); // visível para login
-  const [page] = await browser.pages();
-
-  await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-  });
-
-  // Se já tem cookies salvos, tenta restaurar sessão
-  const savedCookies = loadCookies(sessionId);
-  if (savedCookies) {
-    await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
-    await page.setCookie(...savedCookies);
-    await page.reload({ waitUntil: 'networkidle2' });
-  } else {
-    await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded' });
-  }
-
-  activeBrowsers[sessionId] = { browser, page };
-  return { ok: true };
+  const loginUrl = `https://www.facebook.com/login?next=${encodeURIComponent('https://www.facebook.com/marketplace')}`;
+  return { ok: true, loginUrl };
 }
 
-// Verifica login e salva cookies se autenticado
+// Verifica login via cookies salvos ou browser ativo (legado)
 async function checkLogin(sessionId) {
-  // Se tem cookies salvos válidos, não precisa de browser aberto
   if (hasSavedCookies(sessionId) && !activeBrowsers[sessionId]) {
     return { loggedIn: true, fromCookies: true };
   }
@@ -213,24 +190,14 @@ async function checkLogin(sessionId) {
 
   try {
     const { page, browser } = session;
-    const url = page.url();
     const cookies = await page.cookies();
     const hasSession = cookies.some(c => c.name === 'c_user');
 
     if (hasSession) {
-      // Salva os cookies para uso futuro
       saveCookies(sessionId, cookies);
-      console.log(`Cookies salvos para sessão ${sessionId}`);
-
-      // Fecha o browser visível — não precisa mais dele
       try { await browser.close(); } catch {}
       delete activeBrowsers[sessionId];
-
       return { loggedIn: true, fromCookies: false };
-    }
-
-    if (!url.includes('/login') && !url.includes('/checkpoint')) {
-      return { loggedIn: true };
     }
 
     return { loggedIn: false };
@@ -239,28 +206,26 @@ async function checkLogin(sessionId) {
   }
 }
 
-// Busca anúncios usando cookies salvos (browser headless, invisível)
+// ─── Scraping ─────────────────────────────────────────────
+
 async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}) {
   const cookies = loadCookies(sessionId);
   if (!cookies) throw new Error('Sessão não encontrada. Faça login primeiro.');
 
-  console.log(`Iniciando scraping headless para: ${keyword}`);
+  console.log(`[Scraper] Iniciando busca headless: "${keyword}"`);
 
-  // Abre browser invisível com os cookies salvos
-  const browser = await launchBrowser(true); // headless = invisível
+  const browser = await launchBrowser();
   const page = await browser.newPage();
 
   await page.evaluateOnNewDocument(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Restaura a sessão via cookies
   await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
   await page.setCookie(...cookies);
 
   const encodedKeyword = encodeURIComponent(keyword);
 
-  // Coordenadas das principais cidades para filtro por raio
   const CITY_COORDS = {
     'sao paulo':[-23.5505,-46.6333],'rio de janeiro':[-22.9068,-43.1729],
     'belo horizonte':[-19.9167,-43.9345],'salvador':[-12.9714,-38.5014],
@@ -290,10 +255,18 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     'marilia':[-22.2136,-49.9456],'americana':[-22.7375,-47.3319],
     'limeira':[-22.5639,-47.4017],'piracicaba':[-22.7253,-47.6492],
     'jundiai':[-23.1864,-46.8964],'sao jose dos campos':[-23.1794,-45.8869],
-    'franca':[-20.5386,-47.4008],'santos':[-23.9608,-46.3336],
+    'franca':[-20.5386,-47.4008],'guaruja':[-23.9928,-46.2564],
+    'itaborai':[-22.7122,-42.8594],'mage':[-22.6550,-43.0403],
+    'belford roxo':[-22.7642,-43.3967],'mesquita':[-22.7814,-43.4375],
+    'queimados':[-22.7172,-43.5572],'teresopolis':[-22.4122,-42.9781],
+    'araruama':[-22.8722,-42.3442],'resende':[-22.4681,-44.4508],
+    'saquarema':[-22.9203,-42.5100],'angra dos reis':[-23.0067,-44.3183],
+    'nova friburgo':[-22.2817,-42.5319],'campos dos goytacazes':[-21.7542,-41.3244],
+    'macae':[-22.3711,-41.7869],'barra mansa':[-22.5442,-44.1717],
+    'itaguai':[-22.8594,-43.7769],'palhoca':[-27.6447,-48.6697],
+    'sao jose':[-27.5953,-48.6349],
   };
 
-  // Mapeamento cidade → slug do Facebook
   const CITY_SLUGS = {
     'sao paulo':'sao-paulo','rio de janeiro':'rio-de-janeiro','belo horizonte':'belo-horizonte',
     'salvador':'salvador','fortaleza':'fortaleza','curitiba':'curitiba','manaus':'manaus',
@@ -311,6 +284,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     'sao joao de meriti':'sao-joao-de-meriti','sao goncalo':'sao-goncalo',
     'marica':'marica','petropolis':'petropolis','volta redonda':'volta-redonda',
     'cabo frio':'cabo-frio','santos':'santos','taubate':'taubate',
+    'praia grande':'praia-grande','bauru':'bauru','marilia':'marilia',
+    'americana':'americana','limeira':'limeira','piracicaba':'piracicaba',
+    'jundiai':'jundiai','indaiatuba':'indaiatuba','sao jose dos campos':'sao-jose-dos-campos',
+    'franca':'franca','guaruja':'guaruja','suzano':'suzano',
     'rio de janeiro — centro':'rio-de-janeiro',
     'rio de janeiro — zona sul (copacabana, ipanema)':'copacabana',
     'rio de janeiro — barra da tijuca':'barra-da-tijuca',
@@ -327,7 +304,6 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     'rio de janeiro — ilha do governador':'ilha-do-governador',
     'itaguai':'itaguai','seropedica':'seropedica','japeri':'japeri',
     'guapimirim':'guapimirim','tangua':'tangua','rio bonito':'rio-bonito',
-    // SP bairros
     'sao paulo — centro':'sao-paulo','sao paulo — zona sul':'sao-paulo',
     'sao paulo — zona norte':'sao-paulo','sao paulo — zona leste':'sao-paulo',
     'sao paulo — zona oeste':'sao-paulo','sao paulo — pinheiros':'pinheiros-sao-paulo',
@@ -336,80 +312,48 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     'sao paulo — tatuape':'tatuape','sao paulo — itaquera':'itaquera',
     'sao paulo — campo limpo':'campo-limpo-sao-paulo','sao paulo — lapa':'lapa-sao-paulo',
     'sao paulo — penha':'penha-sao-paulo',
-    // BA bairros
     'salvador — barra':'barra-salvador','salvador — itapua':'itapua-salvador',
     'salvador — pituba':'pituba','salvador — boca do rio':'boca-do-rio',
     'salvador — cajazeiras':'cajazeiras-salvador','salvador — liberdade':'liberdade-salvador',
     'salvador — brotas':'brotas-salvador',
-    // CE bairros
     'fortaleza — aldeota':'aldeota','fortaleza — meireles':'meireles',
     'fortaleza — benfica':'benfica-fortaleza','fortaleza — messejana':'messejana',
     'fortaleza — barra do ceara':'barra-do-ceara','fortaleza — parangaba':'parangaba',
-    // DF zonas
     'brasilia — asa norte':'asa-norte','brasilia — asa sul':'asa-sul',
     'brasilia — lago norte':'lago-norte','brasilia — lago sul':'lago-sul',
-    // MG bairros
     'belo horizonte — savassi':'savassi','belo horizonte — lourdes':'lourdes-belo-horizonte',
     'belo horizonte — pampulha':'pampulha','belo horizonte — barreiro':'barreiro-belo-horizonte',
     'belo horizonte — venda nova':'venda-nova','belo horizonte — norte':'belo-horizonte',
-    'belo horizonte — nordeste':'belo-horizonte',
-    // PE bairros
     'recife — boa viagem':'boa-viagem','recife — casa forte':'casa-forte',
     'recife — afogados':'afogados','recife — imbiribeira':'imbiribeira',
-    // PR bairros
     'curitiba — batel':'batel','curitiba — agua verde':'agua-verde-curitiba',
     'curitiba — boa vista':'boa-vista-curitiba','curitiba — cic':'cidade-industrial-curitiba',
     'curitiba — portao':'portao-curitiba','curitiba — cajuru':'cajuru-curitiba',
-    // RS bairros
     'porto alegre — moinhos de vento':'moinhos-de-vento',
     'porto alegre — bela vista':'bela-vista-porto-alegre',
     'porto alegre — zona norte':'porto-alegre','porto alegre — zona sul':'porto-alegre',
-    'porto alegre — zona leste':'porto-alegre',
-    // SC bairros
     'florianopolis — centro':'florianopolis','florianopolis — norte da ilha':'norte-da-ilha-florianopolis',
     'florianopolis — sul da ilha':'sul-da-ilha-florianopolis',
-    'florianopolis — leste da ilha':'florianopolis',
-    // AM zonas
     'manaus — centro':'manaus','manaus — zona sul':'manaus','manaus — zona norte':'manaus',
     'manaus — zona leste':'manaus','manaus — zona oeste':'manaus',
-    // MA bairros
-    'sao luis — centro':'sao-luis','sao luis — renascenca':'sao-luis',
-    'sao luis — cohama':'sao-luis','sao luis — calhau':'sao-luis',
-    // GO bairros
-    'goiania — setor bueno':'setor-bueno','goiania — setor oeste':'setor-oeste-goiania',
-    'goiania — jardim goias':'jardim-goias','goiania — campinas':'campinas-goiania',
-    // ES bairros
+    'sao luis — centro':'sao-luis','goiania — setor bueno':'setor-bueno',
+    'goiania — setor oeste':'setor-oeste-goiania','goiania — jardim goias':'jardim-goias',
+    'goiania — campinas':'campinas-goiania',
     'vitoria — centro':'vitoria','vitoria — praia do canto':'praia-do-canto',
     'vitoria — jardim da penha':'jardim-da-penha',
     'vila velha — itapua':'itapua-vila-velha','vila velha — praia da costa':'praia-da-costa',
-    // PB bairros
-    'joao pessoa — maneira':'joao-pessoa','joao pessoa — tambau':'tambau',
-    'joao pessoa — bancarios':'joao-pessoa',
-    // PI bairros
-    'teresina — centro':'teresina','teresina — ininga':'teresina',
-    'teresina — leste':'teresina',
-    // MS
-    'campo grande — centro':'campo-grande','campo grande — jardim dos estados':'campo-grande',
-    // MT
-    'cuiaba — centro':'cuiaba','cuiaba — cpa':'cuiaba',
-    // PA bairros
+    'joao pessoa — tambau':'tambau','campo grande — centro':'campo-grande',
+    'cuiaba — centro':'cuiaba',
     'belem — nazare':'nazare-belem','belem — umarizal':'umarizal',
     'belem — marco':'marco-belem','belem — pedreira':'pedreira-belem',
-    'praia grande':'praia-grande','bauru':'bauru','marilia':'marilia',
-    'americana':'americana','limeira':'limeira','piracicaba':'piracicaba',
-    'jundiai':'jundiai','indaiatuba':'indaiatuba','sao jose dos campos':'sao-jose-dos-campos',
-    'franca':'franca','guaruja':'guaruja','suzano':'suzano',
   };
 
-  // Normaliza a cidade removendo acentos
   const cityRaw = (options.city || '').split(',')[0].trim()
     .toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
   const citySlug = CITY_SLUGS[cityRaw] || cityRaw.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
-  const coords = CITY_COORDS[cityRaw];
-  // Usa slug na URL — o Facebook troca a região quando o slug é diferente do perfil
   const url = citySlug
     ? `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=creation_time_descend`
     : `https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend`;
@@ -423,13 +367,11 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       timeout: 15000,
     }).catch(() => null);
 
-    // Scroll para carregar mais itens
     for (let i = 0; i < 4; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2));
       await delay(1200);
     }
 
-    // Atualiza cookies após uso (mantém sessão fresca)
     const updatedCookies = await page.cookies();
     if (updatedCookies.some(c => c.name === 'c_user')) {
       saveCookies(sessionId, updatedCookies);
@@ -448,12 +390,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
           const idMatch = href.match(/\/item\/(\d+)/);
           const externalId = idMatch ? idMatch[1] : null;
 
-          // Pega todos os spans de texto do card
           const allSpanTexts = [...anchor.querySelectorAll('span')]
             .map(s => s.textContent?.trim() || '')
             .filter(t => t.length > 0);
 
-          // Preço: span que contém R$
           let priceRaw = '';
           for (const t of allSpanTexts) {
             if (t.includes('R$') && /R\$\s*[\d\.,]+/.test(t)) {
@@ -462,8 +402,6 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
             }
           }
 
-          // Título: primeiro span que NÃO é preço, NÃO é localização curta,
-          // tem mais de 4 chars e não começa com R$
           let title = anchor.getAttribute('aria-label') || '';
           if (!title || title.includes('R$')) {
             for (const t of allSpanTexts) {
@@ -481,23 +419,17 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
           if (!title || title.length < 3) return;
 
-          // Localização: procura span que contenha padrão "Cidade, UF" ou só cidade
           let loc = '';
           const stateAbbrs = ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'];
           for (const t of allSpanTexts) {
-            // Padrão "Cidade, UF"
             if (stateAbbrs.some(uf => t.endsWith(', ' + uf) || t.endsWith(', ' + uf + ' '))) {
               loc = t.trim();
               break;
             }
           }
-          // Fallback: último span com texto razoável que não seja preço nem título
           if (!loc) {
             const candidates = allSpanTexts.filter(t =>
-              t !== title &&
-              !t.includes('R$') &&
-              t.length > 2 && t.length < 60 &&
-              !t.match(/^\d+$/)
+              t !== title && !t.includes('R$') && t.length > 2 && t.length < 60 && !t.match(/^\d+$/)
             );
             if (candidates.length > 0) loc = candidates[candidates.length - 1];
           }
@@ -528,16 +460,14 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       price: parsePrice(item.price_raw),
     }));
 
-    // Aplica filtros — sem filtro de cidade pois o Facebook já filtra por localização na URL
     const filtered = filterListings(processed, {
       removeNoPrice: options.removeNoPrice !== false,
-      removeAccessories: true,  // sempre ativo
-      removeDefects: false,     // usuário controla via palavras bloqueadas
+      removeAccessories: true,
+      removeDefects: false,
       keyword,
       blockedWords: options.blockedWords || [],
     });
 
-    // Ordena pela proximidade da cidade buscada
     const sorted = sortByProximity(filtered, cityRaw);
 
     console.log(`[Scraper] "${keyword}" em ${cityRaw}: ${processed.length} brutos → ${sorted.length} resultados`);
@@ -561,22 +491,18 @@ async function closeBrowser(sessionId) {
 function parsePrice(priceStr) {
   if (!priceStr) return null;
   if (!priceStr.includes('R$')) return null;
-  // Extrai apenas a parte numérica após R$
   const match = priceStr.match(/R\$\s*([\d\.,]+)/);
   if (!match) return null;
   const raw = match[1];
-  // Trata separadores brasileiros: 1.500,00 → 1500.00
   let normalized;
   if (raw.includes(',')) {
     normalized = raw.replace(/\./g, '').replace(',', '.');
   } else if (raw.includes('.') && raw.split('.').length === 2 && raw.split('.')[1].length !== 3) {
-    normalized = raw; // ex: 1500.00
+    normalized = raw;
   } else {
-    // Remove pontos de milhar: 1.500 → 1500
     normalized = raw.replace(/\./g, '');
   }
   const num = parseFloat(normalized);
-  // Rejeita valores absurdos
   if (isNaN(num) || num < 10 || num > 500000) return null;
   return num;
 }
@@ -585,7 +511,6 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Calcula distância entre dois pontos em km (Haversine)
 function calcDistance(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -626,14 +551,14 @@ const PROXIMITY_COORDS = {
   'jundiai':[-23.1864,-46.8964],'sao jose dos campos':[-23.1794,-45.8869],
   'franca':[-20.5386,-47.4008],'guaruja':[-23.9928,-46.2564],
   'itaborai':[-22.7122,-42.8594],'mage':[-22.6550,-43.0403],
-  'belford roxo':[-22.7642,-43.3967],'nilópolis':[-22.8028,-43.4197],
-  'mesquita':[-22.7814,-43.4375],'queimados':[-22.7172,-43.5572],
-  'teresopolis':[-22.4122,-42.9781],'araruama':[-22.8722,-42.3442],
-  'resende':[-22.4681,-44.4508],'saquarema':[-22.9203,-42.5100],
-  'angra dos reis':[-23.0067,-44.3183],'nova friburgo':[-22.2817,-42.5319],
-  'campos dos goytacazes':[-21.7542,-41.3244],'macae':[-22.3711,-41.7869],
-  'barra mansa':[-22.5442,-44.1717],'itaguai':[-22.8594,-43.7769],
-  'palhoca':[-27.6447,-48.6697],'sao jose':[-27.5953,-48.6349],
+  'belford roxo':[-22.7642,-43.3967],'mesquita':[-22.7814,-43.4375],
+  'queimados':[-22.7172,-43.5572],'teresopolis':[-22.4122,-42.9781],
+  'araruama':[-22.8722,-42.3442],'resende':[-22.4681,-44.4508],
+  'saquarema':[-22.9203,-42.5100],'angra dos reis':[-23.0067,-44.3183],
+  'nova friburgo':[-22.2817,-42.5319],'campos dos goytacazes':[-21.7542,-41.3244],
+  'macae':[-22.3711,-41.7869],'barra mansa':[-22.5442,-44.1717],
+  'itaguai':[-22.8594,-43.7769],'palhoca':[-27.6447,-48.6697],
+  'sao jose':[-27.5953,-48.6349],
 };
 
 function normCity(str) {
@@ -647,9 +572,7 @@ function normCity(str) {
 
 function sortByProximity(listings, cityRaw) {
   const coords = PROXIMITY_COORDS[cityRaw];
-  if (!coords) {
-    return listings;
-  }
+  if (!coords) return listings;
   return listings.map(l => {
     const locNorm = normCity(l.location);
     const isExact = locNorm === cityRaw;
