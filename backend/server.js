@@ -145,7 +145,7 @@ app.post('/api/session/cookies', async (req, res) => {
 
     saveCookies(sessionId, puppeteerCookies);
     touchSession(sessionId);
-    console.log(\`[Auth] Cookies salvos para sessão \${sessionId.slice(0,8)}...\`);
+    console.log('[Auth] Cookies salvos para sessão ' + sessionId.slice(0,8) + '...');
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
