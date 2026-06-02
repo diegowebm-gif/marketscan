@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarketScan — Encontre oportunidades antes de todo mundo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #020408;
+  --surface: #080d14;
+  --surface2: #0d1520;
+  --border: rgba(56,189,248,0.12);
+  --accent: #38bdf8;
+  --accent2: #818cf8;
+  --green: #4ade80;
+  --red: #f87171;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #475569;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Grid background ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Noise texture ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: .4;
+}
+
+section, nav, footer { position: relative; z-index: 1; }
+
+/* ── Nav ── */
+nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(2,4,8,0.8);
+}
+
+.nav-logo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.nav-logo span { color: var(--accent); }
+
+.nav-links { display: flex; gap: 2rem; align-items: center; }
+.nav-links a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--text); }
+
+.btn-nav {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .2s;
+}
+.btn-nav:hover { background: var(--accent); color: #000; }
+
+/* ── Hero ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 2rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glow radial */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(56,189,248,0.3);
+  background: rgba(56,189,248,0.05);
+  font-size: 12px;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 2rem;
+  letter-spacing: .05em;
+  animation: fadeUp .6s ease both;
+}
+
+.pulse {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .5; transform: scale(1.4); }
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 7vw, 5rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.5rem;
+  animation: fadeUp .6s .1s ease both;
+}
+
+.hero h1 .highlight {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero p {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: var(--text2);
+  max-width: 560px;
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+  animation: fadeUp .6s .2s ease both;
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeUp .6s .3s ease both;
+}
+
+.btn-primary {
+  padding: 14px 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #000;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all .2s;
+  box-shadow: 0 0 24px rgba(56,189,248,0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(56,189,248,0.5); }
+
+.btn-secondary {
+  padding: 14px 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .2s;
+}
+.btn-secondary:hover { border-color: var(--text2); color: var(--text); }
+
+/* ── Dashboard mockup ── */
+.hero-mockup {
+  margin-top: 4rem;
+  width: 100%;
+  max-width: 900px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(56,189,248,0.1);
+  animation: fadeUp .8s .4s ease both;
+}
+
+.mockup-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+.mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mockup-bar span { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; margin-left: 8px; }
+
+.mockup-content { padding: 1.5rem; }
+
+.mockup-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+.mockup-stat {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: .75rem;
+}
+.mockup-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+.mockup-stat-val { font-size: 1.2rem; font-weight: 700; }
+
+.mockup-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.mockup-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.mockup-card.opp { border-color: rgba(56,189,248,0.4); }
+.mockup-img {
+  height: 80px;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  position: relative;
+}
+.opp-tag {
+  position: absolute;
+  top: 6px; left: 6px;
+  background: var(--accent);
+  color: #000;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  letter-spacing: .04em;
+}
+.mockup-card-body { padding: .6rem; }
+.mockup-card-title { font-size: 11px; color: var(--text2); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mockup-card-price { font-size: 1rem; font-weight: 700; color: var(--accent); }
+.mockup-card-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(74,222,128,0.1); color: var(--green); margin-top: 2px; display: inline-block; }
+
+/* ── Alert notification mockup ── */
+.alert-float {
+  position: absolute;
+  bottom: 12%;
+  right: 5%;
+  background: var(--surface);
+  border: 1px solid rgba(74,222,128,0.4);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  width: 280px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 20px rgba(74,222,128,0.1);
+  animation: slideIn 1s .8s ease both;
+}
+.alert-float-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.alert-icon { font-size: 1.2rem; }
+.alert-title { font-size: 13px; font-weight: 700; color: var(--green); }
+.alert-body { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.alert-price { font-size: 1.1rem; font-weight: 700; color: var(--text); margin-top: 6px; }
+.alert-sub { font-size: 11px; color: var(--text3); }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Stats bar ── */
+.stats-bar {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 2rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+}
+.stat-item {
+  text-align: center;
+  padding: 1rem;
+  border-right: 1px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.stat-desc { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+/* ── How it works ── */
+.section {
+  padding: 6rem 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+  line-height: 1.15;
+}
+
+.section-sub {
+  font-size: 1.05rem;
+  color: var(--text2);
+  max-width: 520px;
+  line-height: 1.7;
+  margin-bottom: 3rem;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.step-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.75rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .3s, transform .3s;
+}
+.step-card:hover { border-color: rgba(56,189,248,0.35); transform: translateY(-4px); }
+.step-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  opacity: 0;
+  transition: opacity .3s;
+}
+.step-card:hover::before { opacity: 1; }
+
+.step-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: .1em;
+  margin-bottom: 1rem;
+}
+.step-icon { font-size: 2rem; margin-bottom: .75rem; display: block; }
+.step-title { font-size: 1.05rem; font-weight: 600; margin-bottom: .5rem; }
+.step-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+/* ── Features ── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+.feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.75rem;
+  transition: all .3s;
+}
+.feature-card:hover { border-color: rgba(56,189,248,0.25); background: var(--surface2); }
+.feature-card.featured {
+  grid-column: span 2;
+  background: linear-gradient(135deg, rgba(56,189,248,0.06), rgba(129,140,248,0.06));
+  border-color: rgba(56,189,248,0.2);
+}
+
+.feature-icon { font-size: 1.8rem; margin-bottom: 1rem; display: block; }
+.feature-title { font-size: 1.05rem; font-weight: 600; margin-bottom: .5rem; }
+.feature-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+.feature-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(56,189,248,0.12);
+  color: var(--accent);
+  margin-bottom: .75rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+/* ── Pricing ── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.price-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  position: relative;
+}
+
+.price-card.featured {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, rgba(56,189,248,0.06), rgba(56,189,248,0.02));
+  box-shadow: 0 0 40px rgba(56,189,248,0.1);
+}
+
+.price-popular {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #000;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 14px;
+  border-radius: 20px;
+  white-space: nowrap;
+  letter-spacing: .04em;
+}
+
+.price-name { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: .5rem; text-transform: uppercase; letter-spacing: .08em; }
+.price-val { font-size: 2.8rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+.price-val span { font-size: 1rem; font-weight: 400; color: var(--text2); }
+.price-period { font-size: 12px; color: var(--text3); margin-bottom: 1.5rem; margin-top: 4px; }
+
+.price-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem; }
+.price-features li { font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+.price-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+.price-features li.no { color: var(--text3); }
+.price-features li.no::before { content: '✗'; color: var(--text3); }
+
+.btn-price {
+  width: 100%;
+  padding: 13px;
+  border-radius: 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+  transition: all .2s;
+}
+.btn-price-free { border: 1px solid var(--border); background: transparent; color: var(--text2); }
+.btn-price-free:hover { border-color: var(--text2); color: var(--text); }
+.btn-price-pro { border: none; background: var(--accent); color: #000; box-shadow: 0 0 20px rgba(56,189,248,0.3); }
+.btn-price-pro:hover { transform: translateY(-2px); box-shadow: 0 0 32px rgba(56,189,248,0.5); }
+
+/* ── CTA final ── */
+.cta-section {
+  padding: 6rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.cta-section::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 400px;
+  background: radial-gradient(ellipse, rgba(56,189,248,0.06) 0%, transparent 70%);
+}
+.cta-section h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+}
+.cta-section p { font-size: 1.05rem; color: var(--text2); margin-bottom: 2rem; }
+
+/* ── Footer ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.footer-logo { font-size: 1.1rem; font-weight: 700; }
+.footer-logo span { color: var(--accent); }
+footer p { font-size: 12px; color: var(--text3); }
+
+/* ── Ticker ── */
+.ticker-wrap {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  padding: .75rem 0;
+  background: rgba(56,189,248,0.02);
+}
+.ticker {
+  display: flex;
+  gap: 3rem;
+  animation: ticker 20s linear infinite;
+  width: max-content;
+}
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text3);
+}
+.ticker-item .up { color: var(--green); }
+.ticker-item .down { color: var(--red); }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .mockup-stats { grid-template-columns: repeat(2, 1fr); }
+  .mockup-cards { grid-template-columns: repeat(2, 1fr); }
+  .mockup-cards .mockup-card:last-child { display: none; }
+  .alert-float { display: none; }
+  .steps { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr; }
+  .feature-card.featured { grid-column: span 1; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .stats-bar { grid-template-columns: 1fr; }
+  .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
+  .stat-item:last-child { border-bottom: none; }
+  nav .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Market<span>Scan</span></div>
+  <div class="nav-links">
+    <a href="#como-funciona">Como funciona</a>
+    <a href="#funcionalidades">Funcionalidades</a>
+    <a href="#precos">Preços</a>
+  </div>
+  <a href="/app" class="btn-nav">Acessar →</a>
+</nav>
+
+<!-- Ticker de alertas simulados -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <div class="ticker-item">🔔 iPhone 11 · Florianópolis <span class="up">R$ 750</span> · 34% abaixo da média</div>
+    <div class="ticker-item">🔔 PS5 · São Paulo <span class="up">R$ 2.100</span> · 28% abaixo da média</div>
+    <div class="ticker-item">🔔 MacBook Air · Curitiba <span class="up">R$ 3.800</span> · 22% abaixo da média</div>
+    <div class="ticker-item">🔔 iPhone 13 · Rio de Janeiro <span class="up">R$ 1.400</span> · 31% abaixo da média</div>
+    <div class="ticker-item">🔔 Notebook Dell · Belo Horizonte <span class="up">R$ 1.200</span> · 19% abaixo da média</div>
+    <div class="ticker-item">🔔 Xbox Series S · Porto Alegre <span class="up">R$ 1.100</span> · 26% abaixo da média</div>
+    <!-- duplicados para loop contínuo -->
+    <div class="ticker-item">🔔 iPhone 11 · Florianópolis <span class="up">R$ 750</span> · 34% abaixo da média</div>
+    <div class="ticker-item">🔔 PS5 · São Paulo <span class="up">R$ 2.100</span> · 28% abaixo da média</div>
+    <div class="ticker-item">🔔 MacBook Air · Curitiba <span class="up">R$ 3.800</span> · 22% abaixo da média</div>
+    <div class="ticker-item">🔔 iPhone 13 · Rio de Janeiro <span class="up">R$ 1.400</span> · 31% abaixo da média</div>
+    <div class="ticker-item">🔔 Notebook Dell · Belo Horizonte <span class="up">R$ 1.200</span> · 19% abaixo da média</div>
+    <div class="ticker-item">🔔 Xbox Series S · Porto Alegre <span class="up">R$ 1.100</span> · 26% abaixo da média</div>
+  </div>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="pulse"></span>
+    ALERTAS EM TEMPO REAL
+  </div>
+
+  <h1>Encontre oportunidades<br>antes de <span class="highlight">todo mundo</span></h1>
+
+  <p>O MarketScan monitora o Facebook Marketplace 24h por dia, analisa preços em tempo real e te avisa no celular quando aparecer um produto abaixo do valor de mercado.</p>
+
+  <div class="hero-ctas">
+    <a href="/app" class="btn-primary">Começar grátis →</a>
+    <a href="#como-funciona" class="btn-secondary">Ver como funciona</a>
+  </div>
+
+  <div class="hero-mockup">
+    <div class="mockup-bar">
+      <div class="mockup-dot" style="background:#ff5f57"></div>
+      <div class="mockup-dot" style="background:#febc2e"></div>
+      <div class="mockup-dot" style="background:#28c840"></div>
+      <span>marketscan.app — iPhone 11 · Florianópolis, SC</span>
+    </div>
+    <div class="mockup-content">
+      <div class="mockup-stats">
+        <div class="mockup-stat">
+          <div class="mockup-stat-label">Anúncios</div>
+          <div class="mockup-stat-val">40</div>
+        </div>
+        <div class="mockup-stat">
+          <div class="mockup-stat-label">Preço médio</div>
+          <div class="mockup-stat-val" style="color:var(--accent)">R$ 1.079</div>
+        </div>
+        <div class="mockup-stat">
+          <div class="mockup-stat-label">Menor preço</div>
+          <div class="mockup-stat-val" style="color:var(--green)">R$ 750</div>
+        </div>
+        <div class="mockup-stat">
+          <div class="mockup-stat-label">🔥 Oportunidades</div>
+          <div class="mockup-stat-val" style="color:#f59e0b">4</div>
+        </div>
+      </div>
+      <div class="mockup-cards">
+        <div class="mockup-card opp">
+          <div class="mockup-img">📱<span class="opp-tag">🔥 OPORTUNIDADE</span></div>
+          <div class="mockup-card-body">
+            <div class="mockup-card-title">iPhone 11 64g</div>
+            <div class="mockup-card-price">R$ 750</div>
+            <div class="mockup-card-badge">30% abaixo da média</div>
+          </div>
+        </div>
+        <div class="mockup-card opp">
+          <div class="mockup-img">📱<span class="opp-tag">🔥 OPORTUNIDADE</span></div>
+          <div class="mockup-card-body">
+            <div class="mockup-card-title">iPhone 11 128gb</div>
+            <div class="mockup-card-price">R$ 800</div>
+            <div class="mockup-card-badge">26% abaixo da média</div>
+          </div>
+        </div>
+        <div class="mockup-card">
+          <div class="mockup-img">📱</div>
+          <div class="mockup-card-body">
+            <div class="mockup-card-title">iPhone 11 Pro Max</div>
+            <div class="mockup-card-price">R$ 1.050</div>
+            <div class="mockup-card-badge" style="background:rgba(248,113,113,0.1);color:var(--red)">3% acima</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert flutuante -->
+  <div class="alert-float">
+    <div class="alert-float-header">
+      <span class="alert-icon">🔔</span>
+      <span class="alert-title">Oportunidade detectada!</span>
+    </div>
+    <div class="alert-body">iPhone 11 encontrado abaixo do seu alerta de preço em Florianópolis</div>
+    <div class="alert-price">R$ 750 <span style="font-size:12px;color:var(--green);font-weight:500">↓ 30% da média</span></div>
+    <div class="alert-sub">agora mesmo · Florianópolis, SC</div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <div class="stat-num">+2.400</div>
+    <div class="stat-desc">anúncios monitorados por dia</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">< 5min</div>
+    <div class="stat-desc">para encontrar a primeira oportunidade</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num">R$ 29,90</div>
+    <div class="stat-desc">para ter acesso total</div>
+  </div>
+</div>
+
+<!-- Como funciona -->
+<section class="section" id="como-funciona">
+  <div class="section-label">// como funciona</div>
+  <h2 class="section-title">Do cadastro à<br>primeira oportunidade</h2>
+  <p class="section-sub">Em menos de 5 minutos você está monitorando o Marketplace e recebendo alertas no celular.</p>
+
+  <div class="steps">
+    <div class="step-card">
+      <div class="step-num">01 —</div>
+      <span class="step-icon">🔗</span>
+      <div class="step-title">Conecte seu Facebook</div>
+      <div class="step-desc">Faça login uma única vez. Seus dados de sessão ficam salvos — nas próximas vezes é só abrir e buscar.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02 —</div>
+      <span class="step-icon">🔍</span>
+      <div class="step-title">Busque qualquer produto</div>
+      <div class="step-desc">Digite o produto, selecione a cidade. O MarketScan coleta os anúncios, calcula a média de preços e destaca as oportunidades automaticamente.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03 —</div>
+      <span class="step-icon">🔔</span>
+      <div class="step-title">Receba alertas em tempo real</div>
+      <div class="step-desc">Configure um preço-alvo e feche o site. Quando aparecer um anúncio abaixo do valor definido, você recebe uma notificação no celular na hora.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Funcionalidades -->
+<section class="section" id="funcionalidades" style="padding-top:0">
+  <div class="section-label">// funcionalidades</div>
+  <h2 class="section-title">Tudo que você precisa<br>para comprar bem</h2>
+  <p class="section-sub">Ferramentas pensadas para quem vive de compra e venda no Marketplace.</p>
+
+  <div class="features-grid">
+    <div class="feature-card featured">
+      <span class="feature-tag">⭐ Pro</span>
+      <span class="feature-icon">🔔</span>
+      <div class="feature-title">Alertas automáticos de oportunidade</div>
+      <div class="feature-desc">Configure um produto e um preço máximo. O MarketScan monitora de hora em hora e te manda uma notificação push assim que aparecer um anúncio abaixo do valor definido — mesmo com o site fechado, direto no celular.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <div class="feature-title">Análise de preços e médias</div>
+      <div class="feature-desc">Veja o preço médio, mediana, menor e maior preço de qualquer produto na sua região. Tome decisões com dados, não no chute.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">💰</span>
+      <div class="feature-title">Calculadora de lucro</div>
+      <div class="feature-desc">Clique em qualquer anúncio e calcule na hora: preço de compra, preço de venda, custos extras e margem de lucro.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📍</span>
+      <div class="feature-title">Ordenação por proximidade</div>
+      <div class="feature-desc">Os anúncios da sua cidade aparecem primeiro. Menos deslocamento, mais eficiência.</div>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🚫</span>
+      <div class="feature-title">Filtros inteligentes</div>
+      <div class="feature-desc">Bloqueie palavras como "defeito", "caixa" ou "para peças" para ver só anúncios relevantes. Seus filtros ficam salvos para a próxima busca.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Preços -->
+<section class="section" id="precos" style="text-align:center">
+  <div class="section-label" style="justify-content:center;display:flex">// preços</div>
+  <h2 class="section-title">Simples e transparente</h2>
+  <p class="section-sub" style="margin:0 auto 3rem">Comece grátis. Faça upgrade quando quiser.</p>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name">Free</div>
+      <div class="price-val">R$ 0<span>/mês</span></div>
+      <div class="price-period">Para sempre</div>
+      <ul class="price-features">
+        <li>20 resultados por busca</li>
+        <li>Estatísticas de preços</li>
+        <li>Ordenação por proximidade</li>
+        <li class="no">Alertas de preço</li>
+        <li class="no">Calculadora de lucro</li>
+        <li class="no">Histórico de preços</li>
+        <li class="no">Palavras bloqueadas</li>
+      </ul>
+      <a href="/app" class="btn-price btn-price-free">Começar grátis</a>
+    </div>
+    <div class="price-card featured">
+      <div class="price-popular">⭐ Mais popular</div>
+      <div class="price-name" style="color:var(--accent)">Pro</div>
+      <div class="price-val" style="color:var(--accent)">R$ 29,90<span>/mês</span></div>
+      <div class="price-period">Menos de R$ 1 por dia</div>
+      <ul class="price-features">
+        <li>100 resultados por busca</li>
+        <li>Estatísticas completas</li>
+        <li>Ordenação por proximidade</li>
+        <li>Alertas de preço (5 ativos)</li>
+        <li>Calculadora de lucro</li>
+        <li>Histórico de preços</li>
+        <li>Palavras bloqueadas</li>
+      </ul>
+      <a href="/app" class="btn-price btn-price-pro">Assinar Pro →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Final -->
+<section class="cta-section">
+  <h2>Pronto para parar<br>de perder oportunidades?</h2>
+  <p>Crie sua conta grátis agora. Sem cartão de crédito.</p>
+  <a href="/app" class="btn-primary" style="display:inline-flex">Criar conta grátis →</a>
+</section>
+
+<footer>
+  <div class="footer-logo">Market<span>Scan</span></div>
+  <p>© 2026 MarketScan. Feito para quem vive de compra e venda.</p>
+</footer>
+
+</body>
+</html>

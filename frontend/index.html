@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MarketScan</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #f4f5f7; --surface: #ffffff; --surface2: #f0f2f5;
+  --border: rgba(0,0,0,0.08); --border2: rgba(0,0,0,0.14);
+  --accent: #6a0dad; --accent-dim: rgba(106,13,173,0.08); --accent-dim2: rgba(106,13,173,0.18);
+  --accent-text: #ffffff;
+  --warn: #e67e00; --danger: #d32f2f; --danger-dim: rgba(211,47,47,0.08);
+  --text: #1a1a2e; --text2: #6b7280; --text3: #9ca3af;
+  --radius: 12px; --radius-sm: 8px;
+  --shadow: 0 1px 4px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+/* Header */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+  background: var(--surface); position: sticky; top: 0; z-index: 100; height: 56px;
+  box-shadow: var(--shadow);
+}
+.logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem; color: var(--text); }
+.logo span { color: var(--accent); }
+.session-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text2); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); }
+.dot.online { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+.btn-logout { font-size: 12px; padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: 'Inter', sans-serif; transition: all .2s; }
+.btn-logout:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-dim); }
+
+/* Auth & Planos */
+.auth-tabs { display:flex; gap:0; margin-bottom:1.5rem; background:var(--surface2); border-radius:var(--radius-sm); padding:4px; }
+.auth-tab { flex:1; padding:8px; border:none; background:transparent; font-family:'Inter',sans-serif; font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; border-radius:6px; transition:all .2s; }
+.auth-tab.active { background:var(--surface); color:var(--text); box-shadow:var(--shadow); }
+.auth-form { display:flex; flex-direction:column; gap:10px; width:100%; max-width:360px; }
+.auth-form input { padding:11px 14px; border-radius:var(--radius-sm); border:1.5px solid var(--border2); background:var(--surface); font-family:'Inter',sans-serif; font-size:14px; color:var(--text); outline:none; transition:border-color .2s; }
+.auth-form input:focus { border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+.auth-error { font-size:12px; color:var(--danger); background:var(--danger-dim); padding:8px 12px; border-radius:var(--radius-sm); display:none; }
+.auth-error.show { display:block; }
+
+/* Badge de plano */
+.plan-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; }
+.plan-badge.free { background:#f3f4f6; color:#6b7280; }
+.plan-badge.pro { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; }
+
+/* Modal de upgrade */
+.upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.upgrade-overlay.show { display:flex; }
+.upgrade-modal { background:var(--surface); border-radius:var(--radius); padding:2rem; max-width:480px; width:90%; box-shadow:var(--shadow-md); }
+.upgrade-modal h2 { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; margin-bottom:.5rem; }
+.upgrade-modal p { font-size:13px; color:var(--text2); margin-bottom:1.25rem; }
+.plans-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:1.25rem; }
+.plan-card { border:2px solid var(--border); border-radius:var(--radius); padding:1.1rem; position:relative; }
+.plan-card.featured { border-color:var(--accent); }
+.plan-card .plan-name { font-size:13px; font-weight:700; margin-bottom:4px; }
+.plan-card .plan-price { font-family:'Syne',sans-serif; font-size:1.6rem; font-weight:800; margin-bottom:8px; }
+.plan-card .plan-price span { font-size:12px; font-weight:400; color:var(--text2); }
+.plan-card ul { list-style:none; padding:0; font-size:12px; color:var(--text2); display:flex; flex-direction:column; gap:5px; }
+.plan-card ul li::before { content:'✓ '; color:#16a34a; font-weight:700; }
+.plan-card ul li.no::before { content:'✗ '; color:var(--text3); }
+.plan-card ul li.no { color:var(--text3); }
+.popular-badge { position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--accent); color:#fff; font-size:10px; font-weight:700; padding:2px 10px; border-radius:20px; white-space:nowrap; }
+.btn-upgrade { width:100%; padding:12px; border-radius:var(--radius-sm); border:none; background:var(--accent); color:#fff; font-weight:700; font-size:14px; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s; }
+.btn-upgrade:hover { opacity:.9; transform:translateY(-1px); }
+.btn-close-modal { background:none; border:none; color:var(--text2); cursor:pointer; font-size:13px; text-decoration:underline; display:block; text-align:center; margin-top:8px; font-family:'Inter',sans-serif; }
+
+/* Lock overlay em features pro */
+.pro-lock { position:relative; }
+.pro-lock-overlay { position:absolute; inset:0; background:rgba(255,255,255,0.85); border-radius:var(--radius-sm); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; cursor:pointer; z-index:10; }
+.pro-lock-overlay span { font-size:1.2rem; }
+.pro-lock-overlay p { font-size:11px; font-weight:600; color:var(--accent); }
+
+/* Auth */
+#screen-auth { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; gap: 1.5rem; padding: 2rem; }
+.auth-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--accent-dim); border: 2px solid var(--accent-dim2); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: var(--shadow-md); }
+.auth-title { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; color: var(--text); }
+.auth-sub { color: var(--text2); font-size: 14px; max-width: 380px; line-height: 1.6; }
+.auth-steps { display: flex; gap: 1.5rem; }
+.step { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); max-width: 110px; text-align: center; }
+.step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--accent); }
+.btn-primary { padding: 13px 28px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #000; font-weight: 600; font-size: 14px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; }
+.btn-primary:hover { opacity: .85; }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+#btn-confirm-login { display: none; padding: 9px 20px; border-radius: var(--radius-sm); border: 1px solid var(--accent); background: transparent; color: var(--accent); font-family: 'Inter', sans-serif; font-size: 13px; cursor: pointer; }
+#auth-status { font-size: 13px; color: var(--text2); height: 18px; }
+
+/* App layout */
+#screen-app { display: none; }
+.app-layout { display: flex; min-height: calc(100vh - 56px); }
+
+/* Sidebar */
+.sidebar {
+  width: 300px; min-width: 300px; background: var(--surface);
+  border-right: 1px solid var(--border); padding: 1.5rem 1.25rem;
+  display: flex; flex-direction: column; gap: 1.25rem;
+  position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto;
+  transition: transform .3s ease;
+  box-shadow: var(--shadow);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed; top: 56px; left: 0; z-index: 200;
+    height: calc(100vh - 56px); transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .main-content { padding: 1rem; }
+  .app-layout { display: block; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .listings-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .listing-img { height: 130px; }
+}
+
+.sidebar-overlay {
+  display: none; position: fixed; inset: 0; top: 56px;
+  background: rgba(0,0,0,0.5); z-index: 199; backdrop-filter: blur(2px);
+}
+.sidebar-overlay.show { display: block; }
+
+.btn-menu {
+  display: none; background: none; border: none;
+  color: var(--text); font-size: 22px; cursor: pointer; padding: 4px 8px;
+}
+@media (max-width: 768px) { .btn-menu { display: flex; align-items: center; } }
+.sidebar-section-title { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
+.sidebar label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+.sidebar input[type=text], .sidebar input[type=number], .sidebar select {
+  width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 11px; color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 13px; outline: none;
+  transition: border-color .2s, box-shadow .2s; margin-bottom: 8px;
+}
+.sidebar input:focus, .sidebar select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.sidebar select option { background: #fff; color: #1a1a2e; }
+.btn-search-sidebar { width: 100%; padding: 11px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #fff; font-weight: 600; font-size: 13px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; margin-top: 2px; box-shadow: 0 2px 8px rgba(106,13,173,0.25); }
+.btn-search-sidebar:hover { opacity: .9; box-shadow: 0 4px 12px rgba(106,13,173,0.35); transform: translateY(-1px); }
+.btn-search-sidebar:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+.sidebar-divider { border: none; border-top: 1px solid var(--border); }
+
+/* Toggles */
+.toggle-check { display: flex; align-items: center; gap: 7px; cursor: pointer; padding: 7px 11px; border-radius: var(--radius-sm); border: 1.5px solid var(--border2); background: var(--surface2); font-size: 12px; color: var(--text2); font-family: 'Inter', sans-serif; transition: all .2s; width: 100%; margin-bottom: 5px; }
+.toggle-check.on { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); font-weight: 500; }
+.toggle-check .dot-toggle { width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 8px; flex-shrink: 0; }
+
+/* Palavras bloqueadas */
+.blocked-words { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; min-height: 10px; }
+.blocked-tag { display: flex; align-items: center; gap: 4px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 20px; padding: 3px 8px 3px 10px; font-size: 11px; color: var(--text2); }
+.blocked-tag button { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 1px; transition: color .2s; }
+.blocked-tag button:hover { color: var(--danger); }
+.word-input-row { display: flex; gap: 5px; }
+.word-input-row input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 9px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 12px; outline: none; }
+.word-input-row input:focus { border-color: var(--accent); }
+.btn-add-word { padding: 7px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: transparent; color: var(--text2); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; white-space: nowrap; transition: all .2s; }
+.btn-add-word:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Alertas sidebar */
+.perm-box { background: var(--accent-dim); border: 1px solid var(--accent-dim2); border-radius: var(--radius-sm); padding: .75rem; }
+.perm-box p { font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
+.btn-allow { width: 100%; padding: 8px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #000; font-weight: 600; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; }
+.btn-allow:disabled { opacity: .5; cursor: not-allowed; }
+.btn-add-monitor { width: 100%; padding: 7px; border-radius: var(--radius-sm); border: 1px solid var(--accent); background: transparent; color: var(--accent); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; margin-bottom: 8px; transition: all .2s; }
+.btn-add-monitor:hover { background: var(--accent-dim); }
+.monitor-form { display: none; flex-direction: column; gap: 0; background: var(--surface2); border-radius: var(--radius-sm); padding: .75rem; margin-bottom: 8px; }
+.monitor-form.visible { display: flex; }
+.monitor-form label { font-size: 11px; color: var(--text2); margin-bottom: 3px; display: block; }
+.monitor-form input, .monitor-form select { width: 100%; background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; padding: 7px 9px; color: var(--text); font-family: 'Inter', sans-serif; font-size: 12px; outline: none; margin-bottom: 7px; }
+.btn-save-monitor { width: 100%; padding: 8px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #000; font-weight: 600; font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; margin-top: 2px; }
+.monitor-item { display: flex; align-items: center; justify-content: space-between; padding: .5rem .6rem; background: var(--surface2); border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 5px; }
+.monitor-info strong { display: block; font-size: 12px; margin-bottom: 1px; }
+.monitor-info span { font-size: 11px; color: var(--text2); }
+.btn-remove-monitor { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 15px; padding: 2px 6px; }
+.btn-remove-monitor:hover { color: var(--danger); }
+.monitor-empty { font-size: 12px; color: var(--text3); text-align: center; padding: .5rem 0; }
+
+/* Main content */
+.main-content { flex: 1; padding: 1.5rem; overflow-x: hidden; min-width: 0; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 1.25rem; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; box-shadow: var(--shadow); transition: box-shadow .2s; }
+.stat-card:hover { box-shadow: var(--shadow-md); }
+.stat-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; font-weight: 500; }
+.stat-value { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--text); }
+.stat-value.green { color: #16a34a; }
+.stat-value.warn { color: var(--warn); }
+
+/* Chart */
+#chart-container { display: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; margin-bottom: 1.25rem; }
+
+/* Filters bar */
+.filters { display: flex; gap: 8px; margin-bottom: 1.25rem; align-items: center; flex-wrap: wrap; }
+.filter-label { font-size: 12px; color: var(--text2); }
+.filter-btn { padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--border2); background: var(--surface); color: var(--text2); font-size: 12px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; box-shadow: var(--shadow); }
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 500; }
+.sort-select { margin-left: auto; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: 'Inter', sans-serif; font-size: 12px; padding: 5px 8px; outline: none; cursor: pointer; }
+
+/* Cards */
+.listings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.listing-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: box-shadow .2s, transform .2s; position: relative; box-shadow: var(--shadow); }
+.listing-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.listing-card.opportunity { border: 2px solid var(--accent); }
+.opp-badge { position: absolute; top: 8px; left: 8px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; letter-spacing: .03em; }
+.listing-img { width: 100%; height: 160px; object-fit: cover; background: var(--surface2); }
+.listing-img-placeholder { width: 100%; height: 160px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--text3); }
+.listing-body { padding: .85rem; }
+.listing-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+.listing-price { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.listing-price.no-price { color: var(--text3); font-size: .9rem; }
+.listing-meta { font-size: 11px; color: var(--text2); margin-bottom: 10px; display:flex; align-items:center; gap:4px; }
+.pct-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; background: #dcfce7; color: #15803d; margin-bottom: 8px; }
+.pct-badge.above { background: #fee2e2; color: #b91c1c; }
+.btn-link { display: block; text-align: center; padding: 8px; border-radius: var(--radius-sm); border: 1.5px solid var(--accent); color: var(--accent); font-size: 12px; text-decoration: none; transition: all .2s; font-weight: 500; }
+.btn-link:hover { background: var(--accent); color: #fff; }
+
+/* Empty / Loading */
+.empty { text-align: center; padding: 3rem 1rem; color: var(--text2); grid-column: 1/-1; }
+.spinner { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Comparador */
+.compare-btn { width:100%; padding:9px; border-radius:var(--radius-sm); border:1.5px solid var(--accent); background:transparent; color:var(--accent); font-weight:600; font-size:12px; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s; margin-top:6px; }
+.compare-btn:hover { background:var(--accent); color:#fff; }
+.compare-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+#compare-panel { display:none; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; margin-bottom:1.25rem; box-shadow:var(--shadow); }
+
+.arbitrage-box { background:linear-gradient(135deg,#f0fdf4,#dcfce7); border:2px solid #16a34a; border-radius:var(--radius); padding:1.1rem 1.25rem; margin-bottom:1.25rem; }
+.arbitrage-box.warn { background:linear-gradient(135deg,#fefce8,#fef9c3); border-color:#ca8a04; }
+.arbitrage-title { font-size:13px; font-weight:700; color:#15803d; margin-bottom:.5rem; display:flex;align-items:center;gap:6px; }
+.arbitrage-title.warn { color:#92400e; }
+.arbitrage-numbers { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:.5rem; }
+.arb-stat { font-size:12px; color:#166534; }
+.arb-stat strong { font-size:1.1rem; font-family:'Syne',sans-serif; display:block; }
+
+.compare-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+@media(max-width:600px) { .compare-grid { grid-template-columns:1fr; } }
+.compare-col { border:1px solid var(--border); border-radius:var(--radius-sm); padding:1rem; background:var(--surface2); }
+.compare-col-title { font-size:12px; font-weight:700; margin-bottom:.75rem; display:flex;align-items:center;gap:6px; }
+.compare-stat-row { display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px solid var(--border); }
+.compare-stat-row:last-child { border:none; }
+.compare-stat-row span:first-child { color:var(--text2); }
+.compare-stat-row span:last-child { font-weight:500; color:var(--text); }
+.compare-mini-card { background:var(--surface); border-radius:var(--radius-sm); border:1px solid var(--border); padding:.6rem .75rem; margin-top:6px; display:flex;gap:8px;align-items:center; }
+.compare-mini-img { width:40px;height:40px;border-radius:6px;object-fit:cover;background:var(--surface2);flex-shrink:0; }
+.compare-mini-info { flex:1;min-width:0; }
+.compare-mini-title { font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.compare-mini-price { font-size:13px;font-weight:700;color:var(--accent); }
+.compare-mini-link { font-size:10px;color:var(--text2);text-decoration:none;white-space:nowrap; }
+.compare-mini-link:hover { color:var(--accent); }
+.no-results { font-size:12px;color:var(--text3);text-align:center;padding:.75rem 0; }
+
+/* Histórico de preços */
+#history-container { display:none; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; margin-bottom:1.25rem; box-shadow:var(--shadow); }
+.history-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:.9rem; flex-wrap:wrap; gap:8px; }
+.history-badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; }
+.history-badge.up { background:rgba(255,82,82,0.12); color:#ff5252; }
+.history-badge.down { background:rgba(0,230,118,0.12); color:#00e676; }
+.history-badge.flat { background:rgba(136,136,136,0.12); color:#888; }
+
+/* Calculadora de lucro */
+.calc-btn { width:100%; padding:6px; border-radius:var(--radius-sm); border:1px solid var(--border2); background:transparent; color:var(--text2); font-size:11px; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s; margin-top:6px; }
+.calc-btn:hover { border-color:var(--accent); color:var(--accent); }
+.calc-panel { display:none; margin-top:8px; padding:10px; background:var(--surface2); border-radius:var(--radius-sm); border:1px solid var(--border); }
+.calc-panel.open { display:block; }
+.calc-row { display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:6px; }
+.calc-row label { font-size:11px; color:var(--text2); white-space:nowrap; }
+.calc-row input { width:90px; text-align:right; font-size:12px; background:var(--surface); border:1px solid var(--border2); border-radius:6px; padding:5px 7px; color:var(--text); font-family:'Inter',sans-serif; outline:none; }
+.calc-result { margin-top:8px; padding:8px; border-radius:var(--radius-sm); text-align:center; }
+.calc-result.good { background:rgba(0,230,118,0.1); border:1px solid rgba(0,230,118,0.25); }
+.calc-result.warn { background:rgba(255,179,0,0.1); border:1px solid rgba(255,179,0,0.25); }
+.calc-result.bad { background:rgba(255,82,82,0.1); border:1px solid rgba(255,82,82,0.25); }
+.calc-result .profit { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:700; display:block; }
+.calc-result .margin { font-size:11px; margin-top:2px; }
+
+/* Loading overlay */
+#loading-overlay {
+  display: none; position: fixed; inset: 0; z-index: 500;
+  background: rgba(13,13,13,0.85); backdrop-filter: blur(6px);
+  flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
+}
+#loading-overlay.show { display: flex; }
+.loading-icon {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; animation: pulse-icon 1.8s ease-in-out infinite;
+}
+.loading-ring {
+  position: absolute; width: 90px; height: 90px; border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--accent); border-right-color: rgba(106,13,173,0.2);
+  animation: spin .9s linear infinite;
+}
+.loading-wrap { position: relative; display: flex; align-items: center; justify-content: center; width: 90px; height: 90px; }
+.loading-text { font-size: 15px; font-weight: 500; color: var(--text2); }
+.loading-sub { font-size: 12px; color: var(--text3); margin-top: -1rem; }
+@keyframes pulse-icon { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: .8; } }
+
+/* Toast */
+#toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: none; border-radius: var(--radius); padding: .8rem 1.2rem; font-size: 13px; color: var(--text); max-width: 300px; transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; box-shadow: var(--shadow-md); }
+#toast.show { transform: translateY(0); opacity: 1; }
+#toast.success { background: #f0fdf4; color: #15803d; box-shadow: 0 4px 16px rgba(22,163,74,0.15); }
+#toast.error { background: #fef2f2; color: #b91c1c; box-shadow: 0 4px 16px rgba(185,28,28,0.15); }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="btn-menu" id="btn-menu" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+    <div class="logo">Market<span>Scan</span></div>
+  </div>
+  <div class="session-badge">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">Desconectado</span>
+    <span id="plan-badge" class="plan-badge" style="display:none"></span>
+    <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
+  </div>
+</header>
+
+<!-- Modal de upgrade -->
+<div class="upgrade-overlay" id="upgrade-overlay">
+  <div class="upgrade-modal">
+    <h2>Desbloqueie o MarketScan Pro</h2>
+    <p>Acesse todas as ferramentas para maximizar seus lucros nas compras e vendas.</p>
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">R$ 0<span>/mês</span></div>
+        <ul>
+          <li>20 resultados por busca</li>
+          <li>Estatísticas básicas</li>
+          <li>Ordenação por proximidade</li>
+          <li class="no">Alertas de preço</li>
+          <li class="no">Comparador OLX</li>
+          <li class="no">Calculadora de lucro</li>
+          <li class="no">Histórico de preços</li>
+          <li class="no">Palavras bloqueadas</li>
+        </ul>
+      </div>
+      <div class="plan-card featured">
+        <div class="popular-badge">⭐ Mais popular</div>
+        <div class="plan-name" style="color:var(--accent)">Pro</div>
+        <div class="plan-price" style="color:var(--accent)">R$ 29,90<span>/mês</span></div>
+        <ul>
+          <li>100 resultados por busca</li>
+          <li>Estatísticas completas</li>
+          <li>Ordenação por proximidade</li>
+          <li>Alertas de preço (5 ativos)</li>
+          <li>Comparador Facebook vs OLX</li>
+          <li>Calculadora de lucro</li>
+          <li>Histórico de preços</li>
+          <li>Palavras bloqueadas</li>
+        </ul>
+      </div>
+    </div>
+    <button class="btn-upgrade" onclick="handleUpgrade()">Assinar Pro — R$ 29,90/mês</button>
+    <button class="btn-close-modal" onclick="closeUpgradeModal()">Continuar com o plano free</button>
+  </div>
+</div>
+
+<!-- Tela de login -->
+<div id="screen-auth">
+  <div class="auth-icon">🔍</div>
+  <h1 class="auth-title">MarketScan</h1>
+  <p class="auth-sub">Encontre oportunidades de compra e venda no Marketplace com análise inteligente de preços.</p>
+
+  <div style="width:100%;max-width:360px">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Criar conta</button>
+    </div>
+
+    <!-- Login -->
+    <div id="form-login">
+      <div class="auth-form">
+        <input type="email" id="login-email" placeholder="Seu e-mail" />
+        <input type="password" id="login-password" placeholder="Sua senha" />
+        <div class="auth-error" id="login-error"></div>
+        <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
+      </div>
+    </div>
+
+    <!-- Cadastro -->
+    <div id="form-register" style="display:none">
+      <div class="auth-form">
+        <input type="email" id="reg-email" placeholder="Seu e-mail" />
+        <input type="password" id="reg-password" placeholder="Senha (mín. 6 caracteres)" />
+        <input type="password" id="reg-password2" placeholder="Confirmar senha" />
+        <div class="auth-error" id="reg-error"></div>
+        <button class="btn-primary" style="width:100%" onclick="doRegister()">Criar conta grátis</button>
+        <p style="font-size:11px;color:var(--text2);text-align:center">Ao criar conta você concorda com os termos de uso.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tela principal -->
+<div id="screen-app">
+  <div class="app-layout">
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+
+      <div>
+        <p class="sidebar-section-title">Busca</p>
+        <label>Produto</label>
+        <input type="text" id="input-keyword" placeholder="ex: iPhone 13, PS5…" />
+        <label>Estado <span style="color:var(--danger)">*</span></label>
+        <select id="input-state" onchange="onStateChange()">
+          <option value="">Selecione o estado</option>
+        </select>
+        <label>Cidade <span style="color:var(--danger)">*</span></label>
+        <select id="input-city" style="opacity:.4;pointer-events:none">
+          <option value="">Selecione o estado primeiro</option>
+        </select>
+        <label>Qtd. máxima</label>
+        <input type="number" id="input-max" value="40" min="10" max="100" />
+        <button class="btn-search-sidebar" id="btn-search" onclick="doSearch()">Buscar</button>
+      </div>
+
+      <hr class="sidebar-divider">
+
+      <div>
+        <p class="sidebar-section-title">Filtros</p>
+
+        <button class="toggle-check on" id="tog-noprice" onclick="toggleFilter(this)" style="margin-bottom:12px">
+          <span class="dot-toggle">✕</span> Ocultar sem preço
+        </button>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label style="font-size:11px;color:var(--text2)">Palavras bloqueadas no título</label>
+          <button onclick="clearBlockedWords()" style="background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;padding:0;transition:color .2s" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text3)'">Limpar tudo</button>
+        </div>
+        <div class="blocked-words" id="blocked-words"></div>
+        <div class="word-input-row">
+          <input type="text" id="word-input" placeholder="ex: caixa, defeito…" onkeydown="if(event.key==='Enter')addBlockedWord()" />
+          <button class="btn-add-word" onclick="addBlockedWord()">+ Add</button>
+        </div>
+
+      </div>
+
+      <hr class="sidebar-divider">
+
+      <!-- ALERTAS — destaque visual -->
+      <div style="background:linear-gradient(135deg,rgba(106,13,173,0.06),rgba(106,13,173,0.02));border:1px solid rgba(106,13,173,0.18);border-radius:var(--radius);padding:1rem;margin:-0.25rem">
+
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:28px;height:28px;border-radius:50%;background:rgba(106,13,173,0.12);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔔</div>
+          <div>
+            <p style="font-size:12px;font-weight:600;color:var(--accent);margin:0">Alertas de preço</p>
+            <p style="font-size:10px;color:var(--text3);margin:0">Notificação automática de oportunidades</p>
+          </div>
+        </div>
+
+        <!-- Banner permissão -->
+        <div id="permission-banner" style="display:none">
+          <p style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px">Ative as notificações para ser avisado no celular ou computador assim que aparecer um anúncio abaixo do preço que você definir.</p>
+          <button class="btn-allow" id="btn-allow-notif" onclick="requestNotificationPermission()" style="background:var(--accent);color:#000;font-weight:600;font-size:12px;padding:9px;border-radius:var(--radius-sm);border:none;width:100%;cursor:pointer;font-family:'Inter',sans-serif">🔔 Ativar notificações</button>
+        </div>
+
+        <!-- Painel monitores -->
+        <div id="monitor-panel" style="display:none">
+          <button class="btn-add-monitor" onclick="toggleMonitorForm()" style="background:var(--accent);color:#000;font-weight:600;border:none;font-size:12px;padding:9px;border-radius:var(--radius-sm);width:100%;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:10px">+ Criar novo alerta</button>
+          <div class="monitor-form" id="monitor-form">
+            <label>Produto</label>
+            <input type="text" id="mon-keyword" placeholder="ex: iPhone 11" />
+            <label>Estado</label>
+            <select id="mon-state" onchange="onMonStateChange()">
+              <option value="">Selecione</option>
+            </select>
+            <label>Cidade</label>
+            <select id="mon-city" style="opacity:.4;pointer-events:none">
+              <option value="">Selecione o estado</option>
+            </select>
+            <label>Preço máximo (R$)</label>
+            <input type="number" id="mon-price" placeholder="ex: 800" min="1" />
+            <label>Verificar a cada (horas)</label>
+            <input type="number" id="mon-interval" value="2" min="1" max="24" />
+            <button class="btn-save-monitor" onclick="saveMonitor()">Salvar alerta</button>
+          </div>
+          <div id="monitor-list">
+            <div class="monitor-empty" style="font-size:11px;color:var(--text3);text-align:center;padding:.5rem 0">Nenhum alerta configurado.</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- Conteúdo principal -->
+    <main class="main-content">
+
+      <div class="stats-grid" id="stats-grid" style="display:none"></div>
+
+      <div id="location-tip" style="display:none;align-items:flex-start;gap:12px;background:#eef2ff;border:2px solid #818cf8;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem">
+        <span style="font-size:1.4rem;flex-shrink:0;margin-top:1px">📍</span>
+        <div>
+          <p style="font-size:14px;font-weight:700;color:#3730a3;margin:0 0 4px">Atenção: os resultados dependem do seu raio de busca no Facebook</p>
+          <p style="font-size:13px;color:#4338ca;margin:0;line-height:1.5">A cidade selecionada direciona a busca, mas o alcance dos resultados é definido pela configuração do seu perfil no Facebook. Para ver mais ou menos anúncios por distância, acesse no Facebook: <strong>Marketplace → Filtros → Localização → ajuste o raio em km</strong>.</p>
+        </div>
+      </div>
+
+
+
+      <!-- Histórico de preços -->
+      <div id="history-container">
+        <div class="history-header">
+          <div>
+            <p style="font-size:12px;font-weight:500;color:var(--text2);margin:0">Histórico de preços médios</p>
+            <p style="font-size:11px;color:var(--text3);margin:2px 0 0">Evolução das últimas buscas</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="history-badge" class="history-badge flat"></span>
+          </div>
+        </div>
+        <div style="position:relative;width:100%;height:160px">
+          <canvas id="history-chart" role="img" aria-label="Gráfico de histórico de preços médios"></canvas>
+        </div>
+      </div>
+
+      <div class="filters" id="filters" style="display:none">
+        <span class="filter-label">Mostrar:</span>
+        <button class="filter-btn active" onclick="setFilter('all', this)">Todos</button>
+        <button class="filter-btn" onclick="setFilter('opportunity', this)">🔥 Oportunidades</button>
+        <button class="filter-btn" onclick="setFilter('with_price', this)">Com preço</button>
+        <select class="sort-select" id="sort-select" onchange="renderListings()">
+          <option value="proximity">Mais próximo</option>
+          <option value="price_asc">Menor preço</option>
+          <option value="price_desc">Maior preço</option>
+          <option value="pct_desc">Maior desconto</option>
+        </select>
+      </div>
+
+      <div class="listings-grid" id="listings-grid">
+        <div class="empty">
+          <div style="font-size:2.5rem;margin-bottom:.75rem">🏪</div>
+          <p>Faça uma busca para encontrar anúncios e oportunidades.</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="loading-overlay">
+  <div class="loading-wrap">
+    <div class="loading-ring"></div>
+    <div class="loading-icon">🔍</div>
+  </div>
+  <p class="loading-text" id="loading-text">Buscando anúncios…</p>
+  <p class="loading-sub" id="loading-sub">Isso pode levar alguns segundos</p>
+</div>
+<div id="toast"></div>
+
+<script>
+// ── Sidebar mobile ───────────────────────────────────────
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+// ── Estado global ──────────────────────────────────────────
+let sessionId = localStorage.getItem('mkt_session');
+let authToken = localStorage.getItem('mkt_token');
+let currentUser = null;
+let allListings = [];
+let currentFilter = 'all';
+let currentStats = null;
+let checkInterval = null;
+
+
+// ── Init ──────────────────────────────────────────────────
+window.onload = async () => {
+  // Verifica se voltou de pagamento
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('upgraded') === 'true') {
+    toast('🎉 Plano Pro ativado com sucesso!', 'success');
+    window.history.replaceState({}, '', '/');
+  }
+  if (params.get('canceled') === 'true') {
+    toast('Pagamento cancelado.', '');
+    window.history.replaceState({}, '', '/');
+  }
+  populateStates();
+  // Primeiro verifica autenticação própria
+  if (authToken) {
+    const res = await api('GET', '/api/auth/me');
+    if (res?.ok) {
+      currentUser = res;
+      // Verifica sessão do Facebook
+      if (sessionId) {
+        const fbRes = await api('GET', `/api/session/${sessionId}/check`);
+        if (fbRes?.loggedIn) { showApp(); return; }
+        localStorage.removeItem('mkt_session');
+        sessionId = null;
+      }
+      showFacebookConnect();
+      return;
+    }
+    localStorage.removeItem('mkt_token');
+    authToken = null;
+  }
+  showAuth();
+};
+
+// ── Auth própria ──────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.classList.remove('show');
+  if (!email || !password) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.add('show'); return; }
+  const res = await api('POST', '/api/auth/login', { email, password });
+  if (!res?.ok) { errEl.textContent = res?.error || 'Erro ao entrar.'; errEl.classList.add('show'); return; }
+  authToken = res.token;
+  currentUser = { email: res.email, plan: res.plan };
+  localStorage.setItem('mkt_token', authToken);
+  showFacebookConnect();
+}
+
+async function doRegister() {
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const password2 = document.getElementById('reg-password2').value;
+  const errEl = document.getElementById('reg-error');
+  errEl.classList.remove('show');
+  if (!email || !password) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.add('show'); return; }
+  if (password !== password2) { errEl.textContent = 'Senhas não conferem.'; errEl.classList.add('show'); return; }
+  if (password.length < 6) { errEl.textContent = 'Senha mínima de 6 caracteres.'; errEl.classList.add('show'); return; }
+  const res = await api('POST', '/api/auth/register', { email, password });
+  if (!res?.ok) { errEl.textContent = res?.error || 'Erro ao cadastrar.'; errEl.classList.add('show'); return; }
+  authToken = res.token;
+  currentUser = { email: res.email, plan: res.plan };
+  localStorage.setItem('mkt_token', authToken);
+  showFacebookConnect();
+}
+
+async function showFacebookConnect() {
+  // Busca dados atualizados do usuário incluindo plano
+  if (authToken) {
+    const me = await api('GET', '/api/auth/me');
+    if (me?.ok) currentUser = me;
+  }
+  // Mostra tela de auth mas com a etapa de conectar Facebook
+  document.getElementById('screen-auth').style.display = 'flex';
+  document.getElementById('screen-app').style.display = 'none';
+  // Muda conteúdo para conectar Facebook
+  document.getElementById('form-login').style.display = 'none';
+  document.getElementById('form-register').style.display = 'none';
+  document.querySelector('.auth-tabs').style.display = 'none';
+  document.querySelector('.auth-icon').textContent = '📘';
+  document.querySelector('.auth-title').innerHTML = 'Conectar Facebook';
+  document.querySelector('.auth-sub').textContent = 'Conecte sua conta do Facebook uma única vez para buscar anúncios.';
+
+  // Adiciona steps e botão de connect se não existirem
+  let stepsEl = document.getElementById('fb-connect-steps');
+  if (!stepsEl) {
+    const div = document.createElement('div');
+    div.id = 'fb-connect-steps';
+    div.innerHTML = `
+      <div class="auth-steps">
+        <div class="step"><div class="step-num">1</div>Clique em Conectar</div>
+        <div class="step"><div class="step-num">2</div>Faça login no Facebook</div>
+        <div class="step"><div class="step-num">3</div>Feche a janela e busque</div>
+      </div>
+      <button class="btn-primary" id="btn-connect" onclick="startLogin()">Conectar Facebook</button>
+      <button id="btn-confirm-login" style="display:none;padding:9px 20px;border-radius:var(--radius-sm);border:1px solid var(--accent);background:transparent;color:var(--accent);font-family:'Inter',sans-serif;font-size:13px;cursor:pointer" onclick="confirmLogin()">✓ Já fiz o login — Continuar</button>
+      <p id="auth-status" style="font-size:13px;color:var(--text2);height:18px"></p>
+    `;
+    document.getElementById('screen-auth').appendChild(div);
+  } else {
+    stepsEl.style.display = 'flex';
+    stepsEl.style.flexDirection = 'column';
+    stepsEl.style.alignItems = 'center';
+    stepsEl.style.gap = '1.5rem';
+  }
+}
+
+// ── Upgrade modal ──────────────────────────────────────────
+function showUpgradeModal() {
+  document.getElementById('upgrade-overlay').classList.add('show');
+}
+function closeUpgradeModal() {
+  document.getElementById('upgrade-overlay').classList.remove('show');
+}
+async function handleUpgrade() {
+  const btn = document.querySelector('.btn-upgrade');
+  if (btn) { btn.disabled = true; btn.textContent = 'Aguarde…'; }
+
+  const res = await api('POST', '/api/stripe/checkout', {});
+  if (res?.ok && res?.url) {
+    window.location.href = res.url;
+  } else {
+    toast('Erro ao abrir checkout: ' + (res?.error || 'tente novamente'), 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Assinar Pro — R$ 29,90/mês'; }
+  }
+}
+
+// Intercepta recursos Pro e mostra modal
+function checkProFeature(featureName) {
+  if (currentUser?.plan !== 'pro') {
+    showUpgradeModal();
+    return false;
+  }
+  return true;
+}
+
+// ── Autenticação Facebook ──────────────────────────────────
+async function startLogin() {
+  const btn = document.getElementById('btn-connect');
+  btn.disabled = true; btn.textContent = 'Aguarde…';
+  setAuthStatus('Preparando conexão…');
+
+  const res = await api('POST', '/api/session/start');
+  if (!res?.ok) {
+    toast('Erro: ' + (res?.error || 'tente novamente'), 'error');
+    btn.disabled = false; btn.textContent = 'Conectar Facebook'; return;
+  }
+
+  sessionId = res.sessionId;
+  localStorage.setItem('mkt_session', sessionId);
+
+  // Abre o Facebook no próprio navegador do usuário
+  // Após login, o Facebook redireciona para nossa página de callback
+  const callbackUrl = encodeURIComponent(window.location.origin + '/facebook-callback?sessionId=' + sessionId);
+  const loginUrl = `https://www.facebook.com/login?next=${encodeURIComponent('https://www.facebook.com/marketplace/')}`;
+
+  btn.textContent = 'Facebook aberto…';
+  setAuthStatus('');
+
+  // Mostra instruções claras
+  const stepsEl = document.getElementById('fb-connect-steps');
+  if (stepsEl) {
+    stepsEl.innerHTML = `
+      <div style="background:#0d1520;border:1px solid rgba(56,189,248,0.2);border-radius:12px;padding:1.25rem;max-width:360px;text-align:left">
+        <p style="font-size:13px;font-weight:700;color:#38bdf8;margin-bottom:.75rem">📘 Instruções de conexão:</p>
+        <ol style="font-size:13px;color:#94a3b8;line-height:2;padding-left:1.25rem">
+          <li>Clique em <strong style="color:#e2e8f0">Abrir Facebook</strong> abaixo</li>
+          <li>Faça login normalmente</li>
+          <li>Volte para esta aba — a conexão será detectada automaticamente</li>
+        </ol>
+      </div>
+      <a href="${loginUrl}" target="_blank" onclick="startPolling()" style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:#1877f2;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;margin-top:.5rem">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Abrir Facebook
+      </a>
+      <p id="auth-status" style="font-size:12px;color:#94a3b8;margin-top:.5rem;height:18px"></p>
+    `;
+  }
+
+  // Começa a verificar se o usuário já fez login
+  checkInterval = setInterval(autoCheckLogin, 3000);
+}
+
+function startPolling() {
+  // Garante que o polling está rodando quando usuário clica no link
+  if (!checkInterval) {
+    checkInterval = setInterval(autoCheckLogin, 3000);
+  }
+}
+
+async function autoCheckLogin() {
+  if (!sessionId) return;
+  const res = await api('GET', `/api/session/${sessionId}/check`);
+  if (res?.loggedIn) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+    setAuthStatus('✅ Conectado! Carregando…');
+    await showApp();
+  } else {
+    setAuthStatus('Aguardando login no Facebook…');
+  }
+}
+
+async function confirmLogin() {
+  setAuthStatus('Verificando…');
+  const res = await api('GET', `/api/session/${sessionId}/check`);
+  if (res?.loggedIn) { clearInterval(checkInterval); showApp(); }
+  else setAuthStatus('Login não detectado ainda. Tente novamente.');
+}
+
+async function logout() {
+  if (sessionId) await api('DELETE', `/api/session/${sessionId}`);
+  localStorage.removeItem('mkt_session');
+  localStorage.removeItem('mkt_token');
+  sessionId = null; authToken = null; currentUser = null; allListings = [];
+  showAuth();
+}
+
+// ── Estados e Cidades ─────────────────────────────────────
+const ESTADOS_CIDADES = {
+  "AC":{"nome":"Acre","cidades":["Rio Branco","Cruzeiro do Sul","Sena Madureira","Tarauacá","Feijó"]},
+  "AL":{"nome":"Alagoas","cidades":["Maceió","Arapiraca","Palmeira dos Índios","Rio Largo","Penedo","União dos Palmares"]},
+  "AM":{"nome":"Amazonas","cidades":["Manaus","Parintins","Itacoatiara","Manacapuru","Coari","Tefé","Tabatinga"]},
+  "AP":{"nome":"Amapá","cidades":["Macapá","Santana","Laranjal do Jari","Oiapoque","Mazagão"]},
+  "BA":{"nome":"Bahia","cidades":["Salvador","Feira de Santana","Vitória da Conquista","Camaçari","Lauro de Freitas","Itabuna","Juazeiro","Ilhéus","Jequié","Teixeira de Freitas","Barreiras","Porto Seguro","Simões Filho","Paulo Afonso","Eunápolis"]},
+  "CE":{"nome":"Ceará","cidades":["Fortaleza","Caucaia","Juazeiro do Norte","Maracanaú","Sobral","Crato","Itapipoca","Maranguape","Iguatu","Quixadá"]},
+  "DF":{"nome":"Distrito Federal","cidades":["Brasília","Ceilândia","Taguatinga","Samambaia","Planaltina","Águas Claras","Recanto das Emas","Gama","Sobradinho","Guará","Santa Maria"]},
+  "ES":{"nome":"Espírito Santo","cidades":["Vitória","Serra","Vila Velha","Cariacica","Linhares","Cachoeiro de Itapemirim","Colatina","Guarapari","São Mateus","Aracruz"]},
+  "GO":{"nome":"Goiás","cidades":["Goiânia","Aparecida de Goiânia","Anápolis","Rio Verde","Luziânia","Águas Lindas de Goiás","Valparaíso de Goiás","Trindade","Formosa","Catalão"]},
+  "MA":{"nome":"Maranhão","cidades":["São Luís","Imperatriz","São José de Ribamar","Timon","Caxias","Codó","Paço do Lumiar","Açailândia","Bacabal","Balsas"]},
+  "MG":{"nome":"Minas Gerais","cidades":["Belo Horizonte","Uberlândia","Contagem","Juiz de Fora","Betim","Montes Claros","Ribeirão das Neves","Uberaba","Governador Valadares","Ipatinga","Sete Lagoas","Divinópolis","Santa Luzia","Poços de Caldas","Patos de Minas","Pouso Alegre","Teófilo Otoni","Varginha","Lavras","Nova Lima"]},
+  "MS":{"nome":"Mato Grosso do Sul","cidades":["Campo Grande","Dourados","Três Lagoas","Corumbá","Ponta Porã","Naviraí","Aquidauana","Sidrolândia","Maracaju"]},
+  "MT":{"nome":"Mato Grosso","cidades":["Cuiabá","Várzea Grande","Rondonópolis","Sinop","Tangará da Serra","Cáceres","Sorriso","Lucas do Rio Verde","Primavera do Leste"]},
+  "PA":{"nome":"Pará","cidades":["Belém","Ananindeua","Santarém","Marabá","Castanhal","Parauapebas","Itaituba","Abaetetuba","Cametá","Bragança","Altamira","Tucuruí"]},
+  "PB":{"nome":"Paraíba","cidades":["João Pessoa","Campina Grande","Santa Rita","Patos","Bayeux","Sousa","Cajazeiras","Cabedelo","Guarabira"]},
+  "PE":{"nome":"Pernambuco","cidades":["Recife","Caruaru","Olinda","Petrolina","Paulista","Vitória de Santo Antão","Jaboatão dos Guararapes","Garanhuns","Cabo de Santo Agostinho","Camaragibe"]},
+  "PI":{"nome":"Piauí","cidades":["Teresina","Parnaíba","Picos","Piripiri","Floriano","Campo Maior","Barras","União","Altos","Oeiras"]},
+  "PR":{"nome":"Paraná","cidades":["Curitiba","Londrina","Maringá","Ponta Grossa","Cascavel","São José dos Pinhais","Foz do Iguaçu","Colombo","Guarapuava","Paranaguá","Araucária","Toledo","Apucarana","Umuarama","Cambé","Sarandi"]},
+  "RJ":{"nome":"Rio de Janeiro","cidades":["Rio de Janeiro","São Gonçalo","Maricá","Duque de Caxias","Nova Iguaçu","Niterói","Belford Roxo","São João de Meriti","Campos dos Goytacazes","Petrópolis","Volta Redonda","Magé","Itaboraí","Macaé","Cabo Frio","Nova Friburgo","Barra Mansa","Angra dos Reis","Nilópolis","Mesquita","Queimados","Teresópolis","Araruama","Resende","Saquarema"]},
+  "RN":{"nome":"Rio Grande do Norte","cidades":["Natal","Mossoró","Parnamirim","São Gonçalo do Amarante","Macaíba","Ceará-Mirim","Caicó","Assu","Currais Novos"]},
+  "RO":{"nome":"Rondônia","cidades":["Porto Velho","Ji-Paraná","Ariquemes","Vilhena","Cacoal","Rolim de Moura","Guajará-Mirim","Jaru"]},
+  "RR":{"nome":"Roraima","cidades":["Boa Vista","Rorainópolis","Caracaraí","Alto Alegre","Mucajaí","Cantá","Bonfim"]},
+  "RS":{"nome":"Rio Grande do Sul","cidades":["Porto Alegre","Caxias do Sul","Pelotas","Canoas","Santa Maria","Gravataí","Viamão","Novo Hamburgo","São Leopoldo","Rio Grande","Alvorada","Passo Fundo","Sapucaia do Sul","Uruguaiana","Santa Cruz do Sul","Bento Gonçalves","Erechim"]},
+  "SC":{"nome":"Santa Catarina","cidades":["Florianópolis","Joinville","Blumenau","São José","Criciúma","Chapecó","Itajaí","Lages","Jaraguá do Sul","Palhoça","Balneário Camboriú","Brusque","Tubarão","Caçador","Concórdia"]},
+  "SE":{"nome":"Sergipe","cidades":["Aracaju","Nossa Senhora do Socorro","Lagarto","Itabaiana","São Cristóvão","Estância","Tobias Barreto","Simão Dias"]},
+  "SP":{"nome":"São Paulo","cidades":["São Paulo","Guarulhos","Campinas","São Bernardo do Campo","Santo André","São José dos Campos","Ribeirão Preto","Osasco","Sorocaba","Mauá","São José do Rio Preto","Mogi das Cruzes","Santos","Diadema","Jundiaí","Piracicaba","Carapicuíba","Bauru","Itaquaquecetuba","São Vicente","Franca","Guarujá","Taubaté","Praia Grande","Limeira","Suzano","Taboão da Serra","Sumaré","Barueri","Embu das Artes","São Carlos","Indaiatuba","Cotia","Americana","Marília","Araraquara","Jacareí","Hortolândia","Presidente Prudente","Rio Claro"]},
+  "TO":{"nome":"Tocantins","cidades":["Palmas","Araguaína","Gurupi","Porto Nacional","Paraíso do Tocantins","Colinas do Tocantins"]}
+};
+
+function populateStates() {
+  const selects = ['input-state', 'mon-state'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const sorted = Object.entries(ESTADOS_CIDADES).sort((a,b) => a[1].nome.localeCompare(b[1].nome));
+    sorted.forEach(([uf, data]) => {
+      const opt = document.createElement('option');
+      opt.value = uf; opt.textContent = data.nome;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function onStateChange() {
+  const uf = document.getElementById('input-state').value;
+  const citySelect = document.getElementById('input-city');
+  citySelect.innerHTML = '';
+  if (!uf) {
+    citySelect.innerHTML = '<option value="">Selecione o estado primeiro</option>';
+    citySelect.style.opacity = '.4'; citySelect.style.pointerEvents = 'none'; return;
+  }
+  const ph = document.createElement('option'); ph.value = ''; ph.textContent = 'Selecione a cidade';
+  citySelect.appendChild(ph);
+  ESTADOS_CIDADES[uf]?.cidades.sort().forEach(c => {
+    const opt = document.createElement('option'); opt.value = c; opt.textContent = c;
+    citySelect.appendChild(opt);
+  });
+  citySelect.style.opacity = '1'; citySelect.style.pointerEvents = 'auto';
+}
+
+function onMonStateChange(preselect) {
+  const uf = document.getElementById('mon-state').value;
+  const citySelect = document.getElementById('mon-city');
+  citySelect.innerHTML = '';
+  if (!uf) {
+    citySelect.innerHTML = '<option value="">Selecione o estado</option>';
+    citySelect.style.opacity = '.4'; citySelect.style.pointerEvents = 'none'; return;
+  }
+  const ph = document.createElement('option'); ph.value = ''; ph.textContent = 'Selecione a cidade';
+  citySelect.appendChild(ph);
+  ESTADOS_CIDADES[uf]?.cidades.sort().forEach(c => {
+    const opt = document.createElement('option'); opt.value = c; opt.textContent = c;
+    citySelect.appendChild(opt);
+  });
+  citySelect.style.opacity = '1'; citySelect.style.pointerEvents = 'auto';
+  if (preselect) citySelect.value = preselect;
+}
+
+// ── Busca ─────────────────────────────────────────────────
+async function doSearch() {
+  const keyword = document.getElementById('input-keyword').value.trim();
+  const state = document.getElementById('input-state').value;
+  const city = document.getElementById('input-city').value;
+  const maxItems = parseInt(document.getElementById('input-max').value) || 40;
+  const removeNoPrice = document.getElementById('tog-noprice').classList.contains('on');
+
+  if (!keyword) { toast('Digite o que você quer buscar.', 'error'); return; }
+  if (!state) { toast('Selecione o estado.', 'error'); return; }
+  if (!city) { toast('Selecione a cidade.', 'error'); return; }
+
+  const location = `${city}, ${state}`;
+  closeSidebar();
+  const btn = document.getElementById('btn-search');
+  btn.disabled = true; btn.textContent = 'Buscando…';
+  document.getElementById('listings-grid').innerHTML = '';
+  document.getElementById('stats-grid').style.display = 'none';
+
+  document.getElementById('filters').style.display = 'none';
+  showLoading();
+
+  const res = await api('POST', '/api/search', { sessionId, keyword, location, city, maxItems, removeAccessories: false, removeDefects: false, removeNoPrice, blockedWords });
+  btn.disabled = false; btn.textContent = 'Buscar';
+  hideLoading();
+
+  if (!res?.ok) {
+    if (res?.error?.includes('autenticada') || res?.error?.includes('login')) {
+      localStorage.removeItem('mkt_session'); sessionId = null;
+      toast('Sessão expirada. Faça login novamente.', 'error');
+      setTimeout(() => showAuth(), 1500); return;
+    }
+    toast('Erro: ' + (res?.error || 'tente novamente'), 'error');
+    document.getElementById('listings-grid').innerHTML = '<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">⚠️</div><p>Erro na busca. Tente novamente.</p></div>';
+    return;
+  }
+
+  allListings = res.listings || [];
+  currentStats = res.stats;
+  currentFilter = 'all';
+  renderStats();
+  renderListings();
+  loadPriceHistory(keyword, city);
+  toast(`${allListings.length} anúncios encontrados!`, 'success');
+}
+
+// ── Render Stats ──────────────────────────────────────────
+function renderStats() {
+  const grid = document.getElementById('stats-grid');
+  if (!currentStats) { grid.style.display = 'none'; return; }
+  const s = currentStats;
+  grid.style.display = 'grid';
+  grid.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Anúncios</div><div class="stat-value">${s.total}</div></div>
+    <div class="stat-card"><div class="stat-label">Preço médio</div><div class="stat-value">R$ ${fmt(s.avg)}</div></div>
+    <div class="stat-card"><div class="stat-label">Mediana</div><div class="stat-value">R$ ${fmt(s.median)}</div></div>
+    <div class="stat-card"><div class="stat-label">Menor preço</div><div class="stat-value green">R$ ${fmt(s.min)}</div></div>
+    <div class="stat-card"><div class="stat-label">Maior preço</div><div class="stat-value">R$ ${fmt(s.max)}</div></div>
+    <div class="stat-card"><div class="stat-label">🔥 Oportunidades</div><div class="stat-value warn">${s.opportunities}</div></div>
+  `;
+  document.getElementById('filters').style.display = 'flex';
+  document.getElementById('location-tip').style.display = 'flex';
+}
+
+
+
+// ── Render Listings ───────────────────────────────────────
+function renderListings() {
+  const sort = document.getElementById('sort-select')?.value || 'price_asc';
+  let list = allListings.filter(l => !isBlockedByWords(l.title || ''));
+  if (currentFilter === 'opportunity') list = list.filter(l => l.is_opportunity);
+  else if (currentFilter === 'with_price') list = list.filter(l => l.price !== null);
+  if (sort !== 'proximity') {
+    list.sort((a,b) => {
+      if (sort === 'price_asc') return (a.price ?? Infinity) - (b.price ?? Infinity);
+      if (sort === 'price_desc') return (b.price ?? -1) - (a.price ?? -1);
+      if (sort === 'pct_desc') return (b.pct_below_avg ?? -999) - (a.pct_below_avg ?? -999);
+      return 0;
+    });
+  }
+  // proximity = mantém ordem original do servidor (já ordenado por distância)
+  const grid = document.getElementById('listings-grid');
+  if (!list.length) { grid.innerHTML = '<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">🔍</div><p>Nenhum anúncio com esse filtro.</p></div>'; return; }
+  grid.innerHTML = list.map(l => {
+    const priceHtml = l.price ? `<div class="listing-price">R$ ${fmt(l.price)}</div>` : `<div class="listing-price no-price">${l.price_raw || 'Sem preço'}</div>`;
+    const pctHtml = l.pct_below_avg !== null ? `<div class="pct-badge ${l.pct_below_avg < 0 ? 'above' : ''}">${l.pct_below_avg >= 0 ? `${l.pct_below_avg}% abaixo da média` : `${Math.abs(l.pct_below_avg)}% acima da média`}</div>` : '';
+    const imgHtml = l.image_url ? `<img class="listing-img" src="${esc(l.image_url)}" alt="${esc(l.title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
+    const ph = `<div class="listing-img-placeholder" ${l.image_url ? 'style="display:none"' : ''}>🖼️</div>`;
+    return `<div class="listing-card ${l.is_opportunity ? 'opportunity' : ''}">${l.is_opportunity ? '<div class="opp-badge">🔥 OPORTUNIDADE</div>' : ''}${imgHtml}${ph}<div class="listing-body"><div class="listing-title">${esc(l.title)}</div>${priceHtml}${pctHtml}<div class="listing-meta">${esc(l.location || '')}</div><a class="btn-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver anúncio →</a>
+      ${l.price ? `
+      <button class="calc-btn" onclick="toggleCalc(this, ${l.price}, ${currentStats?.avg || 0})">Calcular lucro</button>
+      <div class="calc-panel">
+        <div class="calc-row"><label>Preço de compra</label><input type="number" class="calc-buy" value="${l.price}" oninput="updateCalc(this)"></div>
+        <div class="calc-row"><label>Preço de venda</label><input type="number" class="calc-sell" value="${Math.round((currentStats?.avg || l.price * 1.3))}" oninput="updateCalc(this)"></div>
+        <div class="calc-row"><label>Custos extras (R$)</label><input type="number" class="calc-costs" value="0" oninput="updateCalc(this)"></div>
+        <div class="calc-result good">
+          <span class="profit">—</span>
+          <span class="margin">Preencha os valores</span>
+        </div>
+      </div>` : ''}
+    </div></div>`;
+  }).join('');
+}
+
+// ── Filtros ───────────────────────────────────────────────
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderListings();
+}
+function toggleFilter(btn) {
+  btn.classList.toggle('on');
+  btn.querySelector('.dot-toggle').textContent = btn.classList.contains('on') ? '✕' : '';
+}
+
+// ── Palavras bloqueadas ───────────────────────────────────
+let blockedWords = JSON.parse(localStorage.getItem('blocked_words') || '[]');
+
+function initBlockedWords() {
+  renderBlockedTags();
+}
+
+function saveBlockedWords() {
+  localStorage.setItem('blocked_words', JSON.stringify(blockedWords));
+}
+
+function clearBlockedWords() {
+  blockedWords = [];
+  saveBlockedWords();
+  renderBlockedTags();
+}
+
+function addBlockedWord(word) {
+  const input = document.getElementById('word-input');
+  const w = (word || input.value).trim().toLowerCase();
+  if (!w || blockedWords.includes(w)) { if (input) input.value = ''; return; }
+  blockedWords.push(w);
+  saveBlockedWords();
+  if (input) input.value = '';
+  renderBlockedTags();
+}
+
+function removeBlockedWord(word) {
+  blockedWords = blockedWords.filter(w => w !== word);
+  saveBlockedWords();
+  renderBlockedTags();
+}
+
+function renderBlockedTags() {
+  const container = document.getElementById('blocked-words');
+  if (!blockedWords.length) {
+    container.innerHTML = '<span style="font-size:11px;color:var(--text3)">Nenhuma palavra bloqueada.</span>';
+    return;
+  }
+  container.innerHTML = blockedWords.map(w => `
+    <span class="blocked-tag">
+      ${esc(w)}
+      <button onclick="removeBlockedWord('${esc(w)}')" title="Remover">×</button>
+    </span>`).join('');
+}
+
+
+
+function isBlockedByWords(title) {
+  if (!blockedWords.length) return false;
+  const t = title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  return blockedWords.some(w => {
+    const wn = w.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return t.includes(wn);
+  });
+}
+
+// ── Comparador Facebook vs OLX ────────────────────────────
+async function doCompare() {
+  if (!checkProFeature('compare')) return;
+  const keyword = document.getElementById('input-keyword').value.trim();
+  const state = document.getElementById('input-state').value;
+  const city = document.getElementById('input-city').value;
+  const removeNoPrice = document.getElementById('tog-noprice').classList.contains('on');
+
+  if (!keyword) { toast('Digite o produto para comparar.', 'error'); return; }
+  if (!state || !city) { toast('Selecione estado e cidade primeiro.', 'error'); return; }
+
+  const location = `${city}, ${state}`;
+  const btn = document.getElementById('btn-compare');
+  btn.disabled = true; btn.textContent = 'Comparando…';
+  showLoading();
+  document.getElementById('loading-text').textContent = 'Comparando mercados…';
+
+  const res = await api('POST', '/api/compare', { sessionId, keyword, location, city, removeNoPrice, blockedWords });
+
+  btn.disabled = false; btn.textContent = 'Comparar com OLX';
+  hideLoading();
+  document.getElementById('loading-text').textContent = 'Buscando anúncios…';
+
+  if (!res?.ok) { toast('Erro: ' + (res?.error || 'tente novamente'), 'error'); return; }
+
+  renderComparePanel(res);
+  document.getElementById('compare-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderComparePanel(data) {
+  const panel = document.getElementById('compare-panel');
+  const { facebook: fb, olx, arbitrage, keyword } = data;
+
+  let arbitrageHtml = '';
+  if (arbitrage && arbitrage.profit > 0) {
+    const isGood = arbitrage.margin >= 20;
+    arbitrageHtml = `
+      <div class="arbitrage-box ${isGood ? '' : 'warn'}">
+        <div class="arbitrage-title ${isGood ? '' : 'warn'}">
+          ${isGood ? '💰' : '💡'} Oportunidade de arbitragem detectada!
+        </div>
+        <div class="arbitrage-numbers">
+          <div class="arb-stat" style="color:${isGood?'#166534':'#92400e'}">
+            <strong>R$ ${fmt(arbitrage.buy_price)}</strong>
+            Comprar em ${esc(arbitrage.buy_source)}
+          </div>
+          <div class="arb-stat" style="color:${isGood?'#166534':'#92400e'}">
+            <strong>→</strong>&nbsp;
+          </div>
+          <div class="arb-stat" style="color:${isGood?'#166534':'#92400e'}">
+            <strong>R$ ${fmt(arbitrage.sell_price)}</strong>
+            Vender em ${esc(arbitrage.sell_source)}
+          </div>
+        </div>
+        <p style="font-size:12px;color:${isGood?'#166534':'#92400e'};margin:0">
+          Lucro potencial: <strong>R$ ${fmt(arbitrage.profit)}</strong> (${arbitrage.margin}% de margem)
+        </p>
+      </div>`;
+  } else {
+    arbitrageHtml = `<div style="background:#f8fafc;border:1px solid var(--border);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;font-size:12px;color:var(--text2)">
+      ℹ️ Nenhuma oportunidade clara de arbitragem encontrada para <strong>${esc(keyword)}</strong> no momento.
+    </div>`;
+  }
+
+  const fbStats = fb.stats;
+  const olxStats = olx.stats;
+
+  function statsHtml(stats, listings, source, emoji) {
+    if (!stats) return `<div class="compare-col">
+      <div class="compare-col-title">${emoji} ${source}</div>
+      <div class="no-results">Nenhum resultado encontrado</div>
+    </div>`;
+
+    const topListings = listings.slice(0,3).map(l => `
+      <div class="compare-mini-card">
+        ${l.image_url ? `<img class="compare-mini-img" src="${esc(l.image_url)}" onerror="this.style.display='none'">` : ''}
+        <div class="compare-mini-info">
+          <div class="compare-mini-title">${esc(l.title)}</div>
+          <div class="compare-mini-price">R$ ${fmt(l.price)}</div>
+        </div>
+        <a class="compare-mini-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver →</a>
+      </div>`).join('');
+
+    return `<div class="compare-col">
+      <div class="compare-col-title">${emoji} ${source}</div>
+      <div class="compare-stat-row"><span>Anúncios</span><span>${stats.total}</span></div>
+      <div class="compare-stat-row"><span>Preço médio</span><span>R$ ${fmt(stats.avg)}</span></div>
+      <div class="compare-stat-row"><span>Menor preço</span><span style="color:#16a34a;font-weight:600">R$ ${fmt(stats.min)}</span></div>
+      <div class="compare-stat-row"><span>Maior preço</span><span>R$ ${fmt(stats.max)}</span></div>
+      <div class="compare-stat-row"><span>Mediana</span><span>R$ ${fmt(stats.median)}</span></div>
+      <p style="font-size:11px;color:var(--text2);margin:8px 0 4px">Menores preços encontrados:</p>
+      ${topListings || '<div class="no-results">Sem anúncios com preço</div>'}
+    </div>`;
+  }
+
+  panel.style.display = 'block';
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <p style="font-size:14px;font-weight:600;margin:0">Comparação: <span style="color:var(--accent)">${esc(keyword)}</span></p>
+      <button onclick="document.getElementById('compare-panel').style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px">×</button>
+    </div>
+    ${arbitrageHtml}
+    <div class="compare-grid">
+      ${statsHtml(fbStats, fb.listings || [], 'Facebook Marketplace', '📘')}
+      ${statsHtml(olxStats, olx.listings || [], 'OLX', '🟠')}
+    </div>
+  `;
+}
+
+// ── Histórico de preços ───────────────────────────────────
+let historyChartInstance = null;
+
+async function loadPriceHistory(keyword, city) {
+  if (!keyword || !city) return;
+  const res = await api('GET', `/api/price-history?keyword=${encodeURIComponent(keyword)}&city=${encodeURIComponent(city)}&days=30`);
+  if (!res?.ok || !res.history?.length) {
+    document.getElementById('history-container').style.display = 'none';
+    return;
+  }
+  renderHistoryChart(res.history);
+}
+
+function renderHistoryChart(history) {
+  if (history.length < 2) { document.getElementById('history-container').style.display = 'none'; return; }
+
+  const labels = history.map(h => {
+    const d = new Date(h.date);
+    return `${d.getDate()}/${d.getMonth()+1}`;
+  });
+  const avgs = history.map(h => Math.round(h.avg));
+
+  // Variação vs primeira entrada
+  const first = avgs[0], last = avgs[avgs.length - 1];
+  const pct = Math.round(((last - first) / first) * 100);
+  const badge = document.getElementById('history-badge');
+  if (pct < -3) { badge.className = 'history-badge down'; badge.textContent = `↓ ${Math.abs(pct)}% vs início`; }
+  else if (pct > 3) { badge.className = 'history-badge up'; badge.textContent = `↑ ${pct}% vs início`; }
+  else { badge.className = 'history-badge flat'; badge.textContent = 'Estável'; }
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const tc = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.4)';
+  const gc = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+  document.getElementById('history-container').style.display = 'block';
+  if (historyChartInstance) { historyChartInstance.destroy(); historyChartInstance = null; }
+
+  historyChartInstance = new Chart(document.getElementById('history-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        data: avgs,
+        borderColor: '#00e676',
+        backgroundColor: 'rgba(0,230,118,0.08)',
+        borderWidth: 2,
+        pointBackgroundColor: '#00e676',
+        pointRadius: 4,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` R$ ${fmt(ctx.raw)}` } } },
+      scales: {
+        x: { ticks: { color: tc, font: { size: 10 } }, grid: { display: false }, border: { display: false } },
+        y: { ticks: { color: tc, font: { size: 10 }, callback: v => 'R$' + fmt(v) }, grid: { color: gc }, border: { display: false } }
+      }
+    }
+  });
+}
+
+// ── Calculadora de lucro ──────────────────────────────────
+function toggleCalc(btn, buyPrice, avgPrice) {
+  const panel = btn.nextElementSibling;
+  const isOpen = panel.classList.contains('open');
+  // Fecha todos os outros
+  document.querySelectorAll('.calc-panel.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.calc-btn').forEach(b => b.textContent = 'Calcular lucro');
+  if (!isOpen) {
+    panel.classList.add('open');
+    btn.textContent = 'Fechar calculadora';
+    updateCalc(panel.querySelector('.calc-buy'));
+  }
+}
+
+function updateCalc(input) {
+  const panel = input.closest('.calc-panel');
+  const buy = parseFloat(panel.querySelector('.calc-buy').value) || 0;
+  const sell = parseFloat(panel.querySelector('.calc-sell').value) || 0;
+  const costs = parseFloat(panel.querySelector('.calc-costs').value) || 0;
+  const profit = sell - buy - costs;
+  const margin = sell > 0 ? (profit / sell) * 100 : 0;
+  const result = panel.querySelector('.calc-result');
+  const profitEl = result.querySelector('.profit');
+  const marginEl = result.querySelector('.margin');
+
+  profitEl.textContent = (profit >= 0 ? '+' : '') + 'R$ ' + fmt(profit);
+  marginEl.textContent = `Margem: ${margin.toFixed(1)}%`;
+
+  result.className = 'calc-result';
+  if (profit <= 0) { result.classList.add('bad'); profitEl.style.color = '#ff5252'; }
+  else if (margin < 15) { result.classList.add('warn'); profitEl.style.color = '#ffb300'; }
+  else { result.classList.add('good'); profitEl.style.color = '#00e676'; }
+}
+
+// ── Loading overlay ──────────────────────────────────────
+const LOADING_MSGS = [
+  'Acessando o Marketplace…',
+  'Coletando anúncios…',
+  'Calculando médias de preço…',
+  'Identificando oportunidades…',
+  'Quase pronto…',
+];
+let loadingInterval = null;
+
+function showLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  const sub = document.getElementById('loading-sub');
+  overlay.classList.add('show');
+  let i = 0;
+  sub.textContent = LOADING_MSGS[0];
+  loadingInterval = setInterval(() => {
+    i = (i + 1) % LOADING_MSGS.length;
+    sub.textContent = LOADING_MSGS[i];
+  }, 2500);
+}
+
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('show');
+  clearInterval(loadingInterval);
+}
+
+// ── Push / Alertas ────────────────────────────────────────
+async function initPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js');
+    const perm = Notification.permission;
+    if (perm === 'granted') { await subscribePush(reg); showMonitorPanel(); }
+    else if (perm !== 'denied') showPermissionBanner();
+  } catch (err) { console.warn('SW erro:', err); }
+}
+
+function showPermissionBanner() { document.getElementById('permission-banner').style.display = 'block'; }
+
+async function requestNotificationPermission() {
+  const btn = document.getElementById('btn-allow-notif');
+  btn.disabled = true; btn.textContent = 'Aguardando…';
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    document.getElementById('permission-banner').style.display = 'none';
+    toast('Notificações ativadas!', 'success');
+    const reg = await navigator.serviceWorker.ready;
+    await subscribePush(reg);
+    showMonitorPanel();
+    await api('POST', '/api/push/test', { sessionId });
+  } else {
+    toast('Permissão negada.', 'error');
+    btn.disabled = false; btn.textContent = 'Permitir notificações';
+  }
+}
+
+async function subscribePush(reg) {
+  try {
+    const res = await api('GET', '/api/push/vapid-key');
+    if (!res?.publicKey) return;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(res.publicKey) });
+    await api('POST', '/api/push/subscribe', { sessionId, subscription: sub.toJSON() });
+  } catch (err) { console.warn('Push subscribe erro:', err); }
+}
+
+function showMonitorPanel() {
+  document.getElementById('monitor-panel').style.display = 'block';
+  loadMonitors();
+}
+
+function toggleMonitorForm() {
+  const form = document.getElementById('monitor-form');
+  form.classList.toggle('visible');
+  const kw = document.getElementById('input-keyword').value;
+  if (kw) document.getElementById('mon-keyword').value = kw;
+  const curState = document.getElementById('input-state').value;
+  const curCity = document.getElementById('input-city').value;
+  if (curState) { document.getElementById('mon-state').value = curState; onMonStateChange(curCity); }
+}
+
+async function saveMonitor() {
+  if (!checkProFeature('alerts')) return;
+  const keyword = document.getElementById('mon-keyword').value.trim();
+  const state = document.getElementById('mon-state').value;
+  const city = document.getElementById('mon-city').value;
+  const maxPrice = parseFloat(document.getElementById('mon-price').value);
+  const intervalHours = parseInt(document.getElementById('mon-interval').value) || 2;
+  const location = city && state ? `${city}, ${state}` : 'Brasil';
+  if (!keyword) { toast('Digite o produto.', 'error'); return; }
+  if (!state) { toast('Selecione o estado.', 'error'); return; }
+  if (!city) { toast('Selecione a cidade.', 'error'); return; }
+  if (!maxPrice || maxPrice <= 0) { toast('Digite o preço máximo.', 'error'); return; }
+  const res = await api('POST', '/api/monitor', { sessionId, keyword, location, city, maxPrice, intervalHours });
+  if (res?.ok) {
+    toast(`Alerta criado para "${keyword}"!`, 'success');
+    document.getElementById('monitor-form').classList.remove('visible');
+    document.getElementById('mon-keyword').value = '';
+    document.getElementById('mon-price').value = '';
+    loadMonitors();
+  } else toast('Erro ao salvar: ' + (res?.error || ''), 'error');
+}
+
+async function loadMonitors() {
+  if (!sessionId) return;
+  const res = await api('GET', `/api/monitor/${sessionId}`);
+  const list = document.getElementById('monitor-list');
+  if (!res?.monitors?.length) { list.innerHTML = '<div class="monitor-empty">Nenhum alerta configurado.</div>'; return; }
+  list.innerHTML = res.monitors.map(m => `
+    <div class="monitor-item">
+      <div class="monitor-info"><strong>${esc(m.keyword)}</strong><span>Até R$ ${fmt(m.maxPrice)} · ${esc(m.city || '')} · ${m.intervalHours}h</span></div>
+      <button class="btn-remove-monitor" onclick="deleteMonitor('${m.id}')">×</button>
+    </div>`).join('');
+}
+
+async function deleteMonitor(id) {
+  await api('DELETE', `/api/monitor/${id}`);
+  loadMonitors(); toast('Alerta removido.', '');
+}
+
+function urlBase64ToUint8Array(b) {
+  const padding = '='.repeat((4 - b.length % 4) % 4);
+  const base64 = (b + padding).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from([...atob(base64)].map(c => c.charCodeAt(0)));
+}
+
+// ── UI helpers ────────────────────────────────────────────
+function showAuth() {
+  document.getElementById('screen-auth').style.display = 'flex';
+  document.getElementById('screen-app').style.display = 'none';
+  document.getElementById('status-dot').className = 'dot';
+  document.getElementById('status-text').textContent = 'Desconectado';
+  document.getElementById('btn-logout').style.display = 'none';
+  document.getElementById('btn-connect').disabled = false;
+  document.getElementById('btn-connect').textContent = 'Conectar Facebook';
+  document.getElementById('btn-confirm-login').style.display = 'none';
+  setAuthStatus('');
+}
+
+async function showApp() {
+  // Busca plano atualizado do servidor
+  if (authToken) {
+    const me = await api('GET', '/api/auth/me');
+    if (me?.ok) currentUser = me;
+  }
+
+  document.getElementById('screen-auth').style.display = 'none';
+  document.getElementById('screen-app').style.display = 'block';
+  document.getElementById('status-dot').className = 'dot online';
+  document.getElementById('status-text').textContent = currentUser?.email || 'Conectado';
+  document.getElementById('btn-logout').style.display = 'inline-block';
+
+  // Badge de plano
+  const badge = document.getElementById('plan-badge');
+  if (badge) {
+    badge.style.display = 'inline-block';
+    const isPro = currentUser?.plan === 'pro';
+    badge.textContent = isPro ? '⭐ Pro' : 'Free';
+    badge.className = `plan-badge ${isPro ? 'pro' : 'free'}`;
+  }
+
+  applyPlanLimits();
+  initPush();
+  initBlockedWords();
+}
+
+function applyPlanLimits() {
+  const isPro = currentUser?.plan === 'pro';
+  const maxAllowed = isPro ? 100 : 20;
+
+  // Limitar qtd máxima
+  const maxInput = document.getElementById('input-max');
+  if (maxInput) {
+    maxInput.max = maxAllowed;
+    if (!isPro) {
+      maxInput.value = Math.min(parseInt(maxInput.value) || 20, 20);
+      maxInput.title = 'Plano free: máximo 20 resultados';
+    }
+  }
+
+  // Botão Comparar com OLX
+  const compareBtn = document.getElementById('btn-compare');
+  if (compareBtn) {
+    if (!isPro) {
+      compareBtn.onclick = (e) => { e.preventDefault(); showUpgradeModal(); };
+      compareBtn.style.opacity = '0.6';
+      compareBtn.title = '🔒 Recurso Pro — Clique para ver planos';
+    } else {
+      compareBtn.onclick = doCompare;
+      compareBtn.style.opacity = '1';
+      compareBtn.title = '';
+    }
+  }
+
+  // Campo de palavras bloqueadas
+  const wordInput = document.getElementById('word-input');
+  const addWordBtn = document.querySelector('.btn-add-word');
+  if (wordInput) {
+    wordInput.disabled = !isPro;
+    wordInput.placeholder = isPro ? 'ex: caixa, defeito…' : '🔒 Recurso Pro';
+  }
+  if (addWordBtn) addWordBtn.disabled = !isPro;
+
+  // Painel de alertas
+  const monitorPanel = document.getElementById('monitor-panel');
+  if (monitorPanel && !isPro) {
+    monitorPanel.style.display = 'block';
+    monitorPanel.innerHTML = `
+      <div onclick="showUpgradeModal()" style="text-align:center;padding:1rem;border:2px dashed #c4b5fd;border-radius:var(--radius-sm);cursor:pointer;background:#faf5ff;transition:all .2s" onmouseover="this.style.background='#f3e8ff'" onmouseout="this.style.background='#faf5ff'">
+        <p style="font-size:1.5rem;margin-bottom:4px">🔒</p>
+        <p style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:2px">Recurso exclusivo Pro</p>
+        <p style="font-size:11px;color:#6b7280">Alertas automáticos de oportunidades</p>
+        <p style="font-size:11px;color:#7c3aed;font-weight:600;margin-top:6px">Clique para ver planos →</p>
+      </div>`;
+  }
+
+  console.log(`[Plano] ${isPro ? 'Pro ✓' : 'Free — limite ' + maxAllowed}`);
+}
+
+function setAuthStatus(msg) { document.getElementById('auth-status').textContent = msg; }
+function fmt(n) { if (n == null) return '—'; return Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+async function api(method, url, body) {
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (authToken) opts.headers['x-auth-token'] = authToken;
+    if (body) opts.body = JSON.stringify(body);
+    const res = await (await fetch(url, opts)).json();
+    // Se token expirado, desloga
+    if (res?.error?.includes('autenticado') && url !== '/api/auth/login') {
+      localStorage.removeItem('mkt_token');
+      authToken = null; currentUser = null;
+      showAuth();
+    }
+    return res;
+  } catch { return null; }
+}
+
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', 3500);
+}
+</script>
+</body>
+</html>
