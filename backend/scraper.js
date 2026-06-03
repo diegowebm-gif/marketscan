@@ -666,6 +666,12 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     if (itemCount === 0) {
       const pageText = await page.evaluate(() => document.body?.innerText?.slice(0, 300)).catch(() => '');
       console.log('[Scraper] Texto da página:', pageText.replace(/\s+/g, ' ').slice(0, 200));
+      // Verificar quais hrefs existem na página
+      const hrefs = await page.evaluate(() => {
+        const links = [...document.querySelectorAll('a[href]')];
+        return links.map(a => a.href).filter(h => h.includes('marketplace')).slice(0, 5);
+      }).catch(() => []);
+      console.log('[Scraper] Links marketplace encontrados:', JSON.stringify(hrefs));
     }
 
     console.log('[Scraper] Iniciando scroll...');
