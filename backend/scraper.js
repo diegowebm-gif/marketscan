@@ -242,7 +242,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
   }
 
   try {
-    await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 20000 });
+    await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 40000 });
 
     // Aguarda a página de login carregar completamente
     await page.waitForFunction(
@@ -254,7 +254,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
         const rect = input.getBoundingClientRect();
         return rect.width > 0 && rect.height > 0;
       },
-      { timeout: 15000 }
+      { timeout: 30000 }
     );
 
     // Digita via JavaScript direto no DOM — mais robusto que .click() + .type()
@@ -292,7 +292,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
       if (btn) btn.click();
     });
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null);
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => null);
 
     const url = page.url();
     const cookies = await page.cookies();
@@ -364,7 +364,7 @@ async function submitTwoFactor(sessionId, code) {
     ).catch(() => null);
     if (submitBtn) await submitBtn.click();
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null);
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => null);
 
     // Navega por checkpoints adicionais (ex: "Não reconheço este dispositivo")
     for (let i = 0; i < 4; i++) {
