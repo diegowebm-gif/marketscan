@@ -583,7 +583,11 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     });
 
     console.log(`[Scraper] Dados coletados: ${listings.length} anúncios brutos`);
-    await browser.close();
+    await Promise.race([
+      browser.close(),
+      new Promise(resolve => setTimeout(resolve, 5000))
+    ]).catch(() => {});
+    console.log('[Scraper] Browser fechado, processando...');
 
     const processed = listings.map(item => ({
       ...item,
