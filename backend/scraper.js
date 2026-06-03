@@ -677,12 +677,21 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       console.log('[Scraper] Possíveis links de anúncios:', JSON.stringify(hrefs));
     }
 
+    // Aguarda página estabilizar antes de scrollar
+    await delay(2000);
+    
     console.log('[Scraper] Iniciando scroll...');
-    for (let i = 0; i < 4; i++) {
-      await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2));
-      await delay(800);
-      console.log(`[Scraper] Scroll ${i+1}/4`);
+    for (let i = 0; i < 6; i++) {
+      await page.evaluate(() => window.scrollBy(0, window.innerHeight * 3));
+      await delay(1500);
+      const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
+      console.log(`[Scraper] Scroll ${i+1}/6 | anúncios: ${count}`);
+      if (count >= 10) break;
     }
+    // Volta ao topo para garantir que todos os itens estão no DOM
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await delay(1000);
+    
     console.log('[Scraper] Coletando dados dos anúncios...');
     // Aguarda títulos reais carregarem (substituem "Acabou de ser anunciado")
     await page.waitForFunction(() => {
