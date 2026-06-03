@@ -8,6 +8,49 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
+// ─── Cookies ──────────────────────────────────────────────
+function cookiePath(sessionId) {
+  return path.join(COOKIES_DIR, `${sessionId}.json`);
+}
+
+function saveCookies(sessionId, cookies) {
+  fs.writeFileSync(cookiePath(sessionId), JSON.stringify(cookies, null, 2));
+}
+
+function loadCookies(sessionId) {
+  const p = cookiePath(sessionId);
+  if (!fs.existsSync(p)) return null;
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
+}
+
+function hasSavedCookies(sessionId) {
+  const cookies = loadCookies(sessionId);
+  if (!cookies) return false;
+  return cookies.some(c => c.name === 'c_user');
+}
+
+// ─── Chrome ───────────────────────────────────────────────
+function findChromePath() {
+  const candidates = [
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    path.join(os.homedir(), '.cache', 'puppeteer', 'chrome', 'linux-131.0.6778.204', 'chrome-linux64', 'chrome'),
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  ].filter(Boolean);
+  for (const c of candidates) {
+    if (fs.existsSync(c)) {
+      console.log('[Browser] Chrome encontrado em:', c);
+      return c;
+    }
+  }
+  console.warn('[Browser] Chrome não encontrado nos candidatos — Puppeteer vai tentar o padrão');
+  return undefined;
+}
+
 // ─── Proxy residencial Brasil (proxy-seller.com) ───────────
 // Formato: LOGIN_c_BR:SENHA@HOST:PORTA (credenciais inline no --proxy-server)
 const PROXY_USER = 'apid5128f44cb5c9d45';
