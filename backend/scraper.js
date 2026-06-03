@@ -86,8 +86,9 @@ function isRelevant(title, keyword) {
   // Se a keyword tem número (ex: "11" em "iphone 11"), exige que o título também tenha
   if (numWords.length > 0) {
     const hasNumber = numWords.some(n => {
-      // Verifica número exato com boundary (não confunde "11" com "11 Pro", mas sim com "111")
-      const regex = new RegExp(`(^|\\s|-)${n}(\\s|-|$|pro|plus|max|mini)`);
+      // Boundary estrito: o número deve estar isolado (não ser parte de outro número)
+      // ex: "11" bate em "iphone 11" mas não em "iphone 111" ou "iphone 12"
+      const regex = new RegExp(`(?<![\\d])${n}(?![\\d])`);
       return regex.test(t);
     });
     if (!hasNumber) return false;
