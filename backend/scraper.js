@@ -690,7 +690,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       removeNoPrice: options.removeNoPrice !== false,
       removeAccessories: false,
       removeDefects: false,
-      keyword,
+      keyword: '',
       blockedWords: options.blockedWords || [],
     });
     console.log(`[Scraper] filterListings concluído: ${filtered.length} itens`);
