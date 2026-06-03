@@ -290,16 +290,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     if (!passSel) throw new Error('Campo de senha não encontrado.');
 
     await passSel.click({ clickCount: 3 });
-    // Injeta senha via evaluate para evitar problemas com @ e caracteres especiais
-    await page.evaluate((pwd) => {
-      const input = document.querySelector('#pass, input[name="pass"], input[type="password"]');
-      if (input) {
-        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-        nativeInputValueSetter.call(input, pwd);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }, password);
+    await page.keyboard.type(password, { delay: 80 });
     await delay(300);
 
     // Pressiona Enter para submeter
