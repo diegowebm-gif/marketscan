@@ -76,6 +76,9 @@ async function launchBrowser(proxyUrl = null) {
     '--single-process',
     '--no-zygote',
     '--disable-blink-features=AutomationControlled',
+    '--ignore-certificate-errors',         // Bright Data usa cert próprio
+    '--ignore-ssl-errors',
+    '--allow-insecure-localhost',
   ];
 
   let anonProxyUrl = null;
@@ -456,7 +459,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
 
     await page.waitForSelector('a[href*="/marketplace/item/"]', {
-      timeout: 15000,
+      timeout: 25000,
     }).catch(() => null);
 
     for (let i = 0; i < 4; i++) {
