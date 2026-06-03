@@ -162,19 +162,29 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
       { timeout: 30000 }
     );
 
-    // Digita usando teclado real via Puppeteer — o Facebook valida input via eventos de teclado
+    // Digita usando clipboard injection — mais confiável para senhas com caracteres especiais (@, #, etc)
     const emailSel = await page.$('#email, input[name="email"], input[type="email"], input[name="phone"], input[type="tel"]').catch(() => null);
     if (!emailSel) throw new Error('Campo de email/telefone não encontrado.');
 
     await emailSel.click({ clickCount: 3 });
-    await emailSel.type(email, { delay: 80 });
+    // Usa keyboard.type na página diretamente — preserva caracteres especiais
+    await page.keyboard.type(email, { delay: 60 });
     await delay(300);
 
     const passSel = await page.$('#pass, input[name="pass"], input[type="password"]').catch(() => null);
     if (!passSel) throw new Error('Campo de senha não encontrado.');
 
     await passSel.click({ clickCount: 3 });
-    await passSel.type(password, { delay: 80 });
+    // Injeta senha via evaluate para evitar problemas com @ e caracteres especiais
+    await page.evaluate((pwd) => {
+      const input = document.querySelector('#pass, input[name="pass"], input[type="password"]');
+      if (input) {
+        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+        nativeInputValueSetter.call(input, pwd);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, password);
     await delay(300);
 
     // Pressiona Enter para submeter
