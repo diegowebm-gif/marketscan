@@ -8,6 +8,93 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
+// ─── Filtros de qualidade ─────────────────────────────────
+
+const ACCESSORY_KEYWORDS = [
+  'capinha','capa protetora','película','pelicula','carregador','cabo usb',
+  'cabo lightning','cabo type-c','fone de ouvido','fones de ouvido',
+  'earphone','earphones','headphone','headset','airpod','airpods',
+  'case para','suporte para','protetor de tela','carcaça','carcaca',
+  'bumper','skin adesiva','adaptador usb','hub usb','dock',
+  'tripé','tripe','anel magnético','pop socket','popsocket',
+  'bateria externa','powerbank','power bank','fonte carregador',
+  'película vidro','película gel','caneta stylus','stylus',
+  'suporte veicular','suporte celular','película fosca',
+  'smartwatch','smart watch','relogio inteligente','relógio inteligente',
+  'fone bluetooth','fone sem fio','cabo original','carregador original',
+  'fonte original','adaptador original','kit cabo','kit carregador',
+  'para iphone','compatível com iphone','compativel com iphone',
+];
+
+const DEFECT_KEYWORDS = [
+  'com defeito','defeituoso','quebrado','trincado','rachado',
+  'não liga','nao liga','não funciona','nao funciona',
+  'para peças','para peça','pra peça','pra peças',
+  'retirada de peças','display quebrado','tela quebrada',
+  'tela trincada','vidro quebrado','vidro trincado',
+  'sem touch','touch ruim','em manutenção','em manutencao',
+  'bateria viciada','bateria ruim','bateria inchada','sem bateria',
+  'câmera com defeito','camera com defeito','placa queimada',
+  'não carrega','nao carrega','chassi dobrado','amassado',
+  'danificado','avariado','tela manchada','burn-in',
+];
+
+const PACKAGE_KEYWORDS = [
+  'caixa','embalagem','box','apenas caixa','só caixa','somente caixa',
+  'caixa vazia','manual','acessório','acessorios',
+];
+
+function normalize(str) {
+  return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function isAccessory(title) {
+  const t = normalize(title);
+  if (ACCESSORY_KEYWORDS.some(kw => t.includes(normalize(kw)))) return true;
+  if (/^(cabo|carregador|fonte|adaptador|suporte|pelicula|capinha|capa|fone|kit)/.test(t)) return true;
+  return false;
+}
+
+function hasDefect(title) {
+  const t = normalize(title);
+  return DEFECT_KEYWORDS.some(kw => t.includes(normalize(kw)));
+}
+
+function isRelevant(title, keyword) {
+  if (!keyword) return true;
+  const t = normalize(title);
+  const kw = normalize(keyword);
+  if (t.includes(kw)) return true;
+  const stopwords = ['de','do','da','os','as','um','uma','para','com','sem','pro','pra','e'];
+  const words = kw.split(/\s+/).filter(w => w.length > 2 && !stopwords.includes(w));
+  if (words.length === 0) return true;
+  return words.filter(w => t.includes(w)).length >= 1;
+}
+
+function isPackage(title) {
+  const t = normalize(title);
+  return PACKAGE_KEYWORDS.some(kw => t.startsWith(normalize(kw)) || t.includes(' ' + normalize(kw) + ' '));
+}
+
+function filterListings(listings, options = {}) {
+  const { removeAccessories = false, removeDefects = false, removeNoPrice = true, keyword = '', city = '', blockedWords = [] } = options;
+  return listings.filter(item => {
+    const title = item.title || '';
+    const loc = normalize(item.location || '');
+    if (removeNoPrice && (item.price === null || item.price <= 0)) return false;
+    if (removeDefects && hasDefect(title)) return false;
+    if (removeAccessories && isAccessory(title)) return false;
+    if (removeAccessories && isPackage(title)) return false;
+    if (keyword && !isRelevant(title, keyword)) return false;
+    if (city && loc && !loc.includes(normalize(city))) return false;
+    if (blockedWords && blockedWords.length > 0) {
+      const t = normalize(title);
+      if (blockedWords.some(w => w && t.includes(normalize(w)))) return false;
+    }
+    return true;
+  });
+}
+
 // ─── Cookies ──────────────────────────────────────────────
 function cookiePath(sessionId) {
   return path.join(COOKIES_DIR, `${sessionId}.json`);
