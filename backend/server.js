@@ -17,7 +17,7 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 app.use(cors());
 
-// ⚠️ WEBHOOK STRIPE: ante do express.json()
+// ⚠️ WEBHOOK STRIPE: antes do express.json()
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -355,6 +355,16 @@ app.get('/admin', (req, res) => {
 // Página de termos de uso
 app.get('/terms.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/terms.html'));
+});
+
+// Landing page na raiz
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/landing.html'));
+});
+
+// App em /app
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../frontend/index.html')));
