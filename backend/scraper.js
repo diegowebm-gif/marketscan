@@ -636,8 +636,17 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     console.log('[Scraper] Acessando URL do Marketplace...');
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
-      console.log('[Scraper] Página carregada, URL atual:', page.url().slice(0, 80));
+      const currentUrl = page.url().slice(0, 80);
+      console.log('[Scraper] Página carregada, URL atual:', currentUrl);
+      
+      // Verifica se foi redirecionado para login
+      if (currentUrl.includes('login') || currentUrl.includes('checkpoint')) {
+        console.log('[Scraper] ERRO: Redirecionado para login/checkpoint — sessão expirada');
+        await browser.close().catch(() => null);
+        throw new Error('Sessão expirada. Faça login no Facebook novamente.');
+      }
     } catch (gotoErr) {
+      if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
       console.error('[Scraper] Erro ao acessar URL:', gotoErr.message);
       await browser.close().catch(() => null);
       throw new Error('Não foi possível acessar o Marketplace: ' + gotoErr.message);
@@ -654,6 +663,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     const pageTitle = await page.title().catch(() => 'erro');
     const itemCount = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
     console.log(`[Scraper] Título: ${pageTitle} | Anúncios encontrados: ${itemCount}`);
+    if (itemCount === 0) {
+      const pageText = await page.evaluate(() => document.body?.innerText?.slice(0, 300)).catch(() => '');
+      console.log('[Scraper] Texto da página:', pageText.replace(/\s+/g, ' ').slice(0, 200));
+    }
 
     console.log('[Scraper] Iniciando scroll...');
     for (let i = 0; i < 4; i++) {
