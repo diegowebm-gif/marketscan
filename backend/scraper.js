@@ -167,16 +167,14 @@ function findChromePath() {
 // ─── Proxy residencial Brasil (proxy-seller.com) via proxy-chain ──
 const ProxyChain = require('proxy-chain');
 
-// Bright Data — proxy residencial BR com suporte nativo ao Puppeteer
-const PROXY_USER = 'brd-customer-hl_7f589202-zone-marketscan';
-const PROXY_PASS = 'i1s805bc6ktx';
-const PROXY_HOST = 'brd.superproxy.io';
-const PROXY_PORT = 33335;
+// Proxy-seller residencial BR
+const PROXY_USER = '9418de876b2eeb75';
+const PROXY_PASS = 'L7cyB6AnifHUxKeZ';
+const PROXY_HOST = 'res.proxy-seller.com';
+const PROXY_PORT = 10000;
 
 function getNextProxyUrl() {
-  // Força IPs do Brasil adicionando -country-br no username
-  const userBR = `${PROXY_USER}-country-br`;
-  return `http://${userBR}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
+  return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
 }
 
 // proxy-chain anonimiza o proxy — cria um tunnel local sem auth
