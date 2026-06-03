@@ -64,11 +64,23 @@ function isRelevant(title, keyword) {
   if (!keyword) return true;
   const t = normalize(title);
   const kw = normalize(keyword);
+
+  // Título genérico — deixa passar (Facebook não carregou o título real)
+  if (t === 'acabou de ser anunciado' || t.length < 5) return true;
+
+  // Se contém a keyword inteira, é relevante
   if (t.includes(kw)) return true;
+
+  // Pega palavras principais da keyword (ignora stopwords e palavras curtas)
   const stopwords = ['de','do','da','os','as','um','uma','para','com','sem','pro','pra','e'];
   const words = kw.split(/\s+/).filter(w => w.length > 2 && !stopwords.includes(w));
   if (words.length === 0) return true;
-  return words.filter(w => t.includes(w)).length >= 1;
+
+  // Conta quantas palavras da keyword estão no título
+  const matched = words.filter(w => t.includes(w));
+
+  // Se metade ou mais das palavras batem, é relevante
+  return matched.length >= Math.ceil(words.length / 2);
 }
 
 function isPackage(title) {
@@ -700,7 +712,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       removeNoPrice: options.removeNoPrice !== false,
       removeAccessories: false,
       removeDefects: false,
-      keyword: '',
+      keyword,
       blockedWords: options.blockedWords || [],
     });
 
