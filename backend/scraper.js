@@ -683,12 +683,13 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     console.log(`[Scraper] parsePrice concluído: ${processed.length} itens`);
 
     const filtered = filterListings(processed, {
-      removeNoPrice: options.removeNoPrice !== false,
+      removeNoPrice: false,
       removeAccessories: false,
       removeDefects: false,
-      keyword,
-      blockedWords: options.blockedWords || [],
+      keyword: '',
+      blockedWords: [],
     });
+    console.log(`[Scraper] Amostra título[0]: ${processed[0]?.title} | price: ${processed[0]?.price}`);
     console.log(`[Scraper] filterListings concluído: ${filtered.length} itens`);
 
     const sorted = sortByProximity(filtered, cityRaw);
