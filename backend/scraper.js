@@ -185,7 +185,9 @@ async function launchBrowser(proxyUrl = null) {
     '--disable-blink-features=AutomationControlled',
   ];
   if (proxyUrl) {
-    args.push(`--proxy-server=http://${proxyUrl}`);
+    // Credenciais embutidas na URL — único formato que funciona no Chromium headless
+    const proxyWithAuth = `http://${PROXY_USER}:${PROXY_PASS}@${proxyUrl}`;
+    args.push(`--proxy-server=${proxyWithAuth}`);
     console.log('[Proxy] Usando IP residencial BR:', proxyUrl);
   }
   return puppeteer.launch({
@@ -236,11 +238,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Autenticação HTTP Basic do proxy
-  if (proxyUrl) {
-    await page.authenticate({ username: PROXY_USER, password: PROXY_PASS }).catch(() => null);
-    console.log('[Proxy] Autenticado como:', PROXY_USER);
-  }
+  // Proxy auth já embutida na URL do --proxy-server
 
   try {
     // Testa conectividade do proxy antes de tentar o Facebook
