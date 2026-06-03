@@ -40,9 +40,7 @@ function createProxyTunnel(remoteHost, remotePort) {
         headers: { 'Proxy-Authorization': `Basic ${auth}` },
       });
       proxyReq.on('connect', (res, proxySocket) => {
-        clientSocket.write('HTTP/1.1 200 Connection Established
-
-');
+        clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
         proxySocket.write(head);
         proxySocket.pipe(clientSocket);
         clientSocket.pipe(proxySocket);
