@@ -303,40 +303,23 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
       { timeout: 30000 }
     );
 
-    // Digita via JavaScript direto no DOM — mais robusto que .click() + .type()
-    await page.evaluate((emailValue) => {
-      const input = document.querySelector(
-        '#email, input[name="email"], input[type="email"], input[name="phone"], input[type="tel"], input[type="text"]'
-      );
-      if (!input) throw new Error('Campo de email/telefone não encontrado.');
-      input.focus();
-      input.value = emailValue;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    }, email);
+    // Digita usando teclado real via Puppeteer — o Facebook valida input via eventos de teclado
+    const emailSel = await page.$('#email, input[name="email"], input[type="email"], input[name="phone"], input[type="tel"]').catch(() => null);
+    if (!emailSel) throw new Error('Campo de email/telefone não encontrado.');
 
-    await delay(400);
+    await emailSel.click({ clickCount: 3 });
+    await emailSel.type(email, { delay: 80 });
+    await delay(300);
 
-    await page.evaluate((passwordValue) => {
-      const input = document.querySelector(
-        '#pass, input[name="pass"], input[type="password"]'
-      );
-      if (!input) throw new Error('Campo de senha não encontrado.');
-      input.focus();
-      input.value = passwordValue;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    }, password);
+    const passSel = await page.$('#pass, input[name="pass"], input[type="password"]').catch(() => null);
+    if (!passSel) throw new Error('Campo de senha não encontrado.');
 
-    await delay(400);
+    await passSel.click({ clickCount: 3 });
+    await passSel.type(password, { delay: 80 });
+    await delay(300);
 
-    // Clica no botão de login
-    await page.evaluate(() => {
-      const btn = document.querySelector(
-        '[name="login"], button[type="submit"], input[type="submit"], [data-testid="royal_login_button"]'
-      );
-      if (btn) btn.click();
-    });
+    // Pressiona Enter para submeter
+    await passSel.press('Enter');
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => null);
 
