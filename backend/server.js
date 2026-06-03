@@ -353,6 +353,7 @@ app.get('/admin', (req, res) => {
 });
 
 // Página de termos de uso
+app.get('/terms.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/terms.html'));
 });
 
