@@ -195,30 +195,53 @@ async function loginWithCredentials(sessionId, email, password) {
   try {
     await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 20000 });
 
-    // Aguarda página carregar — tenta múltiplos seletores pois o Facebook muda IDs
+    // Aguarda a página de login carregar completamente
     await page.waitForFunction(
-      () => document.querySelector('#email, input[name="email"], input[type="email"]') !== null,
-      { timeout: 12000 }
-    ).catch(() => null);
+      () => {
+        const input = document.querySelector(
+          '#email, input[name="email"], input[type="email"], input[name="phone"], input[type="tel"], input[type="text"]'
+        );
+        if (!input) return false;
+        const rect = input.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0;
+      },
+      { timeout: 15000 }
+    );
 
-    const emailEl = await page.$("#email").catch(() => null)
-                 || await page.$("input[name='email']").catch(() => null)
-                 || await page.$("input[type='email']").catch(() => null);
-    if (!emailEl) throw new Error('Página de login do Facebook não carregou. Tente novamente.');
+    // Digita via JavaScript direto no DOM — mais robusto que .click() + .type()
+    await page.evaluate((emailValue) => {
+      const input = document.querySelector(
+        '#email, input[name="email"], input[type="email"], input[name="phone"], input[type="tel"], input[type="text"]'
+      );
+      if (!input) throw new Error('Campo de email/telefone não encontrado.');
+      input.focus();
+      input.value = emailValue;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }, email);
 
-    const passEl = await page.$("#pass").catch(() => null)
-                || await page.$("input[name='pass']").catch(() => null)
-                || await page.$("input[type='password']").catch(() => null);
-    if (!passEl) throw new Error('Campo de senha não encontrado.');
+    await delay(400);
 
-    await emailEl.click({ clickCount: 3 });
-    await emailEl.type(email, { delay: 55 });
-    await passEl.click({ clickCount: 3 });
-    await passEl.type(password, { delay: 55 });
+    await page.evaluate((passwordValue) => {
+      const input = document.querySelector(
+        '#pass, input[name="pass"], input[type="password"]'
+      );
+      if (!input) throw new Error('Campo de senha não encontrado.');
+      input.focus();
+      input.value = passwordValue;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }, password);
 
-    const loginEl = await page.$("[name='login'], button[type='submit'], input[type='submit']").catch(() => null);
-    if (loginEl) await loginEl.click();
-    else await page.keyboard.press('Enter');
+    await delay(400);
+
+    // Clica no botão de login
+    await page.evaluate(() => {
+      const btn = document.querySelector(
+        '[name="login"], button[type="submit"], input[type="submit"], [data-testid="royal_login_button"]'
+      );
+      if (btn) btn.click();
+    });
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null);
 
