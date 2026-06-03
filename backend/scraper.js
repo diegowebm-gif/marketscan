@@ -666,12 +666,15 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     if (itemCount === 0) {
       const pageText = await page.evaluate(() => document.body?.innerText?.slice(0, 300)).catch(() => '');
       console.log('[Scraper] Texto da página:', pageText.replace(/\s+/g, ' ').slice(0, 200));
-      // Verificar quais hrefs existem na página
+      // Verificar todos os hrefs da página para achar formato dos anúncios
       const hrefs = await page.evaluate(() => {
         const links = [...document.querySelectorAll('a[href]')];
-        return links.map(a => a.href).filter(h => h.includes('marketplace')).slice(0, 5);
+        // Pega hrefs que parecem ser de itens/anúncios
+        const all = links.map(a => a.href);
+        const items = all.filter(h => h.includes('item') || h.includes('listing') || h.includes('/marketplace/') && h.length > 50);
+        return items.slice(0, 8);
       }).catch(() => []);
-      console.log('[Scraper] Links marketplace encontrados:', JSON.stringify(hrefs));
+      console.log('[Scraper] Possíveis links de anúncios:', JSON.stringify(hrefs));
     }
 
     console.log('[Scraper] Iniciando scroll...');
