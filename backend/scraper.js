@@ -120,20 +120,9 @@ async function loginWithCredentials(sessionId, email, password) {
     return { ok: true, status: 'already_logged' };
   }
 
-  // Tenta primeiro sem proxy, depois com proxy se disponível
-  const attempts = [null, getNextProxyUrl(), getNextProxyUrl()];
-  let lastError = '';
-
-  for (let i = 0; i < attempts.length; i++) {
-    const proxyUrl = attempts[i];
-    console.log(`[Login] Tentativa ${i + 1}/${attempts.length}${proxyUrl ? ' via proxy' : ' SEM PROXY (direto)'}`);
-    const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
-    if (result.ok || result.status === 'needs_2fa') return result;
-    lastError = result.error || 'Falha desconhecida';
-    console.log(`[Login] Tentativa ${i + 1} falhou: ${lastError}`);
-  }
-
-  return { ok: false, status: 'error', error: lastError };
+  // Login direto sem proxy
+  console.log('[Login] Conectando ao Facebook...');
+  return await tryLoginWithProxy(sessionId, email, password, null);
 }
 
 async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
