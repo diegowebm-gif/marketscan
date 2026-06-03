@@ -195,10 +195,30 @@ async function loginWithCredentials(sessionId, email, password) {
   try {
     await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 20000 });
 
-    await page.waitForSelector('#email', { timeout: 10000 });
-    await page.type('#email', email, { delay: 60 });
-    await page.type('#pass', password, { delay: 60 });
-    await page.click('[name="login"]');
+    // Aguarda página carregar — tenta múltiplos seletores pois o Facebook muda IDs
+    await page.waitForFunction(
+      () => document.querySelector('#email, input[name="email"], input[type="email"]') !== null,
+      { timeout: 12000 }
+    ).catch(() => null);
+
+    const emailEl = await page.$("#email").catch(() => null)
+                 || await page.$("input[name='email']").catch(() => null)
+                 || await page.$("input[type='email']").catch(() => null);
+    if (!emailEl) throw new Error('Página de login do Facebook não carregou. Tente novamente.');
+
+    const passEl = await page.$("#pass").catch(() => null)
+                || await page.$("input[name='pass']").catch(() => null)
+                || await page.$("input[type='password']").catch(() => null);
+    if (!passEl) throw new Error('Campo de senha não encontrado.');
+
+    await emailEl.click({ clickCount: 3 });
+    await emailEl.type(email, { delay: 55 });
+    await passEl.click({ clickCount: 3 });
+    await passEl.type(password, { delay: 55 });
+
+    const loginEl = await page.$("[name='login'], button[type='submit'], input[type='submit']").catch(() => null);
+    if (loginEl) await loginEl.click();
+    else await page.keyboard.press('Enter');
 
     await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null);
 
