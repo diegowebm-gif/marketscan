@@ -277,6 +277,7 @@ header {
 .loading-text { font-size: 15px; font-weight: 500; color: var(--text2); }
 .loading-sub { font-size: 12px; color: var(--text3); margin-top: -1rem; }
 @keyframes pulse-icon { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: .8; } }
+@keyframes pulse-dot { 0%,100% { opacity:.2; transform:scale(.8); } 50% { opacity:1; transform:scale(1.1); } }
 
 #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: none; border-radius: var(--radius); padding: .8rem 1.2rem; font-size: 13px; color: var(--text); max-width: 300px; transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; box-shadow: var(--shadow-md); }
 #toast.show { transform: translateY(0); opacity: 1; }
@@ -532,19 +533,13 @@ header {
   </div>
 </div>
 
-<style>
-@keyframes pulse-dot {
-  0%,100% { opacity:.2; transform:scale(.8); }
-  50% { opacity:1; transform:scale(1.1); }
-}
-</style>
 <div id="loading-overlay">
   <div class="loading-wrap">
     <div class="loading-ring"></div>
     <div class="loading-icon">🔍</div>
   </div>
   <p class="loading-text" id="loading-text">Buscando anúncios…</p>
-  <p class="loading-sub" id="loading-sub">Isso pode levar alguns segundos</p>
+  <p class="loading-sub" id="loading-sub">Isso pode levar até 1 minuto</p>
 </div>
 <div id="toast"></div>
 
