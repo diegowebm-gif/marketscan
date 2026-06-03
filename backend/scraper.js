@@ -28,7 +28,8 @@ let proxyIndex = 0;
 function getNextProxy() {
   const proxy = PROXY_LIST[proxyIndex % PROXY_LIST.length];
   proxyIndex++;
-  return `http://${PROXY_USER}:${PROXY_PASS}@${proxy}`;
+  // Retorna só host:porta — autenticação feita via Request Interception
+  return proxy;
 }
 
 
@@ -188,8 +189,9 @@ async function launchBrowser(proxyUrl = null) {
     '--disable-blink-features=AutomationControlled',
   ];
   if (proxyUrl) {
-    args.push('--proxy-server=' + proxyUrl);
-    console.log('[Proxy] Usando:', proxyUrl.replace(/:([^@]+)@/, ':***@'));
+    // Formato: host:porta — credenciais injetadas via Request Interception
+    args.push(`--proxy-server=http://${proxyUrl}`);
+    console.log('[Proxy] Usando:', proxyUrl);
   }
   return puppeteer.launch({
     headless: 'new',
@@ -235,12 +237,15 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
   const browser = await launchBrowser(proxyUrl);
   const page = await browser.newPage();
 
-  // Autentica o proxy
-  await page.authenticate({ username: PROXY_USER, password: PROXY_PASS });
-
   await page.evaluateOnNewDocument(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
+
+  // Autenticação do proxy via handler nativo do Puppeteer
+  if (proxyUrl) {
+    page.on('response', () => {});
+    await page.authenticate({ username: PROXY_USER, password: PROXY_PASS }).catch(() => null);
+  }
 
   try {
     await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 20000 });
