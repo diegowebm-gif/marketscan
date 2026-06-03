@@ -64,7 +64,7 @@ let proxyPortIndex = 0;
 function getNextProxyUrl() {
   const port = PROXY_PORT_START + (proxyPortIndex % (PROXY_PORT_END - PROXY_PORT_START + 1));
   proxyPortIndex++;
-  return `http://${PROXY_USER}_c_BR:${PROXY_PASS}@${PROXY_HOST}:${port}`;
+  return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${port}`;
 }
 
 // proxy-chain anonimiza o proxy — cria um tunnel local sem auth
