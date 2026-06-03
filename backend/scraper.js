@@ -260,6 +260,16 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
   // Proxy auth já nas credenciais do --proxy-server
 
   try {
+    // Verifica IP de saída antes de tentar o login
+    try {
+      await page.goto('https://api.ipify.org?format=json', { waitUntil: 'domcontentloaded', timeout: 15000 });
+      const ipData = await page.evaluate(() => document.body.innerText).catch(() => '{}');
+      const ip = JSON.parse(ipData).ip || 'desconhecido';
+      console.log('[Proxy] IP de saída:', ip);
+    } catch (e) {
+      console.warn('[Proxy] Não foi possível verificar IP:', e.message);
+    }
+
     await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 40000 });
 
     // Aguarda a página de login carregar completamente
