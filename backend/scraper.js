@@ -307,7 +307,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
   const cookies = loadCookies(sessionId);
   if (!cookies) throw new Error('Sessão não encontrada. Faça login primeiro.');
 
-  console.log(`[Scraper] Iniciando busca headless: "${keyword}"`);
+  console.log(`[Scraper] Iniciando busca headless: "${keyword}" (${cookies.length} cookies)`);
 
   const browser = await launchBrowser();
   const page = await browser.newPage();
@@ -318,6 +318,15 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
   await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
   await page.setCookie(...cookies);
+  
+  // Verifica se os cookies funcionaram
+  const testCookies = await page.cookies();
+  const hasSession = testCookies.some(c => c.name === 'c_user');
+  console.log(`[Scraper] Sessão Facebook ativa: ${hasSession}`);
+  if (!hasSession) {
+    await browser.close();
+    throw new Error('Sessão expirada. Faça login no Facebook novamente.');
+  }
 
   const encodedKeyword = encodeURIComponent(keyword);
 
