@@ -500,7 +500,8 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       saveCookies(sessionId, updatedCookies);
     }
 
-    const listings = await page.evaluate(() => {
+    const listings = await Promise.race([
+      page.evaluate(() => {
       const results = [];
       const seen = new Set();
       const anchors = document.querySelectorAll('a[href*="/marketplace/item/"]');
@@ -574,8 +575,14 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       });
 
       return results;
+    }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('evaluate timeout')), 15000))
+    ]).catch(err => {
+      console.log('[Scraper] evaluate falhou:', err.message, '— retornando array vazio');
+      return [];
     });
 
+    console.log(`[Scraper] Dados coletados: ${listings.length} anúncios brutos`);
     await browser.close();
 
     const processed = listings.map(item => ({
