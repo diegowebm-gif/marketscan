@@ -8,28 +8,24 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
-// ─── Proxies residenciais (rotação automática no login) ───
-const PROXY_LIST = [
-  '38.154.203.95:5863',
-  '198.105.121.200:6462',
-  '64.137.96.74:6641',
-  '209.127.138.10:5784',
-  '38.154.185.97:6370',
-  '84.247.60.125:6095',
-  '142.111.67.146:5611',
-  '191.96.254.138:6185',
-  '31.58.9.4:6077',
-  '104.239.107.47:5699',
-];
-const PROXY_USER = 'ukdejgsp';
-const PROXY_PASS = 'fp3vpg07j2or';
+// ─── Proxy residencial Brasil (proxy-seller.com) ───────────
+// Host fixo com rotação automática de IP por requisição
+const PROXY_HOST = 'res.proxy-seller.com';
+const PROXY_PORT = '10000';
+const PROXY_USER = 'apid5128f44cb5c9d45';
+const PROXY_PASS = 'Y6nIqDkseO5GvKB1';
 
-let proxyIndex = 0;
+// Sufixo _c_BR força saída por IP residencial brasileiro
+// Sufixo _s_{id} mantém o mesmo IP durante toda a sessão de login
+let sessionCounter = 0;
 function getNextProxy() {
-  const proxy = PROXY_LIST[proxyIndex % PROXY_LIST.length];
-  proxyIndex++;
-  // Retorna só host:porta — autenticação feita via Request Interception
-  return proxy;
+  sessionCounter++;
+  return `${PROXY_HOST}:${PROXY_PORT}`;
+}
+
+function getProxyLogin() {
+  // Novo ID de sessão a cada login — IP diferente para cada usuário
+  return `${PROXY_USER}_c_BR_s_login${sessionCounter}`;
 }
 
 
@@ -189,9 +185,8 @@ async function launchBrowser(proxyUrl = null) {
     '--disable-blink-features=AutomationControlled',
   ];
   if (proxyUrl) {
-    // Formato: host:porta — credenciais injetadas via Request Interception
     args.push(`--proxy-server=http://${proxyUrl}`);
-    console.log('[Proxy] Usando:', proxyUrl);
+    console.log('[Proxy] Usando IP residencial BR:', proxyUrl);
   }
   return puppeteer.launch({
     headless: 'new',
@@ -241,10 +236,9 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Autenticação do proxy via handler nativo do Puppeteer
+  // Autenticação do proxy — usa login com targeting BR
   if (proxyUrl) {
-    page.on('response', () => {});
-    await page.authenticate({ username: PROXY_USER, password: PROXY_PASS }).catch(() => null);
+    await page.authenticate({ username: getProxyLogin(), password: PROXY_PASS }).catch(() => null);
   }
 
   try {
