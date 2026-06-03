@@ -11,7 +11,7 @@ if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 // ─── Filtros de qualidade ─────────────────────────────────
 
 const ACCESSORY_KEYWORDS = [
-  'capinha','capa','película','pelicula','carregador','cabo usb',
+  'capinha','capa protetora','película','pelicula','carregador','cabo usb',
   'cabo lightning','cabo type-c','fone de ouvido','fones de ouvido',
   'earphone','earphones','headphone','headset','airpod','airpods',
   'case para','suporte para','protetor de tela','carcaça','carcaca',
@@ -65,19 +65,32 @@ function isRelevant(title, keyword) {
   const t = normalize(title);
   const kw = normalize(keyword);
 
+  // Título genérico — deixa passar
   if (t === 'acabou de ser anunciado' || t.length < 5) return true;
+
+  // Se contém a keyword inteira, é relevante
   if (t.includes(kw)) return true;
 
   const stopwords = ['de','do','da','os','as','um','uma','para','com','sem','pro','pra','e'];
   const words = kw.split(/\s+/).filter(w => w.length > 1 && !stopwords.includes(w));
+  if (words.length === 0) return true;
+
+  // Separa palavras textuais e números da keyword
   const textWords = words.filter(w => !/^\d+$/.test(w));
   const numWords = words.filter(w => /^\d+$/.test(w));
 
+  // Verifica se palavras textuais principais estão no título
   const textMatched = textWords.filter(w => t.includes(w));
   if (textMatched.length < Math.ceil(textWords.length / 2)) return false;
 
+  // Se a keyword tem número (ex: "11" em "iphone 11"), exige que o título também tenha
   if (numWords.length > 0) {
-    const hasNumber = numWords.some(n => new RegExp(`(?<![\\d])${n}(?![\\d])`).test(t));
+    const hasNumber = numWords.some(n => {
+      // Boundary estrito: o número deve estar isolado (não ser parte de outro número)
+      // ex: "11" bate em "iphone 11" mas não em "iphone 111" ou "iphone 12"
+      const regex = new RegExp(`(?<![\\d])${n}(?![\\d])`);
+      return regex.test(t);
+    });
     if (!hasNumber) return false;
   }
 
@@ -161,7 +174,9 @@ const PROXY_HOST = 'brd.superproxy.io';
 const PROXY_PORT = 33335;
 
 function getNextProxyUrl() {
-  return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
+  // Força IPs do Brasil adicionando -country-br no username
+  const userBR = `${PROXY_USER}-country-br`;
+  return `http://${userBR}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
 }
 
 // proxy-chain anonimiza o proxy — cria um tunnel local sem auth
