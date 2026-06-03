@@ -610,21 +610,112 @@ async function showFacebookConnect() {
   document.querySelector('.auth-tabs').style.display = 'none';
   document.querySelector('.auth-icon').textContent = '📘';
   document.querySelector('.auth-title').innerHTML = 'Conectar Facebook';
-  document.querySelector('.auth-sub').textContent = 'Conecte sua conta do Facebook uma única vez para buscar anúncios.';
+  document.querySelector('.auth-sub').textContent = 'Digite suas credenciais do Facebook para conectar ao Marketplace.';
 
   let stepsEl = document.getElementById('fb-connect-steps');
   if (!stepsEl) {
     const div = document.createElement('div');
     div.id = 'fb-connect-steps';
-    div.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem';
-    div.innerHTML = `
-      <button class="btn-primary" id="btn-connect" onclick="startLogin()">Conectar Facebook</button>
-      <p id="auth-status" style="font-size:13px;color:var(--text2);height:18px"></p>
-    `;
+    div.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;max-width:360px';
     document.getElementById('screen-auth').appendChild(div);
-  } else {
-    stepsEl.style.display = 'flex';
   }
+  showCredentialsForm();
+}
+
+function showCredentialsForm() {
+  const stepsEl = document.getElementById('fb-connect-steps');
+  stepsEl.innerHTML = `
+    <div style="width:100%;background:#f0f7ff;border:1.5px solid #93c5fd;border-radius:10px;padding:1rem;font-size:12px;color:#1e40af;line-height:1.6;text-align:left">
+      🔒 Suas credenciais são usadas <strong>apenas para autenticar sua sessão</strong> no Facebook Marketplace e nunca são armazenadas.
+      <a href="/terms.html" target="_blank" style="color:#6a0dad;font-weight:600;text-decoration:none"> Ver termos de uso →</a>
+    </div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px">
+      <input type="email" id="fb-email" placeholder="E-mail do Facebook"
+        style="width:100%;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
+      <input type="password" id="fb-password" placeholder="Senha do Facebook"
+        style="width:100%;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
+    </div>
+    <button onclick="doFacebookLogin()"
+      style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:#1877f2;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+      Conectar com Facebook
+    </button>
+    <p id="auth-status" style="font-size:13px;color:var(--text2);min-height:18px;text-align:center"></p>
+  `;
+}
+
+function showTwoFactorForm() {
+  const stepsEl = document.getElementById('fb-connect-steps');
+  stepsEl.innerHTML = `
+    <div style="width:100%;background:#fefce8;border:1.5px solid #fbbf24;border-radius:10px;padding:1rem;font-size:13px;color:#92400e;line-height:1.6;text-align:center">
+      📱 O Facebook solicitou verificação em duas etapas.<br>
+      <strong>Digite o código que chegou no seu celular ou e-mail.</strong>
+    </div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px">
+      <input type="text" id="fb-2fa-code" placeholder="Código de verificação (ex: 123456)"
+        maxlength="8" autocomplete="one-time-code"
+        style="width:100%;padding:13px 14px;border-radius:8px;border:1.5px solid #fbbf24;font-family:'Inter',sans-serif;font-size:18px;text-align:center;letter-spacing:4px;outline:none" />
+    </div>
+    <button onclick="doTwoFactor()"
+      style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer">
+      Confirmar código
+    </button>
+    <button onclick="showCredentialsForm()"
+      style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline">
+      ← Voltar e tentar novamente
+    </button>
+    <p id="auth-status" style="font-size:13px;color:var(--text2);min-height:18px;text-align:center"></p>
+  `;
+  setTimeout(() => document.getElementById('fb-2fa-code')?.focus(), 100);
+}
+
+async function doFacebookLogin() {
+  const email = document.getElementById('fb-email')?.value.trim();
+  const password = document.getElementById('fb-password')?.value;
+  if (!email || !password) { setAuthStatus('Preencha e-mail e senha.'); return; }
+
+  setAuthStatus('Conectando ao Facebook…');
+
+  // Cria sessão primeiro
+  const startRes = await api('POST', '/api/session/start');
+  if (!startRes?.ok) { setAuthStatus('Erro ao iniciar sessão. Tente novamente.'); return; }
+  sessionId = startRes.sessionId;
+  localStorage.setItem('mkt_session', sessionId);
+
+  const res = await api('POST', '/api/session/login', { sessionId, email, password });
+
+  if (!res) { setAuthStatus('Erro de conexão. Tente novamente.'); return; }
+
+  if (res.status === 'logged_in' || res.status === 'already_logged') {
+    setAuthStatus('✅ Conectado! Carregando…');
+    await showApp();
+    return;
+  }
+
+  if (res.status === 'needs_2fa') {
+    showTwoFactorForm();
+    return;
+  }
+
+  setAuthStatus('Erro: ' + (res.error || 'Credenciais inválidas.'));
+}
+
+async function doTwoFactor() {
+  const code = document.getElementById('fb-2fa-code')?.value.trim();
+  if (!code) { setAuthStatus('Digite o código.'); return; }
+
+  setAuthStatus('Verificando código…');
+  const res = await api('POST', '/api/session/2fa', { sessionId, code });
+
+  if (!res) { setAuthStatus('Erro de conexão. Tente novamente.'); return; }
+
+  if (res.ok && res.status === 'logged_in') {
+    setAuthStatus('✅ Conectado! Carregando…');
+    await showApp();
+    return;
+  }
+
+  setAuthStatus('Erro: ' + (res.error || 'Código inválido.'));
 }
 
 function showUpgradeModal() { document.getElementById('upgrade-overlay').classList.add('show'); }
@@ -646,60 +737,12 @@ function checkProFeature(featureName) {
   return true;
 }
 
-// ── LOGIN FACEBOOK — FLUXO CORRIGIDO ──────────────────────
-async function startLogin() {
-  const btn = document.getElementById('btn-connect');
-  btn.disabled = true; btn.textContent = 'Aguarde…';
-  setAuthStatus('Preparando conexão…');
-
-  const res = await api('POST', '/api/session/start');
-  if (!res?.ok) {
-    toast('Erro: ' + (res?.error || 'tente novamente'), 'error');
-    btn.disabled = false; btn.textContent = 'Conectar Facebook'; return;
-  }
-
-  sessionId = res.sessionId;
-  localStorage.setItem('mkt_session', sessionId);
-
-  // URL do Facebook para login
-  const fbLoginUrl = 'https://www.facebook.com/login';
-  // URL do callback — onde os cookies serão capturados
-  const callbackUrl = window.location.origin + '/facebook-callback?sessionId=' + sessionId;
-
-  const stepsEl = document.getElementById('fb-connect-steps');
-  if (stepsEl) {
-    stepsEl.innerHTML = `
-      <div style="background:#f8f9ff;border:2px solid #818cf8;border-radius:12px;padding:1.25rem;max-width:380px;text-align:left">
-        <p style="font-size:13px;font-weight:700;color:#3730a3;margin-bottom:.75rem">📘 Como conectar:</p>
-        <ol style="font-size:13px;color:#4338ca;line-height:2.2;padding-left:1.25rem">
-          <li>Clique em <strong>Abrir Facebook</strong> e faça login normalmente</li>
-          <li>Após logar, volte aqui e clique em <strong>Já fiz o login</strong></li>
-        </ol>
-      </div>
-
-      <a href="${fbLoginUrl}" target="_blank"
-         style="display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:#1877f2;color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(24,119,242,0.35)">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-        Abrir Facebook
-      </a>
-
-      <a href="${callbackUrl}"
-         style="display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--accent);color:#fff;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(106,13,173,0.3)">
-        ✓ Já fiz o login — Conectar
-      </a>
-
-      <p id="auth-status" style="font-size:12px;color:var(--text2);height:18px"></p>
-    `;
-  }
-}
-
 async function autoCheckLogin() {
   if (!sessionId) return;
   const res = await api('GET', `/api/session/${sessionId}/check`);
   if (res?.loggedIn) {
     clearInterval(checkInterval);
     checkInterval = null;
-    setAuthStatus('✅ Conectado! Carregando…');
     await showApp();
   }
 }

@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const { register, login, getUserByToken, upgradeToPro, getLimits } = require('./auth');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, saveCookies } = require('./scraper');
+const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, saveCookies, loginWithCredentials, submitTwoFactor } = require('./scraper');
 const { createSession, touchSession, saveSearch, saveListings, getListingsBySearch, getRecentSearches, savePriceSnapshot, getPriceHistory } = require('./database');
 const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMonitor, sendPush, startMonitorCron } = require('./alerts');
 
@@ -103,17 +103,41 @@ app.post('/api/auth/upgrade', requireAuth, (req, res) => {
 });
 
 // ── Sessão Facebook ───────────────────────────────────────
-// FIX: não chama mais Puppeteer aqui — só monta a URL e devolve pro frontend
+
+// Inicia sessão e retorna sessionId
 app.post('/api/session/start', requireAuth, async (req, res) => {
   try {
     const sessionId = uuidv4();
     createSession(sessionId);
+    res.json({ ok: true, sessionId });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
-    // O frontend vai abrir esta URL numa nova aba/popup
-    // Após o login, o Facebook redireciona para /facebook-callback?sessionId=...
-    const loginUrl = `https://www.facebook.com/login?next=${encodeURIComponent('https://www.facebook.com/marketplace')}`;
+// Login com email e senha do Facebook
+app.post('/api/session/login', requireAuth, async (req, res) => {
+  const { sessionId, email, password } = req.body;
+  if (!sessionId || !email || !password) {
+    return res.status(400).json({ ok: false, error: 'Dados obrigatórios.' });
+  }
+  try {
+    const result = await loginWithCredentials(sessionId, email, password);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
-    res.json({ ok: true, sessionId, loginUrl });
+// Submete código 2FA
+app.post('/api/session/2fa', requireAuth, async (req, res) => {
+  const { sessionId, code } = req.body;
+  if (!sessionId || !code) {
+    return res.status(400).json({ ok: false, error: 'Dados obrigatórios.' });
+  }
+  try {
+    const result = await submitTwoFactor(sessionId, code);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -328,6 +352,11 @@ app.get('/success', async (req, res) => {
     } catch (e) { console.error('[Stripe] Success page error:', e); }
   }
   res.redirect('/?upgraded=true');
+});
+
+// Página de termos de uso
+app.get('/terms.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/terms.html'));
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../frontend/index.html')));

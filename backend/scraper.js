@@ -172,38 +172,141 @@ async function launchBrowser() {
 
 // ─── Login ────────────────────────────────────────────────
 
-// FIX: não abre mais janela de browser no servidor
-// Apenas retorna a URL — o frontend abre no browser do usuário
+// Sessões aguardando 2FA: { sessionId: { browser, page } }
+const pendingTwoFactor = {};
+
 async function openLoginWindow(sessionId) {
-  const loginUrl = `https://www.facebook.com/login?next=${encodeURIComponent('https://www.facebook.com/marketplace')}`;
-  return { ok: true, loginUrl };
+  return { ok: true, loginUrl: 'https://www.facebook.com/login' };
 }
 
-// Verifica login via cookies salvos ou browser ativo (legado)
-async function checkLogin(sessionId) {
-  if (hasSavedCookies(sessionId) && !activeBrowsers[sessionId]) {
-    return { loggedIn: true, fromCookies: true };
+// Login com email e senha do Facebook via Puppeteer headless
+async function loginWithCredentials(sessionId, email, password) {
+  if (hasSavedCookies(sessionId)) {
+    return { ok: true, status: 'already_logged' };
   }
 
-  const session = activeBrowsers[sessionId];
-  if (!session) return { loggedIn: false };
+  const browser = await launchBrowser();
+  const page = await browser.newPage();
+
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+  });
 
   try {
-    const { page, browser } = session;
+    await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 20000 });
+
+    await page.waitForSelector('#email', { timeout: 10000 });
+    await page.type('#email', email, { delay: 60 });
+    await page.type('#pass', password, { delay: 60 });
+    await page.click('[name="login"]');
+
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null);
+
+    const url = page.url();
     const cookies = await page.cookies();
     const hasSession = cookies.some(c => c.name === 'c_user');
 
     if (hasSession) {
       saveCookies(sessionId, cookies);
-      try { await browser.close(); } catch {}
-      delete activeBrowsers[sessionId];
-      return { loggedIn: true, fromCookies: false };
+      await browser.close();
+      console.log('[Login] Sucesso para sessão', sessionId.slice(0, 8));
+      return { ok: true, status: 'logged_in' };
     }
 
-    return { loggedIn: false };
-  } catch {
-    return { loggedIn: false };
+    // Verifica se precisa de 2FA / checkpoint
+    const needs2FA =
+      url.includes('/checkpoint') ||
+      url.includes('/two_step_verification') ||
+      url.includes('/login/device-based') ||
+      url.includes('approvals') ||
+      await page.$('input[name="approvals_code"]').catch(() => null) ||
+      await page.$('#approvals_code').catch(() => null) ||
+      await page.$('input[autocomplete="one-time-code"]').catch(() => null);
+
+    if (needs2FA) {
+      pendingTwoFactor[sessionId] = { browser, page };
+      console.log('[Login] 2FA necessário para sessão', sessionId.slice(0, 8));
+      return { ok: true, status: 'needs_2fa' };
+    }
+
+    // Tenta pegar mensagem de erro do Facebook
+    const errorText = await page.evaluate(() => {
+      const sel = document.querySelector('[data-testid="royal_login_error"], #error_box, ._9ay7, [role="alert"]');
+      return sel ? sel.textContent.trim() : '';
+    }).catch(() => '');
+
+    await browser.close();
+    return { ok: false, status: 'error', error: errorText || 'Credenciais inválidas. Verifique e tente novamente.' };
+
+  } catch (err) {
+    await browser.close().catch(() => null);
+    return { ok: false, status: 'error', error: err.message };
   }
+}
+
+// Recebe o código 2FA e conclui o login
+async function submitTwoFactor(sessionId, code) {
+  const pending = pendingTwoFactor[sessionId];
+  if (!pending) return { ok: false, error: 'Sessão expirada. Reinicie o login.' };
+
+  const { browser, page } = pending;
+
+  try {
+    // Tenta encontrar o campo de código
+    const codeInput = await page.$(
+      'input[name="approvals_code"], #approvals_code, input[autocomplete="one-time-code"], input[type="text"]'
+    ).catch(() => null);
+
+    if (!codeInput) {
+      await browser.close();
+      delete pendingTwoFactor[sessionId];
+      return { ok: false, error: 'Campo de código não encontrado. Tente novamente.' };
+    }
+
+    await codeInput.click({ clickCount: 3 });
+    await codeInput.type(code, { delay: 80 });
+
+    // Clica no botão de confirmar
+    const submitBtn = await page.$(
+      '[name="submit[Continue]"], [name="submit[This was me]"], button[type="submit"], input[type="submit"]'
+    ).catch(() => null);
+    if (submitBtn) await submitBtn.click();
+
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => null);
+
+    // Navega por checkpoints adicionais (ex: "Não reconheço este dispositivo")
+    for (let i = 0; i < 4; i++) {
+      const continueBtn = await page.$('[name="submit[Continue]"], [name="submit[This was me]"]').catch(() => null);
+      if (!continueBtn) break;
+      await continueBtn.click();
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 8000 }).catch(() => null);
+    }
+
+    const cookies = await page.cookies();
+    const hasSession = cookies.some(c => c.name === 'c_user');
+
+    if (hasSession) {
+      saveCookies(sessionId, cookies);
+      await browser.close();
+      delete pendingTwoFactor[sessionId];
+      console.log('[2FA] Login concluído para sessão', sessionId.slice(0, 8));
+      return { ok: true, status: 'logged_in' };
+    }
+
+    await browser.close();
+    delete pendingTwoFactor[sessionId];
+    return { ok: false, error: 'Código inválido ou verificação adicional necessária.' };
+
+  } catch (err) {
+    await browser.close().catch(() => null);
+    delete pendingTwoFactor[sessionId];
+    return { ok: false, error: err.message };
+  }
+}
+
+async function checkLogin(sessionId) {
+  if (hasSavedCookies(sessionId)) return { loggedIn: true, fromCookies: true };
+  return { loggedIn: false };
 }
 
 // ─── Scraping ─────────────────────────────────────────────
@@ -623,6 +726,8 @@ function analyzeListings(listings) {
 module.exports = {
   openLoginWindow,
   checkLogin,
+  loginWithCredentials,
+  submitTwoFactor,
   scrapeMarketplace,
   closeBrowser,
   analyzeListings,
