@@ -51,8 +51,9 @@ function findChromePath() {
   return undefined;
 }
 
-// ─── Proxy residencial Brasil (proxy-seller.com) ───────────
-// Formato: LOGIN_c_BR:SENHA@HOST:PORTA (credenciais inline no --proxy-server)
+// ─── Proxy residencial Brasil (proxy-seller.com) via proxy-chain ──
+const ProxyChain = require('proxy-chain');
+
 const PROXY_USER = 'apid5128f44cb5c9d45';
 const PROXY_PASS = 'Y6nIqDkseO5GvKB1';
 const PROXY_HOST = 'res.proxy-seller.com';
@@ -63,10 +64,11 @@ let proxyPortIndex = 0;
 function getNextProxyUrl() {
   const port = PROXY_PORT_START + (proxyPortIndex % (PROXY_PORT_END - PROXY_PORT_START + 1));
   proxyPortIndex++;
-  // Formato exato que o proxy-seller espera: user_c_BR:pass@host:port
-  return `${PROXY_USER}_c_BR:${PROXY_PASS}@${PROXY_HOST}:${port}`;
+  return `http://${PROXY_USER}_c_BR:${PROXY_PASS}@${PROXY_HOST}:${port}`;
 }
 
+// proxy-chain anonimiza o proxy — cria um tunnel local sem auth
+// que o Chromium aceita sem ERR_NO_SUPPORTED_PROXIES
 async function launchBrowser(proxyUrl = null) {
   const executablePath = findChromePath();
   const args = [
@@ -78,19 +80,29 @@ async function launchBrowser(proxyUrl = null) {
     '--no-zygote',
     '--disable-blink-features=AutomationControlled',
   ];
+
+  let anonProxyUrl = null;
   if (proxyUrl) {
-    // Usa --proxy-server com credenciais inline — formato aceito para HTTP proxy com auth
-    args.push(`--proxy-server=http://${proxyUrl}`);
-    args.push('--proxy-bypass-list=<-loopback>');
-    console.log('[Proxy] Usando proxy BR:', proxyUrl.replace(/:([^@:]+)@/, ':***@'));
+    try {
+      anonProxyUrl = await ProxyChain.anonymizeProxy(proxyUrl);
+      args.push(`--proxy-server=${anonProxyUrl}`);
+      console.log('[Proxy] Tunnel anônimo criado:', anonProxyUrl);
+    } catch (e) {
+      console.warn('[Proxy] Falha ao criar tunnel anônimo:', e.message);
+    }
   }
-  return puppeteer.launch({
+
+  const browser = await puppeteer.launch({
     headless: 'new',
     defaultViewport: { width: 1280, height: 900 },
     executablePath,
     args,
     ignoreDefaultArgs: ['--enable-automation'],
   });
+
+  // Associa o proxy anônimo ao browser para fechar depois
+  if (anonProxyUrl) browser._anonProxyUrl = anonProxyUrl;
+  return browser;
 }
 
 // ─── Login ────────────────────────────────────────────────
@@ -192,6 +204,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
 
     if (hasSession) {
       saveCookies(sessionId, cookies);
+      if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
       await browser.close();
       console.log('[Login] Sucesso para sessão', sessionId.slice(0, 8));
       return { ok: true, status: 'logged_in' };
@@ -223,6 +236,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     return { ok: false, status: 'error', error: errorText || 'Credenciais inválidas. Verifique e tente novamente.' };
 
   } catch (err) {
+    if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     await browser.close().catch(() => null);
     return { ok: false, status: 'error', error: err.message };
   }
