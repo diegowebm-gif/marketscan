@@ -581,6 +581,8 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       console.log(`[Scraper] Scroll ${i+1}/4`);
     }
     console.log('[Scraper] Coletando dados dos anúncios...');
+    // Aguarda títulos reais carregarem (substituem "Acabou de ser anunciado")
+    await delay(3000);
 
     const updatedCookies = await page.cookies();
     if (updatedCookies.some(c => c.name === 'c_user')) {
