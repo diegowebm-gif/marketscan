@@ -582,7 +582,17 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     }
     console.log('[Scraper] Coletando dados dos anúncios...');
     // Aguarda títulos reais carregarem (substituem "Acabou de ser anunciado")
-    await delay(3000);
+    await page.waitForFunction(() => {
+      const anchors = document.querySelectorAll('a[href*="/marketplace/item/"]');
+      if (anchors.length === 0) return false;
+      const titles = [...anchors].map(a => {
+        const spans = [...a.querySelectorAll('span')].map(s => s.textContent?.trim()).filter(Boolean);
+        return spans.find(t => t.length > 4 && !t.startsWith('R$')) || '';
+      });
+      return titles.some(t => t && t !== 'Acabou de ser anunciado' && t.length > 5);
+    }, { timeout: 15000 }).catch(() => {
+      console.log('[Scraper] Títulos reais não carregaram — usando títulos genéricos');
+    });
 
     const updatedCookies = await page.cookies();
     if (updatedCookies.some(c => c.name === 'c_user')) {
