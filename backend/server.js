@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const { register, login, getUserByToken, upgradeToPro, getLimits } = require('./auth');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, saveCookies, loginWithCredentials, submitTwoFactor } = require('./scraper');
+const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, hasSavedCookiesAsync, saveCookies, loginWithCredentials, submitTwoFactor } = require('./scraper');
 const { createSession, touchSession, saveSearch, saveListings, getListingsBySearch, getRecentSearches, savePriceSnapshot, getPriceHistory } = require('./database');
 const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMonitor, sendPush, startMonitorCron } = require('./alerts');
 
@@ -173,7 +173,7 @@ app.post('/api/session/cookies', async (req, res) => {
 app.get('/api/session/:id/check', requireAuth, async (req, res) => {
   try {
     const sessionId = req.params.id;
-    if (hasSavedCookies(sessionId)) {
+    if (await hasSavedCookiesAsync(sessionId)) {
       await touchSession(sessionId);
       return res.json({ ok: true, loggedIn: true });
     }
@@ -205,7 +205,7 @@ app.post('/api/search', requireAuth, async (req, res) => {
   const maxItems = Math.min(parseInt(req.body.maxItems) || 40, limitMax);
   const finalBlockedWords = canBlockWords ? blockedWords : [];
   try {
-    const hasSession = hasSavedCookies(sessionId);
+    const hasSession = await hasSavedCookiesAsync(sessionId);
     const { loggedIn } = hasSession ? { loggedIn: true } : await checkLogin(sessionId);
     if (!loggedIn) return res.status(401).json({ ok: false, error: 'Sessão expirada. Faça login no Facebook.' });
     await touchSession(sessionId);

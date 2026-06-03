@@ -8,6 +8,20 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
+// Pool PostgreSQL para persistir cookies entre deploys
+const { Pool } = require('pg');
+const cookiePool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+cookiePool.query(`
+  CREATE TABLE IF NOT EXISTS session_cookies (
+    session_id TEXT PRIMARY KEY,
+    cookies TEXT NOT NULL,
+    updated_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
+  )
+`).catch(err => console.warn('[Cookies] Erro ao criar tabela:', err.message));
+
 // ─── Filtros de qualidade ─────────────────────────────────
 
 const ACCESSORY_KEYWORDS = [
@@ -127,17 +141,53 @@ function cookiePath(sessionId) {
 }
 
 function saveCookies(sessionId, cookies) {
-  fs.writeFileSync(cookiePath(sessionId), JSON.stringify(cookies, null, 2));
+  // Salva no arquivo local
+  try { fs.writeFileSync(cookiePath(sessionId), JSON.stringify(cookies, null, 2)); } catch {}
+  // Salva no PostgreSQL para persistir entre deploys
+  cookiePool.query(
+    `INSERT INTO session_cookies (session_id, cookies, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (session_id) DO UPDATE SET cookies = $2, updated_at = $3`,
+    [sessionId, JSON.stringify(cookies), Date.now()]
+  ).catch(err => console.warn('[Cookies] Erro ao salvar no DB:', err.message));
 }
 
 function loadCookies(sessionId) {
+  // Tenta arquivo local primeiro (síncrono)
   const p = cookiePath(sessionId);
-  if (!fs.existsSync(p)) return null;
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
+  if (fs.existsSync(p)) {
+    try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch {}
+  }
+  return null;
+}
+
+async function loadCookiesFromDB(sessionId) {
+  // Carrega do PostgreSQL (para uso após redeploy)
+  try {
+    const result = await cookiePool.query('SELECT cookies FROM session_cookies WHERE session_id = $1', [sessionId]);
+    if (result.rows.length > 0) {
+      const cookies = JSON.parse(result.rows[0].cookies);
+      // Salva localmente para próximas chamadas síncronas
+      try { fs.writeFileSync(cookiePath(sessionId), JSON.stringify(cookies, null, 2)); } catch {}
+      return cookies;
+    }
+  } catch (err) {
+    console.warn('[Cookies] Erro ao carregar do DB:', err.message);
+  }
+  return null;
 }
 
 function hasSavedCookies(sessionId) {
   const cookies = loadCookies(sessionId);
+  if (!cookies) return false;
+  return cookies.some(c => c.name === 'c_user');
+}
+
+async function hasSavedCookiesAsync(sessionId) {
+  // Verifica arquivo local primeiro
+  if (hasSavedCookies(sessionId)) return true;
+  // Busca no PostgreSQL
+  const cookies = await loadCookiesFromDB(sessionId);
   if (!cookies) return false;
   return cookies.some(c => c.name === 'c_user');
 }
@@ -418,7 +468,11 @@ async function checkLogin(sessionId) {
 // ─── Scraping ─────────────────────────────────────────────
 
 async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}) {
-  const cookies = loadCookies(sessionId);
+  let cookies = loadCookies(sessionId);
+  if (!cookies) {
+    // Tenta carregar do PostgreSQL (após redeploy)
+    cookies = await loadCookiesFromDB(sessionId);
+  }
   if (!cookies) throw new Error('Sessão não encontrada. Faça login primeiro.');
 
   console.log(`[Scraper] Iniciando busca headless: "${keyword}" (${cookies.length} cookies)`);
@@ -892,5 +946,6 @@ module.exports = {
   closeBrowser,
   analyzeListings,
   hasSavedCookies,
+  hasSavedCookiesAsync,
   saveCookies,
 };
