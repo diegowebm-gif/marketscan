@@ -9,23 +9,54 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
 // ─── Proxy residencial Brasil (proxy-seller.com) ───────────
+const http = require('http');
+const net  = require('net');
+
 const PROXY_USER = 'apid5128f44cb5c9d45';
 const PROXY_PASS = 'Y6nIqDkseO5GvKB1';
 const PROXY_HOST = 'res.proxy-seller.com';
-// Portas 10000-10999 — cada porta = IP diferente
 const PROXY_PORT_START = 10000;
 const PROXY_PORT_END   = 10999;
 
 let proxyPortIndex = 0;
-function getNextProxy() {
-  // Rotaciona pelas portas — cada porta é um IP residencial diferente
+function getNextProxyPort() {
   const port = PROXY_PORT_START + (proxyPortIndex % (PROXY_PORT_END - PROXY_PORT_START + 1));
   proxyPortIndex++;
-  return `${PROXY_HOST}:${port}`;
+  return port;
 }
 
-function getProxyLogin() {
-  return PROXY_USER;
+// Cria um servidor CONNECT tunnel local que autentica no proxy remoto
+// O Chromium se conecta ao tunnel local sem precisar de auth
+function createProxyTunnel(remoteHost, remotePort) {
+  return new Promise((resolve, reject) => {
+    const server = http.createServer();
+    server.on('connect', (req, clientSocket, head) => {
+      const auth = Buffer.from(`${PROXY_USER}:${PROXY_PASS}`).toString('base64');
+      const proxyReq = http.request({
+        host: remoteHost,
+        port: remotePort,
+        method: 'CONNECT',
+        path: req.url,
+        headers: { 'Proxy-Authorization': `Basic ${auth}` },
+      });
+      proxyReq.on('connect', (res, proxySocket) => {
+        clientSocket.write('HTTP/1.1 200 Connection Established
+
+');
+        proxySocket.write(head);
+        proxySocket.pipe(clientSocket);
+        clientSocket.pipe(proxySocket);
+      });
+      proxyReq.on('error', () => clientSocket.destroy());
+      proxyReq.end();
+    });
+    server.listen(0, '127.0.0.1', () => {
+      const port = server.address().port;
+      console.log(`[ProxyTunnel] Tunnel local na porta ${port} → ${remoteHost}:${remotePort}`);
+      resolve({ server, port });
+    });
+    server.on('error', reject);
+  });
 }
 
 
@@ -185,10 +216,10 @@ async function launchBrowser(proxyUrl = null) {
     '--disable-blink-features=AutomationControlled',
   ];
   if (proxyUrl) {
-    // SOCKS5 aceita credenciais embutidas na URL no Chromium
-    args.push(`--proxy-server=socks5://${proxyUrl}`);
-    args.push(`--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE ${proxyUrl.split(':')[0]}`);
-    console.log('[Proxy] Usando SOCKS5 BR:', proxyUrl);
+    // proxyUrl aqui é 127.0.0.1:PORTA_LOCAL do tunnel — sem autenticação necessária
+    args.push(`--proxy-server=http://${proxyUrl}`);
+    args.push('--proxy-bypass-list=<-loopback>');
+    console.log('[Proxy] Chromium via tunnel local:', proxyUrl);
   }
   return puppeteer.launch({
     headless: 'new',
@@ -214,16 +245,25 @@ async function loginWithCredentials(sessionId, email, password) {
     return { ok: true, status: 'already_logged' };
   }
 
-  // Tenta até 3 vezes com IPs BR diferentes em caso de falha
+  // Tenta até 3 vezes com portas BR diferentes
   const maxAttempts = 3;
   let lastError = '';
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const proxyUrl = getNextProxy();
-    console.log(`[Login] Tentativa ${attempt + 1}/${maxAttempts} via proxy BR ${proxyUrl}`);
-    const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
-    if (result.ok || result.status === 'needs_2fa') return result;
-    lastError = result.error || 'Falha desconhecida';
+    const remotePort = getNextProxyPort();
+    console.log(`[Login] Tentativa ${attempt + 1}/${maxAttempts} via proxy BR porta ${remotePort}`);
+    let tunnel = null;
+    try {
+      tunnel = await createProxyTunnel(PROXY_HOST, remotePort);
+      const localProxyUrl = `127.0.0.1:${tunnel.port}`;
+      const result = await tryLoginWithProxy(sessionId, email, password, localProxyUrl);
+      tunnel.server.close();
+      if (result.ok || result.status === 'needs_2fa') return result;
+      lastError = result.error || 'Falha desconhecida';
+    } catch (e) {
+      if (tunnel) tunnel.server.close();
+      lastError = e.message;
+    }
     console.log(`[Login] Tentativa ${attempt + 1} falhou: ${lastError}`);
   }
 
@@ -238,10 +278,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Autenticação SOCKS5
-  if (proxyUrl) {
-    await page.authenticate({ username: PROXY_USER, password: PROXY_PASS }).catch(() => null);
-  }
+  // Autenticação já feita pelo tunnel local
 
   try {
     // Testa conectividade do proxy antes de tentar o Facebook
