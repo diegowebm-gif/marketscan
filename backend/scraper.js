@@ -279,16 +279,23 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
   // Autenticação já feita pelo tunnel local
 
   try {
-    // Testa conectividade do proxy antes de tentar o Facebook
+    // Testa conectividade básica do proxy
     try {
       await page.goto('https://api.ipify.org?format=json', { waitUntil: 'domcontentloaded', timeout: 15000 });
-      const ipData = await page.evaluate(() => document.body.innerText).catch(() => '{}');
+      const ipData = await page.evaluate(() => document.body.innerText).catch(() => 'erro');
       console.log('[Proxy] IP de saída:', ipData);
     } catch (proxyErr) {
-      console.warn('[Proxy] Falha no teste de IP:', proxyErr.message);
+      console.warn('[Proxy] Falha no teste básico:', proxyErr.message);
+      throw new Error('Proxy não conectou: ' + proxyErr.message);
     }
 
-    await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 40000 });
+    // Testa acesso ao Facebook especificamente
+    try {
+      await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 40000 });
+    } catch (fbErr) {
+      console.warn('[Proxy] Facebook bloqueado por este proxy:', fbErr.message);
+      throw new Error('Facebook bloqueado pelo proxy: ' + fbErr.message);
+    }
 
     // Aguarda a página de login carregar completamente
     await page.waitForFunction(
