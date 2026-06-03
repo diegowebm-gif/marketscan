@@ -353,7 +353,10 @@ header {
     <div id="form-login">
       <div class="auth-form">
         <input type="email" id="login-email" placeholder="Seu e-mail" />
-        <input type="password" id="login-password" placeholder="Sua senha" />
+        <div style="position:relative;width:100%">
+          <input type="password" id="login-password" placeholder="Sua senha" style="width:100%;padding-right:40px" />
+          <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+        </div>
         <div class="auth-error" id="login-error"></div>
         <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
       </div>
@@ -362,8 +365,14 @@ header {
     <div id="form-register" style="display:none">
       <div class="auth-form">
         <input type="email" id="reg-email" placeholder="Seu e-mail" />
-        <input type="password" id="reg-password" placeholder="Senha (mín. 6 caracteres)" />
-        <input type="password" id="reg-password2" placeholder="Confirmar senha" />
+        <div style="position:relative;width:100%">
+          <input type="password" id="reg-password" placeholder="Senha (mín. 6 caracteres)" style="width:100%;padding-right:40px" />
+          <button type="button" onclick="togglePass('reg-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+        </div>
+        <div style="position:relative;width:100%">
+          <input type="password" id="reg-password2" placeholder="Confirmar senha" style="width:100%;padding-right:40px" />
+          <button type="button" onclick="togglePass('reg-password2',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+        </div>
         <div class="auth-error" id="reg-error"></div>
         <button class="btn-primary" style="width:100%" onclick="doRegister()">Criar conta grátis</button>
         <p style="font-size:11px;color:var(--text2);text-align:center">Ao criar conta você concorda com os termos de uso.</p>
@@ -511,6 +520,14 @@ header {
 <div id="toast"></div>
 
 <script>
+function togglePass(id, btn) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  const isPassword = input.type === 'password';
+  input.type = isPassword ? 'text' : 'password';
+  btn.textContent = isPassword ? '🙈' : '👁';
+}
+
 function toggleSidebar() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebar-overlay');
@@ -632,8 +649,11 @@ function showCredentialsForm() {
     <div style="width:100%;display:flex;flex-direction:column;gap:10px">
       <input type="email" id="fb-email" placeholder="E-mail do Facebook"
         style="width:100%;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
-      <input type="password" id="fb-password" placeholder="Senha do Facebook"
-        style="width:100%;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
+      <div style="position:relative;width:100%">
+        <input type="password" id="fb-password" placeholder="Senha do Facebook"
+          style="width:100%;padding:11px 40px 11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
+        <button type="button" onclick="togglePass('fb-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px">👁</button>
+      </div>
     </div>
     <button onclick="doFacebookLogin()"
       style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:#1877f2;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer">
@@ -1042,7 +1062,7 @@ function updateCalc(input) {
   else { result.classList.add('good'); profitEl.style.color = '#00e676'; }
 }
 
-const LOADING_MSGS = ['Acessando o Marketplace…','Coletando anúncios…','Calculando médias de preço…','Identificando oportunidades…','Quase pronto…'];
+const LOADING_MSGS = ['Acessando o Marketplace…','Coletando anúncios…','Calculando médias de preço…','Identificando oportunidades…','Isso pode levar até 1 minuto…','Quase pronto…'];
 let loadingInterval = null;
 function showLoading() {
   const overlay = document.getElementById('loading-overlay');
@@ -1203,12 +1223,20 @@ async function api(method, url, body) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (authToken) opts.headers['x-auth-token'] = authToken;
     if (body) opts.body = JSON.stringify(body);
+    // Timeout de 120s para buscas que demoram com proxy
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+    opts.signal = controller.signal;
     const res = await (await fetch(url, opts)).json();
+    clearTimeout(timeout);
     if (res?.error?.includes('autenticado') && url !== '/api/auth/login') {
       localStorage.removeItem('mkt_token'); authToken = null; currentUser = null; showAuth();
     }
     return res;
-  } catch { return null; }
+  } catch (e) {
+    if (e.name === 'AbortError') return { ok: false, error: 'Busca demorou demais. Tente novamente.' };
+    return null;
+  }
 }
 
 let toastTimer;

@@ -695,11 +695,6 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       ...item,
       price: parsePrice(item.price_raw),
     }));
-    console.log(`[Scraper] parsePrice concluído: ${processed.length} itens`);
-    if (processed.length > 0) {
-      console.log(`[Scraper] Amostra[0]: título="${processed[0].title}" price_raw="${processed[0].price_raw}" price=${processed[0].price}`);
-      console.log(`[Scraper] Amostra[1]: título="${processed[1]?.title}" price_raw="${processed[1]?.price_raw}" price=${processed[1]?.price}`);
-    }
 
     const filtered = filterListings(processed, {
       removeNoPrice: options.removeNoPrice !== false,
@@ -708,10 +703,8 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       keyword: '',
       blockedWords: options.blockedWords || [],
     });
-    console.log(`[Scraper] filterListings concluído: ${filtered.length} itens`);
 
     const sorted = sortByProximity(filtered, cityRaw);
-    console.log(`[Scraper] sortByProximity concluído: ${sorted.length} itens`);
 
     console.log(`[Scraper] "${keyword}" em ${cityRaw}: ${processed.length} brutos → ${sorted.length} resultados`);
 
