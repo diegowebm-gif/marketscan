@@ -54,17 +54,14 @@ function findChromePath() {
 // ─── Proxy residencial Brasil (proxy-seller.com) via proxy-chain ──
 const ProxyChain = require('proxy-chain');
 
-const PROXY_USER = 'apid5128f44cb5c9d45';
-const PROXY_PASS = 'Y6nIqDkseO5GvKB1';
-const PROXY_HOST = 'res.proxy-seller.com';
-const PROXY_PORT_START = 10000;
-const PROXY_PORT_END   = 10999;
+// Bright Data — proxy residencial BR com suporte nativo ao Puppeteer
+const PROXY_USER = 'brd-customer-hl_7f589202-zone-marketscan';
+const PROXY_PASS = 'i1s805bc6ktx';
+const PROXY_HOST = 'brd.superproxy.io';
+const PROXY_PORT = 33335;
 
-let proxyPortIndex = 0;
 function getNextProxyUrl() {
-  const port = PROXY_PORT_START + (proxyPortIndex % (PROXY_PORT_END - PROXY_PORT_START + 1));
-  proxyPortIndex++;
-  return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${port}`;
+  return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
 }
 
 // proxy-chain anonimiza o proxy — cria um tunnel local sem auth
@@ -120,9 +117,20 @@ async function loginWithCredentials(sessionId, email, password) {
     return { ok: true, status: 'already_logged' };
   }
 
-  // Login direto sem proxy
-  console.log('[Login] Conectando ao Facebook...');
-  return await tryLoginWithProxy(sessionId, email, password, null);
+  // Tenta com proxy BR primeiro, depois direto como fallback
+  const attempts = [getNextProxyUrl(), null];
+  let lastError = '';
+
+  for (let i = 0; i < attempts.length; i++) {
+    const proxyUrl = attempts[i];
+    console.log(`[Login] Tentativa ${i + 1}/${attempts.length}${proxyUrl ? ' via Bright Data BR' : ' direto'}`);
+    const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
+    if (result.ok || result.status === 'needs_2fa') return result;
+    lastError = result.error || 'Falha desconhecida';
+    console.log(`[Login] Tentativa ${i + 1} falhou: ${lastError}`);
+  }
+
+  return { ok: false, status: 'error', error: lastError };
 }
 
 async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
