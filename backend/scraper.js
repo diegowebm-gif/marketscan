@@ -9,16 +9,19 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
 // ─── Proxy residencial Brasil (proxy-seller.com) ───────────
-// Host fixo com rotação automática de IP por requisição
-const PROXY_HOST = 'res.proxy-seller.com';
-const PROXY_PORT = '10000';
 const PROXY_USER = 'apid5128f44cb5c9d45';
 const PROXY_PASS = 'Y6nIqDkseO5GvKB1';
+const PROXY_HOST = 'res.proxy-seller.com';
+// Portas 10000-10999 — cada porta = IP diferente
+const PROXY_PORT_START = 10000;
+const PROXY_PORT_END   = 10999;
 
-let sessionCounter = 0;
+let proxyPortIndex = 0;
 function getNextProxy() {
-  sessionCounter++;
-  return `${PROXY_HOST}:${PROXY_PORT}`;
+  // Rotaciona pelas portas — cada porta é um IP residencial diferente
+  const port = PROXY_PORT_START + (proxyPortIndex % (PROXY_PORT_END - PROXY_PORT_START + 1));
+  proxyPortIndex++;
+  return `${PROXY_HOST}:${port}`;
 }
 
 function getProxyLogin() {
@@ -233,9 +236,10 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Autenticação do proxy — usa login com targeting BR
+  // Autenticação HTTP Basic do proxy
   if (proxyUrl) {
-    await page.authenticate({ username: getProxyLogin(), password: PROXY_PASS }).catch(() => null);
+    await page.authenticate({ username: PROXY_USER, password: PROXY_PASS }).catch(() => null);
+    console.log('[Proxy] Autenticado como:', PROXY_USER);
   }
 
   try {
