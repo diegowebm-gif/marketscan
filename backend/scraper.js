@@ -626,10 +626,13 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
           }
 
           let title = anchor.getAttribute('aria-label') || '';
-          if (!title || title.includes('R$')) {
+          // Ignora aria-label genérico
+          if (!title || title.includes('R$') || title === 'Acabou de ser anunciado') {
+            title = '';
             for (const t of allSpanTexts) {
               if (
                 t.length > 4 &&
+                t !== 'Acabou de ser anunciado' &&
                 !t.startsWith('R$') &&
                 !t.match(/^[\d\.,]+$/) &&
                 !/^\d+\s*(km|m|min|h|dia|dias|hora|horas)/.test(t)
