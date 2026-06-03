@@ -256,11 +256,11 @@ header {
 .calc-result .margin { font-size:11px; margin-top:2px; }
 
 #loading-overlay {
-  display: none; position: fixed; inset: 0; z-index: 500;
+  display: none; visibility: hidden; position: fixed; inset: 0; z-index: 500;
   background: rgba(13,13,13,0.85); backdrop-filter: blur(6px);
   flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
 }
-#loading-overlay.show { display: flex; }
+#loading-overlay.show { display: flex; visibility: visible; }
 .loading-icon {
   width: 80px; height: 80px; border-radius: 50%;
   background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.25);
@@ -533,7 +533,7 @@ header {
   </div>
 </div>
 
-<div id="loading-overlay">
+<div id="loading-overlay" style="display:none">
   <div class="loading-wrap">
     <div class="loading-ring"></div>
     <div class="loading-icon">🔍</div>
