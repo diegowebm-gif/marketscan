@@ -8,6 +8,31 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
+// ─── Proxies residenciais (rotação automática no login) ───
+const PROXY_LIST = [
+  '38.154.203.95:5863',
+  '198.105.121.200:6462',
+  '64.137.96.74:6641',
+  '209.127.138.10:5784',
+  '38.154.185.97:6370',
+  '84.247.60.125:6095',
+  '142.111.67.146:5611',
+  '191.96.254.138:6185',
+  '31.58.9.4:6077',
+  '104.239.107.47:5699',
+];
+const PROXY_USER = 'ukdejgsp';
+const PROXY_PASS = 'fp3vpg07j2or';
+
+let proxyIndex = 0;
+function getNextProxy() {
+  const proxy = PROXY_LIST[proxyIndex % PROXY_LIST.length];
+  proxyIndex++;
+  return `http://${PROXY_USER}:${PROXY_PASS}@${proxy}`;
+}
+
+
+
 // ─── Filtros de qualidade ─────────────────────────────────
 
 const ACCESSORY_KEYWORDS = [
@@ -151,21 +176,26 @@ function findChromePath() {
 }
 
 // FIX: sempre headless no servidor — sem opção de janela visível
-async function launchBrowser() {
+async function launchBrowser(proxyUrl = null) {
   const executablePath = findChromePath();
+  const args = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--single-process',
+    '--no-zygote',
+    '--disable-blink-features=AutomationControlled',
+  ];
+  if (proxyUrl) {
+    args.push('--proxy-server=' + proxyUrl);
+    console.log('[Proxy] Usando:', proxyUrl.replace(/:([^@]+)@/, ':***@'));
+  }
   return puppeteer.launch({
-    headless: 'new',           // modo headless moderno
+    headless: 'new',
     defaultViewport: { width: 1280, height: 900 },
     executablePath,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',    // evita crash por memória limitada
-      '--disable-gpu',
-      '--single-process',           // Railway tem 1 CPU virtual — reduz overhead
-      '--no-zygote',
-      '--disable-blink-features=AutomationControlled',
-    ],
+    args,
     ignoreDefaultArgs: ['--enable-automation'],
   });
 }
@@ -179,14 +209,34 @@ async function openLoginWindow(sessionId) {
   return { ok: true, loginUrl: 'https://www.facebook.com/login' };
 }
 
-// Login com email e senha do Facebook via Puppeteer headless
+// Login com email e senha do Facebook via Puppeteer headless + proxy residencial
 async function loginWithCredentials(sessionId, email, password) {
   if (hasSavedCookies(sessionId)) {
     return { ok: true, status: 'already_logged' };
   }
 
-  const browser = await launchBrowser();
+  // Tenta com até 3 proxies diferentes em caso de falha
+  const maxAttempts = Math.min(3, PROXY_LIST.length);
+  let lastError = '';
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const proxyUrl = getNextProxy();
+    console.log(`[Login] Tentativa ${attempt + 1}/${maxAttempts} com proxy ${proxyUrl.replace(/:([^@]+)@/, ':***@')}`);
+    const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
+    if (result.ok || result.status === 'needs_2fa') return result;
+    lastError = result.error || 'Falha desconhecida';
+    console.log(`[Login] Tentativa ${attempt + 1} falhou: ${lastError}`);
+  }
+
+  return { ok: false, status: 'error', error: lastError };
+}
+
+async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
+  const browser = await launchBrowser(proxyUrl);
   const page = await browser.newPage();
+
+  // Autentica o proxy
+  await page.authenticate({ username: PROXY_USER, password: PROXY_PASS });
 
   await page.evaluateOnNewDocument(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
