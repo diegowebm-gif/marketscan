@@ -120,17 +120,17 @@ async function loginWithCredentials(sessionId, email, password) {
     return { ok: true, status: 'already_logged' };
   }
 
-  // Tenta até 3 vezes com IPs BR diferentes
-  const maxAttempts = 3;
+  // Tenta primeiro sem proxy, depois com proxy se disponível
+  const attempts = [null, getNextProxyUrl(), getNextProxyUrl()];
   let lastError = '';
 
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const proxyUrl = getNextProxyUrl();
-    console.log(`[Login] Tentativa ${attempt + 1}/${maxAttempts} via proxy BR`);
+  for (let i = 0; i < attempts.length; i++) {
+    const proxyUrl = attempts[i];
+    console.log(`[Login] Tentativa ${i + 1}/${attempts.length}${proxyUrl ? ' via proxy' : ' direto'}`);
     const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
     if (result.ok || result.status === 'needs_2fa') return result;
     lastError = result.error || 'Falha desconhecida';
-    console.log(`[Login] Tentativa ${attempt + 1} falhou: ${lastError}`);
+    console.log(`[Login] Tentativa ${i + 1} falhou: ${lastError}`);
   }
 
   return { ok: false, status: 'error', error: lastError };
