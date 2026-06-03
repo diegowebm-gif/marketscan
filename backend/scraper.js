@@ -487,10 +487,13 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     const itemCount = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
     console.log(`[Scraper] Título: ${pageTitle} | Anúncios encontrados: ${itemCount}`);
 
+    console.log('[Scraper] Iniciando scroll...');
     for (let i = 0; i < 4; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2));
-      await delay(1200);
+      await delay(800);
+      console.log(`[Scraper] Scroll ${i+1}/4`);
     }
+    console.log('[Scraper] Coletando dados dos anúncios...');
 
     const updatedCookies = await page.cookies();
     if (updatedCookies.some(c => c.name === 'c_user')) {
