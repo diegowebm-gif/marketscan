@@ -242,6 +242,15 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
   }
 
   try {
+    // Testa conectividade do proxy antes de tentar o Facebook
+    try {
+      await page.goto('https://api.ipify.org?format=json', { waitUntil: 'domcontentloaded', timeout: 15000 });
+      const ipData = await page.evaluate(() => document.body.innerText).catch(() => '{}');
+      console.log('[Proxy] IP de saída:', ipData);
+    } catch (proxyErr) {
+      console.warn('[Proxy] Falha no teste de IP:', proxyErr.message);
+    }
+
     await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 40000 });
 
     // Aguarda a página de login carregar completamente
