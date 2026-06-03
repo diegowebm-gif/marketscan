@@ -15,8 +15,6 @@ const PROXY_PORT = '10000';
 const PROXY_USER = 'apid5128f44cb5c9d45';
 const PROXY_PASS = 'Y6nIqDkseO5GvKB1';
 
-// Sufixo _c_BR força saída por IP residencial brasileiro
-// Sufixo _s_{id} mantém o mesmo IP durante toda a sessão de login
 let sessionCounter = 0;
 function getNextProxy() {
   sessionCounter++;
@@ -24,8 +22,7 @@ function getNextProxy() {
 }
 
 function getProxyLogin() {
-  // Novo ID de sessão a cada login — IP diferente para cada usuário
-  return `${PROXY_USER}_c_BR_s_login${sessionCounter}`;
+  return PROXY_USER;
 }
 
 
