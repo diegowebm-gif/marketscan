@@ -475,12 +475,17 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       throw new Error('Não foi possível acessar o Marketplace: ' + gotoErr.message);
     }
 
-    // Aguarda anúncios ou continua mesmo sem eles
+    // Aguarda anúncios com timeout curto e continua mesmo sem eles
     await page.waitForSelector('a[href*="/marketplace/item/"]', {
-      timeout: 35000,
+      timeout: 20000,
     }).catch(() => {
-      console.log('[Scraper] Timeout aguardando anúncios — tentando coletar o que foi carregado');
+      console.log('[Scraper] Seletor não encontrado em 20s — coletando o que carregou');
     });
+    
+    // Log do que está na página para debug
+    const pageTitle = await page.title().catch(() => 'erro');
+    const itemCount = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
+    console.log(`[Scraper] Título: ${pageTitle} | Anúncios encontrados: ${itemCount}`);
 
     for (let i = 0; i < 4; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 2));
