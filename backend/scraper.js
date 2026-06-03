@@ -11,7 +11,7 @@ if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 // ─── Filtros de qualidade ─────────────────────────────────
 
 const ACCESSORY_KEYWORDS = [
-  'capinha','capa protetora','película','pelicula','carregador','cabo usb',
+  'capinha','capa','película','pelicula','carregador','cabo usb',
   'cabo lightning','cabo type-c','fone de ouvido','fones de ouvido',
   'earphone','earphones','headphone','headset','airpod','airpods',
   'case para','suporte para','protetor de tela','carcaça','carcaca',
