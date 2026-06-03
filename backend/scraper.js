@@ -126,7 +126,7 @@ async function loginWithCredentials(sessionId, email, password) {
 
   for (let i = 0; i < attempts.length; i++) {
     const proxyUrl = attempts[i];
-    console.log(`[Login] Tentativa ${i + 1}/${attempts.length}${proxyUrl ? ' via proxy' : ' direto'}`);
+    console.log(`[Login] Tentativa ${i + 1}/${attempts.length}${proxyUrl ? ' via proxy' : ' SEM PROXY (direto)'}`);
     const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
     if (result.ok || result.status === 'needs_2fa') return result;
     lastError = result.error || 'Falha desconhecida';
