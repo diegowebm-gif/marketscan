@@ -17,7 +17,7 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 app.use(cors());
 
-// ⚠️ WEBHOOK STRIPE: antes do express.json()
+// ⚠️ WEBHOOK STRIPE: ante do express.json()
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
