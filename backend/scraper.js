@@ -212,13 +212,13 @@ async function loginWithCredentials(sessionId, email, password) {
     return { ok: true, status: 'already_logged' };
   }
 
-  // Tenta com até 3 proxies diferentes em caso de falha
-  const maxAttempts = Math.min(3, PROXY_LIST.length);
+  // Tenta até 3 vezes com IPs BR diferentes em caso de falha
+  const maxAttempts = 3;
   let lastError = '';
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const proxyUrl = getNextProxy();
-    console.log(`[Login] Tentativa ${attempt + 1}/${maxAttempts} com proxy ${proxyUrl.replace(/:([^@]+)@/, ':***@')}`);
+    console.log(`[Login] Tentativa ${attempt + 1}/${maxAttempts} via proxy BR ${proxyUrl}`);
     const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
     if (result.ok || result.status === 'needs_2fa') return result;
     lastError = result.error || 'Falha desconhecida';
