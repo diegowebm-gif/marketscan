@@ -684,7 +684,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
     const filtered = filterListings(processed, {
       removeNoPrice: options.removeNoPrice !== false,
-      removeAccessories: true,
+      removeAccessories: false,
       removeDefects: false,
       keyword,
       blockedWords: options.blockedWords || [],
