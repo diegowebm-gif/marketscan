@@ -185,10 +185,10 @@ async function launchBrowser(proxyUrl = null) {
     '--disable-blink-features=AutomationControlled',
   ];
   if (proxyUrl) {
-    // Credenciais embutidas na URL — único formato que funciona no Chromium headless
-    const proxyWithAuth = `http://${PROXY_USER}:${PROXY_PASS}@${proxyUrl}`;
-    args.push(`--proxy-server=${proxyWithAuth}`);
-    console.log('[Proxy] Usando IP residencial BR:', proxyUrl);
+    // SOCKS5 aceita credenciais embutidas na URL no Chromium
+    args.push(`--proxy-server=socks5://${proxyUrl}`);
+    args.push(`--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE ${proxyUrl.split(':')[0]}`);
+    console.log('[Proxy] Usando SOCKS5 BR:', proxyUrl);
   }
   return puppeteer.launch({
     headless: 'new',
@@ -238,7 +238,10 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Proxy auth já embutida na URL do --proxy-server
+  // Autenticação SOCKS5
+  if (proxyUrl) {
+    await page.authenticate({ username: PROXY_USER, password: PROXY_PASS }).catch(() => null);
+  }
 
   try {
     // Testa conectividade do proxy antes de tentar o Facebook
