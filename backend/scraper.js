@@ -465,7 +465,15 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
   console.log(`[Scraper] URL: ${url}`);
 
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    console.log('[Scraper] Acessando URL do Marketplace...');
+    try {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+      console.log('[Scraper] Página carregada, URL atual:', page.url().slice(0, 80));
+    } catch (gotoErr) {
+      console.error('[Scraper] Erro ao acessar URL:', gotoErr.message);
+      await browser.close().catch(() => null);
+      throw new Error('Não foi possível acessar o Marketplace: ' + gotoErr.message);
+    }
 
     // Aguarda anúncios ou continua mesmo sem eles
     await page.waitForSelector('a[href*="/marketplace/item/"]', {
