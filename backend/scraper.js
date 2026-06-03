@@ -593,6 +593,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       ...item,
       price: parsePrice(item.price_raw),
     }));
+    console.log(`[Scraper] parsePrice concluído: ${processed.length} itens`);
 
     const filtered = filterListings(processed, {
       removeNoPrice: options.removeNoPrice !== false,
@@ -601,8 +602,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       keyword,
       blockedWords: options.blockedWords || [],
     });
+    console.log(`[Scraper] filterListings concluído: ${filtered.length} itens`);
 
     const sorted = sortByProximity(filtered, cityRaw);
+    console.log(`[Scraper] sortByProximity concluído: ${sorted.length} itens`);
 
     console.log(`[Scraper] "${keyword}" em ${cityRaw}: ${processed.length} brutos → ${sorted.length} resultados`);
 
