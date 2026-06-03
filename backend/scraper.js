@@ -624,11 +624,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     .toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  const citySlug = CITY_SLUGS[cityRaw] || cityRaw.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const citySlug = CITY_SLUGS[cityRaw] || cityRaw.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').toLowerCase();
 
-  const url = citySlug
-    ? `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=creation_time_descend`
-    : `https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend`;
+  // Usa o formato novo da URL do Facebook Marketplace
+  const url = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
 
   console.log(`[Scraper] URL: ${url}`);
 
