@@ -1,15 +1,28 @@
 const crypto = require('crypto');
-const low = require('lowdb');
-const FileSync = require('lowdb/adapters/FileSync');
-const path = require('path');
-const fs = require('fs');
+const { Pool } = require('pg');
 
-const DATA_DIR = path.join(__dirname, '../data');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+// Conexão com PostgreSQL via DATABASE_URL do Railway
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
-const adapter = new FileSync(path.join(DATA_DIR, 'users.json'));
-const db = low(adapter);
-db.defaults({ users: [] }).write();
+// Cria tabela de usuários se não existir
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      plan TEXT DEFAULT 'free',
+      token TEXT UNIQUE,
+      created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000,
+      plan_expires_at BIGINT DEFAULT NULL
+    )
+  `);
+  console.log('[DB] Tabela users pronta');
+}
+initDB().catch(err => console.error('[DB] Erro ao criar tabela:', err.message));
 
 function hashPassword(password) {
   return crypto.createHash('sha256').update(password + 'marketscan_salt').digest('hex');
@@ -19,9 +32,10 @@ function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-function register(email, password) {
+async function register(email, password) {
   email = email.toLowerCase().trim();
-  if (db.get('users').find({ email }).value()) {
+  const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+  if (existing.rows.length > 0) {
     return { ok: false, error: 'E-mail já cadastrado.' };
   }
   const user = {
@@ -30,46 +44,56 @@ function register(email, password) {
     password: hashPassword(password),
     plan: 'free',
     token: generateToken(),
-    createdAt: Date.now(),
-    planExpiresAt: null,
   };
-  db.get('users').push(user).write();
+  await pool.query(
+    'INSERT INTO users (id, email, password, plan, token) VALUES ($1, $2, $3, $4, $5)',
+    [user.id, user.email, user.password, user.plan, user.token]
+  );
   return { ok: true, token: user.token, plan: user.plan, email: user.email };
 }
 
-function login(email, password) {
+async function login(email, password) {
   email = email.toLowerCase().trim();
-  const user = db.get('users').find({ email }).value();
+  const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  const user = result.rows[0];
   if (!user || user.password !== hashPassword(password)) {
     return { ok: false, error: 'E-mail ou senha incorretos.' };
   }
-  // Renova token
   const token = generateToken();
-  db.get('users').find({ email }).assign({ token }).write();
+  await pool.query('UPDATE users SET token = $1 WHERE email = $2', [token, email]);
   return { ok: true, token, plan: user.plan, email: user.email };
 }
 
-function getUserByToken(token) {
+async function getUserByToken(token) {
   if (!token) return null;
-  const user = db.get('users').find({ token }).value();
+  const result = await pool.query('SELECT * FROM users WHERE token = $1', [token]);
+  const user = result.rows[0];
   if (!user) return null;
   // Verifica se plano pro expirou
-  if (user.plan === 'pro' && user.planExpiresAt && Date.now() > user.planExpiresAt) {
-    db.get('users').find({ token }).assign({ plan: 'free', planExpiresAt: null }).write();
-    return { ...user, plan: 'free' };
+  if (user.plan === 'pro' && user.plan_expires_at && Date.now() > parseInt(user.plan_expires_at)) {
+    await pool.query('UPDATE users SET plan = $1, plan_expires_at = NULL WHERE token = $2', ['free', token]);
+    return { ...user, plan: 'free', planExpiresAt: null };
   }
-  return user;
+  return {
+    id: user.id,
+    email: user.email,
+    plan: user.plan,
+    token: user.token,
+    planExpiresAt: user.plan_expires_at ? parseInt(user.plan_expires_at) : null,
+  };
 }
 
-function upgradeToPro(token, months = 1) {
-  const user = getUserByToken(token);
+async function upgradeToPro(token, months = 1) {
+  const user = await getUserByToken(token);
   if (!user) return { ok: false, error: 'Sessão inválida.' };
   const expiresAt = Date.now() + months * 30 * 24 * 60 * 60 * 1000;
-  db.get('users').find({ token }).assign({ plan: 'pro', planExpiresAt: expiresAt }).write();
+  await pool.query(
+    'UPDATE users SET plan = $1, plan_expires_at = $2 WHERE token = $3',
+    ['pro', expiresAt, token]
+  );
   return { ok: true, plan: 'pro', expiresAt };
 }
 
-// Limites por plano
 const PLAN_LIMITS = {
   free: {
     maxItems: 20,
