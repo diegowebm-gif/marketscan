@@ -40,17 +40,28 @@ function createProxyTunnel(remoteHost, remotePort) {
         headers: { 'Proxy-Authorization': `Basic ${auth}` },
       });
       proxyReq.on('connect', (res, proxySocket) => {
+        console.log('[ProxyTunnel] CONNECT OK, status:', res.statusCode);
+        proxySocket.on('error', (e) => { console.warn('[ProxyTunnel] proxySocket err:', e.message); clientSocket.destroy(); });
+        clientSocket.on('error', (e) => { console.warn('[ProxyTunnel] clientSocket err:', e.message); proxySocket.destroy(); });
         clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
-        proxySocket.write(head);
+        if (head && head.length) proxySocket.write(head);
         proxySocket.pipe(clientSocket);
         clientSocket.pipe(proxySocket);
       });
-      proxyReq.on('error', () => clientSocket.destroy());
+      proxyReq.on('error', (e) => {
+        console.warn('[ProxyTunnel] proxyReq erro:', e.message);
+        clientSocket.destroy();
+      });
+      proxyReq.on('response', (res) => {
+        console.warn('[ProxyTunnel] Resposta inesperada:', res.statusCode);
+        clientSocket.destroy();
+      });
       proxyReq.end();
     });
+    server.on('clientError', (e, socket) => socket.destroy());
     server.listen(0, '127.0.0.1', () => {
       const port = server.address().port;
-      console.log(`[ProxyTunnel] Tunnel local na porta ${port} → ${remoteHost}:${remotePort}`);
+      console.log(`[ProxyTunnel] Tunnel local na porta ${port} para ${remoteHost}:${remotePort}`);
       resolve({ server, port });
     });
     server.on('error', reject);
