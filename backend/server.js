@@ -296,7 +296,63 @@ app.get('/success', async (req, res) => {
   res.redirect('/?upgraded=true');
 });
 
-app.get('/terms.html', (req, res) => {
+// ── Admin ─────────────────────────────────────────────────
+const ADMIN_EMAIL = 'diegowebm@gmail.com';
+
+async function requireAdmin(req, res, next) {
+  const token = req.headers['x-auth-token'];
+  const user = await getUserByToken(token);
+  if (!user || user.email !== ADMIN_EMAIL) {
+    return res.status(403).json({ ok: false, error: 'Acesso negado.' });
+  }
+  req.user = user;
+  next();
+}
+
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
+    const result = await pool.query('SELECT id, email, plan, token, created_at, plan_expires_at FROM users ORDER BY created_at DESC');
+    await pool.end();
+    res.json({ ok: true, users: result.rows });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/grant-pro', requireAdmin, async (req, res) => {
+  const { token, months = 1 } = req.body;
+  if (!token) return res.status(400).json({ ok: false, error: 'Token obrigatório.' });
+  const result = await upgradeToPro(token, months);
+  res.json(result);
+});
+
+app.post('/api/admin/revoke-pro', requireAdmin, async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ ok: false, error: 'Token obrigatório.' });
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
+    await pool.query('UPDATE users SET plan = $1, plan_expires_at = NULL WHERE token = $2', ['free', token]);
+    await pool.end();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/admin.html'));
+});
+
+// Página de termos de uso
   res.sendFile(path.join(__dirname, '../frontend/terms.html'));
 });
 
