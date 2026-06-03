@@ -9,9 +9,7 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
 // ─── Proxy residencial Brasil (proxy-seller.com) ───────────
-const http = require('http');
-const net  = require('net');
-
+// Formato: LOGIN_c_BR:SENHA@HOST:PORTA (credenciais inline no --proxy-server)
 const PROXY_USER = 'apid5128f44cb5c9d45';
 const PROXY_PASS = 'Y6nIqDkseO5GvKB1';
 const PROXY_HOST = 'res.proxy-seller.com';
@@ -19,200 +17,13 @@ const PROXY_PORT_START = 10000;
 const PROXY_PORT_END   = 10999;
 
 let proxyPortIndex = 0;
-function getNextProxyPort() {
+function getNextProxyUrl() {
   const port = PROXY_PORT_START + (proxyPortIndex % (PROXY_PORT_END - PROXY_PORT_START + 1));
   proxyPortIndex++;
-  return port;
+  // Formato exato que o proxy-seller espera: user_c_BR:pass@host:port
+  return `${PROXY_USER}_c_BR:${PROXY_PASS}@${PROXY_HOST}:${port}`;
 }
 
-// Cria um servidor CONNECT tunnel local que autentica no proxy remoto
-// O Chromium se conecta ao tunnel local sem precisar de auth
-function createProxyTunnel(remoteHost, remotePort) {
-  return new Promise((resolve, reject) => {
-    const server = http.createServer();
-    server.on('connect', (req, clientSocket, head) => {
-      const auth = Buffer.from(`${PROXY_USER}:${PROXY_PASS}`).toString('base64');
-      const proxyReq = http.request({
-        host: remoteHost,
-        port: remotePort,
-        method: 'CONNECT',
-        path: req.url,
-        headers: { 'Proxy-Authorization': `Basic ${auth}` },
-      });
-      proxyReq.on('connect', (res, proxySocket) => {
-        console.log('[ProxyTunnel] CONNECT OK, status:', res.statusCode);
-        proxySocket.on('error', (e) => { console.warn('[ProxyTunnel] proxySocket err:', e.message); clientSocket.destroy(); });
-        clientSocket.on('error', (e) => { console.warn('[ProxyTunnel] clientSocket err:', e.message); proxySocket.destroy(); });
-        clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
-        if (head && head.length) proxySocket.write(head);
-        proxySocket.pipe(clientSocket);
-        clientSocket.pipe(proxySocket);
-      });
-      proxyReq.on('error', (e) => {
-        console.warn('[ProxyTunnel] proxyReq erro:', e.message);
-        clientSocket.destroy();
-      });
-      proxyReq.on('response', (res) => {
-        console.warn('[ProxyTunnel] Resposta inesperada:', res.statusCode);
-        clientSocket.destroy();
-      });
-      proxyReq.end();
-    });
-    server.on('clientError', (e, socket) => socket.destroy());
-    server.listen(0, '127.0.0.1', () => {
-      const port = server.address().port;
-      console.log(`[ProxyTunnel] Tunnel local na porta ${port} para ${remoteHost}:${remotePort}`);
-      resolve({ server, port });
-    });
-    server.on('error', reject);
-  });
-}
-
-
-
-// ─── Filtros de qualidade ─────────────────────────────────
-
-const ACCESSORY_KEYWORDS = [
-  'capinha', 'capa protetora', 'película', 'pelicula', 'carregador', 'cabo usb',
-  'cabo lightning', 'cabo type-c', 'fone de ouvido', 'fones de ouvido',
-  'earphone', 'earphones', 'headphone', 'headset', 'airpod', 'airpods',
-  'case para', 'suporte para', 'protetor de tela', 'carcaça', 'carcaca',
-  'bumper', 'skin adesiva', 'adaptador usb', 'hub usb', 'dock',
-  'tripé', 'tripe', 'anel magnético', 'pop socket', 'popsocket',
-  'bateria externa', 'powerbank', 'power bank', 'fonte carregador',
-  'película vidro', 'película gel', 'caneta stylus', 'stylus',
-  'suporte veicular', 'suporte celular', 'película fosca',
-  'smartwatch', 'smart watch', 'relogio inteligente', 'relógio inteligente',
-  'fone bluetooth', 'fone sem fio', 'cabo original', 'carregador original',
-  'fonte original', 'adaptador original', 'kit cabo', 'kit carregador',
-  'para iphone', 'compatível com iphone', 'compativel com iphone',
-];
-
-const DEFECT_KEYWORDS = [
-  'com defeito', 'defeituoso', 'quebrado', 'trincado', 'rachado',
-  'não liga', 'nao liga', 'não funciona', 'nao funciona',
-  'para peças', 'para peça', 'pra peça', 'pra peças',
-  'retirada de peças', 'display quebrado', 'tela quebrada',
-  'tela trincada', 'vidro quebrado', 'vidro trincado',
-  'sem touch', 'touch ruim', 'em manutenção', 'em manutencao',
-  'bateria viciada', 'bateria ruim', 'bateria inchada', 'sem bateria',
-  'câmera com defeito', 'camera com defeito', 'placa queimada',
-  'não carrega', 'nao carrega', 'chassi dobrado', 'amassado',
-  'danificado', 'avariado', 'tela manchada', 'burn-in',
-];
-
-function normalize(str) {
-  return str.toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
-}
-
-function isAccessory(title) {
-  const t = normalize(title);
-  if (ACCESSORY_KEYWORDS.some(kw => t.includes(normalize(kw)))) return true;
-  if (/^(cabo|carregador|fonte|adaptador|suporte|pelicula|capinha|capa|fone|kit)/.test(t)) return true;
-  return false;
-}
-
-function hasDefect(title) {
-  const t = normalize(title);
-  return DEFECT_KEYWORDS.some(kw => t.includes(normalize(kw)));
-}
-
-function isRelevant(title, keyword) {
-  if (!keyword) return true;
-  const t = normalize(title);
-  const kw = normalize(keyword);
-  if (t.includes(kw)) return true;
-  const stopwords = ['de', 'do', 'da', 'os', 'as', 'um', 'uma', 'para', 'com', 'sem', 'pro', 'pra', 'e'];
-  const words = kw.split(/\s+/).filter(w => w.length > 2 && !stopwords.includes(w));
-  if (words.length === 0) return true;
-  return words.filter(w => t.includes(w)).length >= 1;
-}
-
-const PACKAGE_KEYWORDS = [
-  'caixa', 'embalagem', 'box', 'apenas caixa', 'só caixa', 'somente caixa',
-  'caixa vazia', 'manual', 'acessório', 'acessorios',
-];
-
-function isPackage(title) {
-  const t = normalize(title);
-  return PACKAGE_KEYWORDS.some(kw => t.startsWith(normalize(kw)) || t.includes(' ' + normalize(kw) + ' '));
-}
-
-function filterListings(listings, options = {}) {
-  const { removeAccessories = false, removeDefects = false, removeNoPrice = true, keyword = '', city = '', blockedWords = [] } = options;
-  return listings.filter(item => {
-    const title = item.title || '';
-    const loc = normalize(item.location || '');
-    if (removeNoPrice && (item.price === null || item.price <= 0)) return false;
-    if (removeDefects && hasDefect(title)) return false;
-    if (removeAccessories && isAccessory(title)) return false;
-    if (removeAccessories && isPackage(title)) return false;
-    if (keyword && !isRelevant(title, keyword)) return false;
-    if (city && loc && !loc.includes(normalize(city))) return false;
-    if (blockedWords && blockedWords.length > 0) {
-      const t = normalize(title);
-      if (blockedWords.some(w => w && t.includes(normalize(w)))) return false;
-    }
-    return true;
-  });
-}
-
-// ─── Cookies ──────────────────────────────────────────────
-
-function cookiePath(sessionId) {
-  return path.join(COOKIES_DIR, `${sessionId}.json`);
-}
-
-function saveCookies(sessionId, cookies) {
-  fs.writeFileSync(cookiePath(sessionId), JSON.stringify(cookies, null, 2));
-}
-
-function loadCookies(sessionId) {
-  const p = cookiePath(sessionId);
-  if (!fs.existsSync(p)) return null;
-  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; }
-}
-
-function hasSavedCookies(sessionId) {
-  const cookies = loadCookies(sessionId);
-  if (!cookies) return false;
-  return cookies.some(c => c.name === 'c_user');
-}
-
-// ─── Browser ──────────────────────────────────────────────
-
-// FIX: detecta o Chromium correto no Railway (Linux headless)
-function findChromePath() {
-  const candidates = [
-    // Railway/Linux (nixpacks instala aqui)
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
-    '/usr/bin/google-chrome',
-    '/usr/bin/google-chrome-stable',
-    // Variável de ambiente (Railway permite configurar)
-    process.env.PUPPETEER_EXECUTABLE_PATH,
-    // Puppeteer bundled
-    path.join(os.homedir(), '.cache', 'puppeteer', 'chrome', 'linux-131.0.6778.204', 'chrome-linux64', 'chrome'),
-    path.join(os.homedir(), '.cache', 'puppeteer', 'chrome', 'linux-120.0.6099.109', 'chrome-linux64', 'chrome'),
-    // Windows (dev local)
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-  ].filter(Boolean);
-
-  for (const c of candidates) {
-    if (fs.existsSync(c)) {
-      console.log('[Browser] Chrome encontrado em:', c);
-      return c;
-    }
-  }
-
-  console.warn('[Browser] Chrome não encontrado nos candidatos — Puppeteer vai tentar o padrão');
-  return undefined;
-}
-
-// FIX: sempre headless no servidor — sem opção de janela visível
 async function launchBrowser(proxyUrl = null) {
   const executablePath = findChromePath();
   const args = [
@@ -225,10 +36,10 @@ async function launchBrowser(proxyUrl = null) {
     '--disable-blink-features=AutomationControlled',
   ];
   if (proxyUrl) {
-    // proxyUrl aqui é 127.0.0.1:PORTA_LOCAL do tunnel — sem autenticação necessária
+    // Usa --proxy-server com credenciais inline — formato aceito para HTTP proxy com auth
     args.push(`--proxy-server=http://${proxyUrl}`);
     args.push('--proxy-bypass-list=<-loopback>');
-    console.log('[Proxy] Chromium via tunnel local:', proxyUrl);
+    console.log('[Proxy] Usando proxy BR:', proxyUrl.replace(/:([^@:]+)@/, ':***@'));
   }
   return puppeteer.launch({
     headless: 'new',
@@ -254,25 +65,16 @@ async function loginWithCredentials(sessionId, email, password) {
     return { ok: true, status: 'already_logged' };
   }
 
-  // Tenta até 3 vezes com portas BR diferentes
+  // Tenta até 3 vezes com IPs BR diferentes
   const maxAttempts = 3;
   let lastError = '';
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const remotePort = getNextProxyPort();
-    console.log(`[Login] Tentativa ${attempt + 1}/${maxAttempts} via proxy BR porta ${remotePort}`);
-    let tunnel = null;
-    try {
-      tunnel = await createProxyTunnel(PROXY_HOST, remotePort);
-      const localProxyUrl = `127.0.0.1:${tunnel.port}`;
-      const result = await tryLoginWithProxy(sessionId, email, password, localProxyUrl);
-      tunnel.server.close();
-      if (result.ok || result.status === 'needs_2fa') return result;
-      lastError = result.error || 'Falha desconhecida';
-    } catch (e) {
-      if (tunnel) tunnel.server.close();
-      lastError = e.message;
-    }
+    const proxyUrl = getNextProxyUrl();
+    console.log(`[Login] Tentativa ${attempt + 1}/${maxAttempts} via proxy BR`);
+    const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
+    if (result.ok || result.status === 'needs_2fa') return result;
+    lastError = result.error || 'Falha desconhecida';
     console.log(`[Login] Tentativa ${attempt + 1} falhou: ${lastError}`);
   }
 
@@ -287,7 +89,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Autenticação já feita pelo tunnel local
+  // Proxy auth já nas credenciais do --proxy-server
 
   try {
     // Testa conectividade básica do proxy
