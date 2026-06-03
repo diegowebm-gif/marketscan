@@ -65,22 +65,35 @@ function isRelevant(title, keyword) {
   const t = normalize(title);
   const kw = normalize(keyword);
 
-  // Título genérico — deixa passar (Facebook não carregou o título real)
+  // Título genérico — deixa passar
   if (t === 'acabou de ser anunciado' || t.length < 5) return true;
 
   // Se contém a keyword inteira, é relevante
   if (t.includes(kw)) return true;
 
-  // Pega palavras principais da keyword (ignora stopwords e palavras curtas)
   const stopwords = ['de','do','da','os','as','um','uma','para','com','sem','pro','pra','e'];
-  const words = kw.split(/\s+/).filter(w => w.length > 2 && !stopwords.includes(w));
+  const words = kw.split(/\s+/).filter(w => w.length > 1 && !stopwords.includes(w));
   if (words.length === 0) return true;
 
-  // Conta quantas palavras da keyword estão no título
-  const matched = words.filter(w => t.includes(w));
+  // Separa palavras textuais e números da keyword
+  const textWords = words.filter(w => !/^\d+$/.test(w));
+  const numWords = words.filter(w => /^\d+$/.test(w));
 
-  // Se metade ou mais das palavras batem, é relevante
-  return matched.length >= Math.ceil(words.length / 2);
+  // Verifica se palavras textuais principais estão no título
+  const textMatched = textWords.filter(w => t.includes(w));
+  if (textMatched.length < Math.ceil(textWords.length / 2)) return false;
+
+  // Se a keyword tem número (ex: "11" em "iphone 11"), exige que o título também tenha
+  if (numWords.length > 0) {
+    const hasNumber = numWords.some(n => {
+      // Verifica número exato com boundary (não confunde "11" com "11 Pro", mas sim com "111")
+      const regex = new RegExp(`(^|\\s|-)${n}(\\s|-|$|pro|plus|max|mini)`);
+      return regex.test(t);
+    });
+    if (!hasNumber) return false;
+  }
+
+  return true;
 }
 
 function isPackage(title) {
