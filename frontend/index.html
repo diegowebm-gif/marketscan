@@ -261,6 +261,7 @@ header {
   flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
 }
 #loading-overlay.show { display: flex; visibility: visible; }
+#loading-overlay:not(.show) * { display: none !important; }
 .loading-icon {
   width: 80px; height: 80px; border-radius: 50%;
   background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.25);
@@ -1115,11 +1116,17 @@ let loadingInterval = null;
 function showLoading() {
   const overlay = document.getElementById('loading-overlay');
   const sub = document.getElementById('loading-sub');
+  overlay.style.display = '';  // remove inline style para CSS assumir
   overlay.classList.add('show');
   let i = 0; sub.textContent = LOADING_MSGS[0];
   loadingInterval = setInterval(() => { i = (i + 1) % LOADING_MSGS.length; sub.textContent = LOADING_MSGS[i]; }, 2500);
 }
-function hideLoading() { document.getElementById('loading-overlay').classList.remove('show'); clearInterval(loadingInterval); }
+function hideLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  overlay.classList.remove('show');
+  overlay.style.display = 'none';
+  clearInterval(loadingInterval);
+}
 
 async function initPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
