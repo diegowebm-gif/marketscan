@@ -521,8 +521,12 @@ data: ${JSON.stringify(data)}
       sessionId, keyword, location, max,
       { removeNoPrice: removeNoPrice === 'true', blockedWords: blocked, city },
       (partialRaw, scrollNum, totalScrolls) => {
-        // partialRaw = null significa só atualizar o status
-        send('status', { message: `Carregando anúncios... (${scrollNum}/${totalScrolls})` });
+        if (partialRaw && partialRaw.length > 0) {
+          // Envia batch parcial para o frontend renderizar imediatamente
+          const { listings: partialListings, stats: partialStats } = analyzeListings(partialRaw);
+          send('batch', { listings: partialListings, stats: partialStats, scroll: scrollNum, total: totalScrolls });
+        }
+        send('status', { message: `Carregando mais anúncios... (${scrollNum}/${totalScrolls})` });
       }
     );
 
