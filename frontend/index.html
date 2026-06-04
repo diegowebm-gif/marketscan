@@ -598,9 +598,13 @@ header {
         </select>
       </div>
 
-      <div class="city-feedback-bar" id="city-feedback-bar">
+      <div class="city-feedback-bar" id="city-feedback-bar" style="display:none">
         <p>⚠️ Os resultados podem não ser da cidade selecionada — o MarketScan não conseguiu localizar esta cidade.</p>
         <button class="btn-feedback" onclick="showFeedbackModal()">Reportar cidade incorreta</button>
+      </div>
+      <!-- Link discreto de feedback sempre visível após busca -->
+      <div id="city-feedback-link" style="display:none;text-align:right;margin-bottom:.5rem">
+        <button onclick="showFeedbackModal()" style="background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline;padding:0" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text3)'">Resultados incorretos? Reportar cidade</button>
       </div>
 
       <div class="listings-grid" id="listings-grid">
@@ -1143,6 +1147,7 @@ async function doSearch() {
   document.getElementById('stats-grid').style.display = 'none';
   document.getElementById('filters').style.display = 'none';
   document.getElementById('city-feedback-bar').style.display = 'none';
+  document.getElementById('city-feedback-link').style.display = 'none';
   showLoading();
 
   allListings = [];
@@ -1193,6 +1198,7 @@ async function doSearch() {
               if (feedbackBar) feedbackBar.style.display = data.cityMismatch ? 'flex' : 'none';
               toast(`${allListings.length} anúncios encontrados!`, 'success');
               document.getElementById('mobile-search-panel').style.display = 'none';
+              document.getElementById('city-feedback-link').style.display = 'block';
               resolve();
             } else if (event === 'error') {
               toast('Erro: ' + (data.message || 'tente novamente'), 'error');
