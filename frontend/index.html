@@ -567,13 +567,7 @@ header {
         </div>
       </div>
 
-      <div id="location-tip" style="display:none;align-items:flex-start;gap:10px;background:#eef2ff;border:2px solid #818cf8;border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:1rem">
-        <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">📍</span>
-        <div>
-          <p style="font-size:13px;font-weight:700;color:#3730a3;margin:0 0 2px">Resultados dependem do seu raio no Facebook</p>
-          <p class="location-tip-detail" style="font-size:12px;color:#4338ca;margin:0;line-height:1.4">Ajuste em: <strong>Marketplace → Filtros → Localização → raio em km</strong>.</p>
-        </div>
-      </div>
+
 
       <div id="history-container">
         <div class="history-header">
@@ -1243,7 +1237,7 @@ function renderStats() {
     <div class="stat-card"><div class="stat-label">🔥 Oportunidades</div><div class="stat-value warn">${s.opportunities}</div></div>
   `;
   document.getElementById('filters').style.display = 'flex';
-  document.getElementById('location-tip').style.display = 'flex';
+  
   // Mostra banner de alertas junto com os resultados
   const alertBanner = document.getElementById('price-alert-banner');
   if (alertBanner && alertBanner.style.display === 'none') {
