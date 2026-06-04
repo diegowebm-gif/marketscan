@@ -286,7 +286,7 @@ app.post('/api/search', requireAuth, async (req, res) => {
       removeNoPrice: req.body.removeNoPrice !== false,
       blockedWords: finalBlockedWords,
       city,
-    });
+    }) || [];
     const searchId = await saveSearch(sessionId, keyword, location);
     if (rawListings.length > 0) await saveListings(searchId, rawListings);
     const { listings, stats } = analyzeListings(rawListings);
