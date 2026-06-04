@@ -918,9 +918,9 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
     // Aguarda anúncios aparecerem (para assim que encontrar, não espera timeout)
     await page.waitForSelector('a[href*="/marketplace/item/"]', {
-      timeout: 8000,
+      timeout: 15000,
     }).catch(() => {
-      console.log('[Scraper] Seletor não encontrado em 8s — coletando o que carregou');
+      console.log('[Scraper] Seletor não encontrado em 15s — coletando o que carregou');
     });
 
     const pageTitle = await page.title().catch(() => 'erro');
