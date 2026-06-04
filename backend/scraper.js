@@ -274,37 +274,80 @@ async function launchBrowser(proxyUrl = null) {
   return browser;
 }
 
-// ─── Conta compartilhada (pool) ───────────────────────────────
+// ─── Pool de contas compartilhadas ────────────────────────────
+// Contas configuradas via variáveis de ambiente:
+// FB_ACCOUNT_1=email:senha
+// FB_ACCOUNT_2=email:senha
+// ... até FB_ACCOUNT_9
+// Fallback: FB_EMAIL + FB_PASSWORD (conta única)
+
 const SHARED_SESSION_ID = 'shared-pool-account';
 
-// Garante que a conta compartilhada está logada — faz login automático se necessário
-async function ensureSharedSession() {
-  // Verifica se já tem cookies válidos
-  if (hasSavedCookies(SHARED_SESSION_ID)) {
-    console.log('[Pool] Sessão compartilhada ativa (arquivo)');
-    return SHARED_SESSION_ID;
+function getPoolAccounts() {
+  const accounts = [];
+  // Tenta FB_ACCOUNT_1 até FB_ACCOUNT_9
+  for (let i = 1; i <= 9; i++) {
+    const val = process.env[`FB_ACCOUNT_${i}`];
+    if (val && val.includes(':')) {
+      const idx = val.indexOf(':');
+      accounts.push({
+        email: val.slice(0, idx),
+        password: val.slice(idx + 1),
+        sessionId: `pool-account-${i}`,
+      });
+    }
   }
-  const dbCookies = await loadCookiesFromDB(SHARED_SESSION_ID);
-  if (dbCookies && dbCookies.some(c => c.name === 'c_user')) {
-    console.log('[Pool] Sessão compartilhada ativa (banco)');
-    return SHARED_SESSION_ID;
+  // Fallback: FB_EMAIL + FB_PASSWORD
+  if (accounts.length === 0 && process.env.FB_EMAIL && process.env.FB_PASSWORD) {
+    accounts.push({
+      email: process.env.FB_EMAIL,
+      password: process.env.FB_PASSWORD,
+      sessionId: 'shared-pool-account',
+    });
   }
+  return accounts;
+}
 
-  // Sem cookies — faz login automático com credenciais do ambiente
-  const email = process.env.FB_EMAIL;
-  const password = process.env.FB_PASSWORD;
-  if (!email || !password) {
-    console.warn('[Pool] FB_EMAIL/FB_PASSWORD não configurados — sem sessão compartilhada');
+// Retorna o sessionId de uma conta ativa do pool (rotação round-robin)
+let _poolIndex = 0;
+async function ensureSharedSession() {
+  const accounts = getPoolAccounts();
+  if (accounts.length === 0) {
+    console.warn('[Pool] Nenhuma conta configurada — sem sessão compartilhada');
     return null;
   }
 
-  console.log('[Pool] Fazendo login automático na conta compartilhada...');
-  const result = await loginWithCredentials(SHARED_SESSION_ID, email, password);
-  if (result.ok && result.status === 'logged_in') {
-    console.log('[Pool] Login automático bem-sucedido!');
-    return SHARED_SESSION_ID;
+  // Tenta cada conta em ordem rotativa
+  for (let attempt = 0; attempt < accounts.length; attempt++) {
+    const idx = (_poolIndex + attempt) % accounts.length;
+    const account = accounts[idx];
+    const { email, password, sessionId } = account;
+
+    // Verifica cookies existentes
+    if (hasSavedCookies(sessionId)) {
+      console.log(`[Pool] Conta ${idx + 1} ativa (arquivo): ${email}`);
+      _poolIndex = (idx + 1) % accounts.length;
+      return sessionId;
+    }
+    const dbCookies = await loadCookiesFromDB(sessionId);
+    if (dbCookies && dbCookies.some(c => c.name === 'c_user')) {
+      console.log(`[Pool] Conta ${idx + 1} ativa (banco): ${email}`);
+      _poolIndex = (idx + 1) % accounts.length;
+      return sessionId;
+    }
+
+    // Sem cookies — tenta login automático
+    console.log(`[Pool] Fazendo login automático conta ${idx + 1}: ${email}`);
+    const result = await loginWithCredentials(sessionId, email, password);
+    if (result.ok && result.status === 'logged_in') {
+      console.log(`[Pool] Login bem-sucedido conta ${idx + 1}: ${email}`);
+      _poolIndex = (idx + 1) % accounts.length;
+      return sessionId;
+    }
+    console.warn(`[Pool] Conta ${idx + 1} falhou (${result.status}) — tentando próxima`);
   }
-  console.warn('[Pool] Login automático falhou:', result.error || result.status);
+
+  console.warn('[Pool] Todas as contas falharam — sem sessão compartilhada');
   return null;
 }
 
