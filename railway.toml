@@ -1,5 +1,9 @@
 [build]
 builder = "nixpacks"
+buildCommand = "npm ci"
+
+[build.nixpacks]
+pkgs = ["nodejs_20", "chromium", "nss", "freetype", "harfbuzz", "ca-certificates", "ttf-dejavu"]
 
 [deploy]
 startCommand = "node backend/server.js"
