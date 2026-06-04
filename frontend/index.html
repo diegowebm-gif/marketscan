@@ -1265,6 +1265,28 @@ async function doSearch() {
 
             if (event === 'status') {
               btn.textContent = data.message || 'Buscando…';
+            } else if (event === 'limit') {
+              // Atualiza contador de buscas no banner
+              const remaining = data.limit - data.count;
+              const banner = document.getElementById('upgrade-banner');
+              if (banner && currentUser?.plan !== 'pro') {
+                banner.querySelector('p').innerHTML = remaining > 0
+                  ? `🔒 Plano Free <span>· ${remaining} busca${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''} hoje</span>`
+                  : `🔒 Plano Free <span>· Limite diário atingido</span>`;
+              }
+            } else if (event === 'error' && data.message === 'limit_reached') {
+              hideLoading();
+              btn.disabled = false; btn.textContent = 'Buscar';
+              document.getElementById('listings-grid').innerHTML = `
+                <div class="empty" style="grid-column:1/-1;padding:3rem 1rem">
+                  <div style="font-size:2.5rem;margin-bottom:1rem">⏰</div>
+                  <p style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:.5rem">Limite diário atingido</p>
+                  <p style="font-size:13px;color:var(--text2);margin-bottom:1.5rem">Você usou suas ${data.limit} buscas gratuitas de hoje.<br>Assine o Pro para buscas ilimitadas.</p>
+                  <button onclick="handleUpgrade()" style="padding:11px 24px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:700;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer">Assinar Pro — R$ 29,90/mês</button>
+                  <p style="font-size:11px;color:var(--text3);margin-top:1rem">Ou aguarde a meia-noite para novas buscas gratuitas.</p>
+                </div>`;
+              resolve();
+              return;
             } else if (event === 'done') {
               allListings = data.listings || allListings;
               currentStats = data.stats || currentStats;

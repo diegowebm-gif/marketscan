@@ -322,6 +322,17 @@ data: ${JSON.stringify(data)}
 
 `);
 
+  // Verifica limite diário para Free antes de iniciar
+  const limitCheck = await checkSearchLimit(req.user.id, req.user.plan === 'pro');
+  if (!limitCheck.allowed) {
+    send('error', { message: 'limit_reached', count: limitCheck.count, limit: limitCheck.limit });
+    res.end();
+    return;
+  }
+  if (limitCheck.count !== undefined) {
+    send('limit', { count: limitCheck.count, limit: limitCheck.limit });
+  }
+
   send('status', { message: 'Conectando ao Marketplace...' });
 
   try {
