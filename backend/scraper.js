@@ -743,9 +743,16 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
           console.log(`[Scraper] Usando ID numérico ${cityId} para "${cityRaw}"`);
           const urlComId = `https://www.facebook.com/marketplace/${cityId}/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
           await page.goto(urlComId, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
-          console.log(`[Scraper] URL com ID carregada: ${page.url().slice(0, 80)}`);
+          const urlComIdFinal = page.url();
+          console.log(`[Scraper] URL com ID carregada: ${urlComIdFinal.slice(0, 80)}`);
+          // Se ainda redirecionou, marca mismatch
+          if (urlComIdFinal.includes('/category/search/')) {
+            options._cityMismatch = true;
+            console.warn(`[Scraper] Cidade "${cityRaw}" não resolvida — marcando mismatch`);
+          }
         } else {
-          console.warn('[Scraper] ID não encontrado — usando busca geral');
+          options._cityMismatch = true;
+          console.warn('[Scraper] ID não encontrado — usando busca geral, marcando mismatch');
           await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
         }
         await delay(1000);
@@ -933,7 +940,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
     console.log(`[Scraper] "${keyword}" em ${cityRaw}: ${processed.length} brutos → ${sorted.length} resultados`);
 
-    return sorted.slice(0, maxItems).map(l => ({ ...l, _cityRaw: cityRaw }));
+    return sorted.slice(0, maxItems).map(l => ({ ...l, _cityRaw: cityRaw, _cityMismatch: options._cityMismatch || false }));
 
   } catch (err) {
     if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});

@@ -211,6 +211,17 @@ header {
 .btn-link:hover { background: var(--accent); color: #fff; }
 
 .empty { text-align: center; padding: 3rem 1rem; color: var(--text2); grid-column: 1/-1; }
+.city-feedback-bar { display:none; align-items:center; gap:12px; background:#fefce8; border:1.5px solid #fbbf24; border-radius:var(--radius); padding:.75rem 1.1rem; margin-bottom:1rem; flex-wrap:wrap; }
+.city-feedback-bar p { font-size:13px; color:#92400e; flex:1; min-width:200px; }
+.btn-feedback { padding:7px 16px; border-radius:var(--radius-sm); border:1.5px solid #f59e0b; background:transparent; color:#92400e; font-size:12px; font-family:'Inter',sans-serif; cursor:pointer; font-weight:600; transition:all .2s; white-space:nowrap; }
+.btn-feedback:hover { background:#fef3c7; }
+.feedback-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:300; align-items:center; justify-content:center; }
+.feedback-modal.show { display:flex; }
+.feedback-box { background:var(--surface); border-radius:var(--radius); padding:1.5rem; max-width:400px; width:90%; box-shadow:var(--shadow-md); }
+.feedback-box h3 { font-size:15px; font-weight:700; margin-bottom:.5rem; }
+.feedback-box p { font-size:12px; color:var(--text2); margin-bottom:1rem; }
+.feedback-box textarea { width:100%; padding:9px 11px; border-radius:var(--radius-sm); border:1.5px solid var(--border2); font-family:'Inter',sans-serif; font-size:13px; color:var(--text); resize:vertical; min-height:80px; outline:none; }
+.feedback-box textarea:focus { border-color:var(--accent); }
 .spinner { display: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -518,6 +529,11 @@ header {
         </select>
       </div>
 
+      <div class="city-feedback-bar" id="city-feedback-bar">
+        <p>⚠️ Os resultados podem não ser da cidade selecionada — o MarketScan não conseguiu localizar esta cidade.</p>
+        <button class="btn-feedback" onclick="showFeedbackModal()">Reportar cidade incorreta</button>
+      </div>
+
       <div class="listings-grid" id="listings-grid">
         <div class="empty">
           <div style="font-size:2.5rem;margin-bottom:.75rem">🏪</div>
@@ -525,6 +541,19 @@ header {
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Modal de feedback de cidade -->
+  <div class="feedback-modal" id="feedback-modal">
+    <div class="feedback-box">
+      <h3>Reportar cidade incorreta</h3>
+      <p>Nos ajude a melhorar! Descreva o que veio de errado na busca.</p>
+      <textarea id="feedback-desc" placeholder="Ex: Busquei em Guarujá/SP mas vieram resultados do Rio de Janeiro"></textarea>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="submitFeedback()" style="flex:1;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer">Enviar feedback</button>
+        <button onclick="closeFeedbackModal()" style="padding:10px 16px;border-radius:var(--radius-sm);border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer">Cancelar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1037,6 +1066,9 @@ async function doSearch() {
   renderStats();
   renderListings();
   loadPriceHistory(keyword, city);
+  // Mostra aviso se cidade não foi reconhecida
+  const feedbackBar = document.getElementById('city-feedback-bar');
+  if (feedbackBar) feedbackBar.style.display = res.cityMismatch ? 'flex' : 'none';
   toast(`${allListings.length} anúncios encontrados!`, 'success');
 }
 
@@ -1441,6 +1473,30 @@ async function api(method, url, body) {
     if (e.name === 'AbortError') return { ok: false, error: 'Busca demorou demais. Tente novamente.' };
     return null;
   }
+}
+
+let _feedbackCity = '';
+let _feedbackState = '';
+let _feedbackKeyword = '';
+
+function showFeedbackModal() {
+  _feedbackCity = document.getElementById('input-city')?.value || '';
+  _feedbackState = document.getElementById('input-state')?.value || '';
+  _feedbackKeyword = document.getElementById('input-keyword')?.value || '';
+  document.getElementById('feedback-desc').value = '';
+  document.getElementById('feedback-modal').classList.add('show');
+}
+function closeFeedbackModal() {
+  document.getElementById('feedback-modal').classList.remove('show');
+}
+async function submitFeedback() {
+  const description = document.getElementById('feedback-desc').value.trim();
+  const res = await api('POST', '/api/feedback/city', {
+    city: _feedbackCity, state: _feedbackState, keyword: _feedbackKeyword, description
+  });
+  closeFeedbackModal();
+  if (res?.ok) toast('Feedback enviado! Obrigado.', 'success');
+  else toast('Erro ao enviar feedback.', 'error');
 }
 
 let toastTimer;

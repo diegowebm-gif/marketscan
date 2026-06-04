@@ -293,7 +293,8 @@ app.post('/api/search', requireAuth, async (req, res) => {
     if (rawListings.length > 0) await saveListings(searchId, rawListings);
     const { listings, stats } = analyzeListings(rawListings);
     if (stats && stats.with_price >= 3) await savePriceSnapshot(keyword, city || location, stats.avg, stats.median, stats.min, stats.max, stats.with_price);
-    res.json({ ok: true, searchId, keyword, location, stats, listings, plan: req.user.plan, limits: req.limits });
+    const cityMismatch = rawListings.length > 0 && rawListings[0]?._cityMismatch === true;
+    res.json({ ok: true, searchId, keyword, location, city, stats, listings, plan: req.user.plan, limits: req.limits, cityMismatch });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
@@ -369,6 +370,54 @@ app.get('/success', async (req, res) => {
     } catch (e) { console.error('[Stripe] Success page error:', e); }
   }
   res.redirect('/?upgraded=true');
+});
+
+// ── Feedback de cidade incorreta ─────────────────────────────
+app.post('/api/feedback/city', requireAuth, async (req, res) => {
+  const { city, state, keyword, description } = req.body;
+  if (!city) return res.status(400).json({ ok: false, error: 'Cidade obrigatória.' });
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS city_feedback (
+        id SERIAL PRIMARY KEY,
+        email TEXT,
+        city TEXT NOT NULL,
+        state TEXT,
+        keyword TEXT,
+        description TEXT,
+        created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
+      )
+    `);
+    await pool.query(
+      'INSERT INTO city_feedback (email, city, state, keyword, description) VALUES ($1, $2, $3, $4, $5)',
+      [req.user.email, city, state || '', keyword || '', description || '']
+    );
+    await pool.end();
+    console.log(`[Feedback] Cidade incorreta reportada: ${city}/${state} por ${req.user.email}`);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/api/admin/city-feedback', requireAdmin, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
+    const result = await pool.query('SELECT * FROM city_feedback ORDER BY created_at DESC LIMIT 100');
+    await pool.end();
+    res.json({ ok: true, feedback: result.rows });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // ── Admin ─────────────────────────────────────────────────
