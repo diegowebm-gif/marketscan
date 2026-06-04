@@ -280,10 +280,8 @@ app.post('/api/search', requireAuth, async (req, res) => {
   const maxItems = Math.min(parseInt(req.body.maxItems) || 40, limitMax);
   const finalBlockedWords = canBlockWords ? blockedWords : [];
   try {
-    const hasSession = await hasSavedCookiesAsync(sessionId);
-    const { loggedIn } = hasSession ? { loggedIn: true } : await checkLogin(sessionId);
-    if (!loggedIn) return res.status(401).json({ ok: false, error: 'Sessão expirada. Faça login no Facebook.' });
-    await touchSession(sessionId);
+    // Marketplace é público — não precisa de login no Facebook
+    await touchSession(sessionId).catch(() => {});
     const rawListings = await scrapeMarketplace(sessionId, keyword, location, maxItems, {
       removeNoPrice: req.body.removeNoPrice !== false,
       blockedWords: finalBlockedWords,
