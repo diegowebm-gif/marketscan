@@ -440,6 +440,28 @@ app.get('/api/admin/city-feedback'
   }
 });
 
+// ── Alertas do pool ──────────────────────────────────────────
+app.get('/api/admin/pool-alerts', requireAdmin, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await pool.query(`CREATE TABLE IF NOT EXISTS pool_alerts (id SERIAL PRIMARY KEY, email TEXT, status TEXT, created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000)`);
+    const result = await pool.query('SELECT * FROM pool_alerts ORDER BY created_at DESC LIMIT 50');
+    await pool.end();
+    res.json({ ok: true, alerts: result.rows });
+  } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+});
+
+app.delete('/api/admin/pool-alerts/:id', requireAdmin, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await pool.query('DELETE FROM pool_alerts WHERE id = $1', [req.params.id]);
+    await pool.end();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+});
+
 // ── Admin ─────────────────────────────────────────────────
 const ADMIN_EMAIL = 'diegowebm@gmail.com';
 

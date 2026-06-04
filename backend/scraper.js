@@ -345,6 +345,16 @@ async function ensureSharedSession() {
       return sessionId;
     }
     console.warn(`[Pool] Conta ${idx + 1} falhou (${result.status}) — tentando próxima`);
+    // Salva alerta se foi 2FA
+    if (result.status === 'needs_2fa' || result.status === 'blocked') {
+      try {
+        const { Pool: PgPool } = require('pg');
+        const pg = new PgPool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+        await pg.query(`CREATE TABLE IF NOT EXISTS pool_alerts (id SERIAL PRIMARY KEY, email TEXT, status TEXT, created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000)`);
+        await pg.query(`INSERT INTO pool_alerts (email, status) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [email, result.status]);
+        await pg.end();
+      } catch {}
+    }
   }
 
   console.warn('[Pool] Todas as contas falharam — sem sessão compartilhada');

@@ -79,6 +79,13 @@ tr:hover td { background: var(--surface2); }
 
 #admin-screen { display: none; }
 
+.alert-pool { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); gap: 12px; }
+.alert-pool:last-child { border-bottom: none; }
+.alert-pool .info { flex: 1; }
+.alert-pool .info strong { font-size: 13px; display: block; }
+.alert-pool .info span { font-size: 11px; color: var(--text2); }
+.badge-2fa { background: #fef3c7; color: #92400e; }
+.badge-blocked { background: #fee2e2; color: #b91c1c; }
 #toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border-radius: var(--radius); padding: .8rem 1.2rem; font-size: 13px; transform: translateY(80px); opacity: 0; transition: all .3s; z-index: 999; box-shadow: var(--shadow-md); }
 #toast.show { transform: translateY(0); opacity: 1; }
 #toast.success { background: #f0fdf4; color: #15803d; }
@@ -143,6 +150,20 @@ tr:hover td { background: var(--surface2); }
   </div>
 </div>
 
+    <!-- Card alertas do pool -->
+    <div class="card" id="pool-alerts-card" style="display:none">
+      <div class="card-header">
+        <span class="card-title">⚠️ Alertas do Pool de Contas</span>
+        <button class="btn btn-refresh" onclick="loadPoolAlerts()">↻ Atualizar</button>
+      </div>
+      <div id="pool-alerts-list">
+        <div class="empty">Nenhum alerta.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -191,6 +212,7 @@ function showAdmin() {
   document.getElementById('admin-screen').style.display = 'block';
   document.getElementById('btn-logout').style.display = 'inline-block';
   loadUsers();
+  loadPoolAlerts();
 }
 
 function logout() {
@@ -268,6 +290,37 @@ async function revokeUser(token, email) {
   const res = await api('POST', '/api/admin/revoke-pro', { token });
   if (res?.ok) { toast(`✅ Pro revogado de ${email}`, 'success'); loadUsers(); }
   else toast('Erro: ' + (res?.error || ''), 'error');
+}
+
+async function loadPoolAlerts() {
+  const res = await api('GET', '/api/admin/pool-alerts');
+  if (!res?.ok) return;
+  const card = document.getElementById('pool-alerts-card');
+  const list = document.getElementById('pool-alerts-list');
+  if (!res.alerts.length) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  list.innerHTML = res.alerts.map(a => {
+    const date = new Date(parseInt(a.created_at)).toLocaleString('pt-BR');
+    const badgeClass = a.status === 'needs_2fa' ? 'badge-2fa' : 'badge-blocked';
+    const badgeText = a.status === 'needs_2fa' ? '2FA solicitado' : 'Conta bloqueada';
+    return `<div class="alert-pool">
+      <div class="info">
+        <strong>${esc(a.email)}</strong>
+        <span>${date}</span>
+      </div>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+      <button class="btn btn-revoke" onclick="dismissAlert(${a.id})">Dispensar</button>
+    </div>`;
+  }).join('');
+}
+
+async function dismissAlert(id) {
+  await api('DELETE', `/api/admin/pool-alerts/${id}`);
+  loadPoolAlerts();
+  toast('Alerta dispensado', 'success');
 }
 
 async function deleteUser(token, email) {
