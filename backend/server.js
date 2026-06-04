@@ -389,6 +389,47 @@ app.delete('/api/session/:id', requireAuth, async (req, res) => {
 });
 
 // ── Busca ─────────────────────────────────────────────────
+// ── Cache de buscas ──────────────────────────────────────────
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutos
+
+async function getCachedSearch(keyword, city) {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await pool.query(`CREATE TABLE IF NOT EXISTS search_cache (
+      cache_key TEXT PRIMARY KEY,
+      result JSONB,
+      created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
+    )`);
+    const key = `${keyword.toLowerCase().trim()}|${city.toLowerCase().trim()}`;
+    const result = await pool.query('SELECT result, created_at FROM search_cache WHERE cache_key = $1', [key]);
+    await pool.end();
+    if (!result.rows.length) return null;
+    const age = Date.now() - parseInt(result.rows[0].created_at);
+    if (age > CACHE_TTL_MS) return null;
+    console.log(`[Cache] Hit para "${keyword}" em "${city}" (${Math.round(age/1000/60)}min atrás)`);
+    return result.rows[0].result;
+  } catch (err) {
+    console.error('[Cache] Erro ao ler:', err.message);
+    return null;
+  }
+}
+
+async function setCachedSearch(keyword, city, result) {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    const key = `${keyword.toLowerCase().trim()}|${city.toLowerCase().trim()}`;
+    await pool.query(`INSERT INTO search_cache (cache_key, result, created_at) VALUES ($1, $2, $3)
+      ON CONFLICT (cache_key) DO UPDATE SET result = $2, created_at = $3`,
+      [key, JSON.stringify(result), Date.now()]);
+    await pool.end();
+    console.log(`[Cache] Salvo para "${keyword}" em "${city}"`);
+  } catch (err) {
+    console.error('[Cache] Erro ao salvar:', err.message);
+  }
+}
+
 // ── Limite de buscas diárias ─────────────────────────────────
 const FREE_DAILY_LIMIT = 5;
 
@@ -459,6 +500,15 @@ data: ${JSON.stringify(data)}
     send('limit', { count: limitCheck.count, limit: limitCheck.limit });
   }
 
+  // Verifica cache primeiro
+  const cached = await getCachedSearch(keyword, city);
+  if (cached) {
+    send('status', { message: 'Carregando resultados...' });
+    send('done', { ...cached, fromCache: true, plan: req.user.plan, limits: req.limits });
+    res.end();
+    return;
+  }
+
   send('status', { message: 'Conectando ao Marketplace...' });
 
   try {
@@ -479,6 +529,10 @@ data: ${JSON.stringify(data)}
       await savePriceSnapshot(keyword, city || location, stats.avg, stats.median, stats.min, stats.max, stats.with_price);
     }
     const cityMismatch = rawListings.length > 0 && rawListings[0]?._cityMismatch === true;
+    // Salva no cache se tiver resultados
+    if (listings.length > 0) {
+      setCachedSearch(keyword, city, { listings, stats, cityMismatch }).catch(() => {});
+    }
     send('done', { listings, stats, cityMismatch, plan: req.user.plan, limits: req.limits });
   } catch (err) {
     send('error', { message: err.message });

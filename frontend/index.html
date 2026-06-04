@@ -1303,7 +1303,8 @@ async function doSearch() {
               loadPriceHistory(keyword, city);
               const feedbackBar = document.getElementById('city-feedback-bar');
               if (feedbackBar) feedbackBar.style.display = data.cityMismatch ? 'flex' : 'none';
-              toast(`${allListings.length} anúncios encontrados!`, 'success');
+              const cacheMsg = data.fromCache ? ' (cache)' : '';
+              toast(`${allListings.length} anúncios encontrados${cacheMsg}`, 'success');
               document.getElementById('mobile-search-panel').style.display = 'none';
               document.getElementById('city-feedback-link').style.display = 'block';
               resolve();
