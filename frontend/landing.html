@@ -542,6 +542,37 @@ nav {
 .btn-price-pro { border: none; background: var(--accent); color: #000; box-shadow: 0 0 20px rgba(56,189,248,0.3); }
 .btn-price-pro:hover { transform: translateY(-2px); box-shadow: 0 0 32px rgba(56,189,248,0.5); }
 
+/* ── Depoimentos ── */
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+.testimonial-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  transition: border-color .3s;
+}
+.testimonial-card:hover { border-color: rgba(56,189,248,0.25); }
+.testimonial-stars { color: #fbbf24; font-size: 14px; margin-bottom: .75rem; letter-spacing: 2px; }
+.testimonial-text { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 1rem; font-style: italic; }
+.testimonial-author { display: flex; align-items: center; gap: 10px; }
+.testimonial-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.testimonial-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.testimonial-role { font-size: 11px; color: var(--text3); }
+
+/* ── FAQ ── */
+.faq-list { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: .75rem; }
+.faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.faq-question { width: 100%; padding: 1.1rem 1.25rem; background: none; border: none; color: var(--text); font-family: "Space Grotesk", sans-serif; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; transition: color .2s; }
+.faq-question:hover { color: var(--accent); }
+.faq-arrow { font-size: 18px; color: var(--text3); transition: transform .3s; flex-shrink: 0; }
+.faq-answer { font-size: 13px; color: var(--text2); line-height: 1.7; padding: 0 1.25rem; max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s ease; }
+.faq-item.open .faq-answer { max-height: 200px; padding: 0 1.25rem 1.1rem; }
+.faq-item.open .faq-arrow { transform: rotate(180deg); color: var(--accent); }
+
 /* ── CTA final ── */
 .cta-section {
   padding: 6rem 2rem;
@@ -618,6 +649,7 @@ footer p { font-size: 12px; color: var(--text3); }
   .features-grid { grid-template-columns: 1fr; }
   .feature-card.featured { grid-column: span 1; }
   .pricing-grid { grid-template-columns: 1fr; }
+  .testimonials-grid { grid-template-columns: 1fr; }
   .stats-bar { grid-template-columns: 1fr; }
   .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
   .stat-item:last-child { border-bottom: none; }
@@ -861,9 +893,83 @@ footer p { font-size: 12px; color: var(--text3); }
 </section>
 
 <!-- CTA Final -->
+<!-- Depoimentos -->
+<section style="padding: 5rem 2rem; max-width: 1100px; margin: 0 auto;">
+  <div style="text-align:center;margin-bottom:3rem">
+    <p style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.75rem">DEPOIMENTOS</p>
+    <h2 style="font-size:2rem;font-weight:700;letter-spacing:-0.02em;margin-bottom:.75rem">O que dizem nossos usuários</h2>
+    <p style="font-size:1rem;color:var(--text2)">Revendedores que já transformaram suas buscas</p>
+  </div>
+  <div class="testimonials-grid">
+    <div class="testimonial-card">
+      <div class="testimonial-stars">★★★★★</div>
+      <p class="testimonial-text">"Antes eu ficava horas procurando no Marketplace. Agora o MarketScan me mostra só as oportunidades reais. Na semana passada encontrei um iPhone 13 por R$ 600 abaixo da média e revendi em 2 dias com R$ 450 de lucro."</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar" style="background:rgba(56,189,248,0.15);color:var(--accent)">RF</div>
+        <div>
+          <p class="testimonial-name">Rafael F.</p>
+          <p class="testimonial-role">Revendedor de eletrônicos · São Paulo, SP</p>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-stars">★★★★★</div>
+      <p class="testimonial-text">"O alerta de preço é incrível. Coloquei pra me avisar quando aparecer PS5 abaixo de R$ 2.800 e já recebi 3 notificações essa semana. Não preciso mais ficar atualizando o Marketplace toda hora."</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar" style="background:rgba(74,222,128,0.15);color:#4ade80">CS</div>
+        <div>
+          <p class="testimonial-name">Carlos S.</p>
+          <p class="testimonial-role">Flipper de games · Belo Horizonte, MG</p>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-stars">★★★★★</div>
+      <p class="testimonial-text">"Comecei a usar no trial de 7 dias e já no segundo dia já tinha pagado o plano inteiro em lucro. O score de oportunidade me ajudou a identificar um notebook que estava 40% abaixo do mercado."</p>
+      <div class="testimonial-author">
+        <div class="testimonial-avatar" style="background:rgba(129,140,248,0.15);color:var(--accent2)">AM</div>
+        <div>
+          <p class="testimonial-name">Ana M.</p>
+          <p class="testimonial-role">Revendedora autônoma · Curitiba, PR</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section style="padding: 5rem 2rem; max-width: 1100px; margin: 0 auto;">
+  <div style="text-align:center;margin-bottom:3rem">
+    <p style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.75rem">FAQ</p>
+    <h2 style="font-size:2rem;font-weight:700;letter-spacing:-0.02em">Perguntas frequentes</h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">Preciso ter uma conta no Facebook para usar? <span class="faq-arrow">▾</span></button>
+      <div class="faq-answer">Não! O MarketScan já possui sua própria integração com o Facebook Marketplace. Você cria uma conta no MarketScan e começa a buscar imediatamente, sem precisar conectar sua conta pessoal do Facebook.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">Como funciona o trial de 7 dias grátis? <span class="faq-arrow">▾</span></button>
+      <div class="faq-answer">Ao criar sua conta você já ganha 7 dias completos do plano Pro, sem precisar informar cartão de crédito. Você tem acesso a todos os recursos premium e só paga se quiser continuar após o período de teste.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">Para quais cidades o MarketScan funciona? <span class="faq-arrow">▾</span></button>
+      <div class="faq-answer">O MarketScan funciona para todas as cidades do Brasil com anúncios no Facebook Marketplace. Temos suporte otimizado para centenas de cidades e estamos adicionando mais constantemente.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">Posso cancelar quando quiser? <span class="faq-arrow">▾</span></button>
+      <div class="faq-answer">Sim, sem burocracia. Você pode cancelar sua assinatura a qualquer momento diretamente pelo app. Não há fidelidade mínima ou taxas de cancelamento.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-question" onclick="toggleFaq(this)">Os resultados são em tempo real? <span class="faq-arrow">▾</span></button>
+      <div class="faq-answer">Sim! Cada busca acessa o Facebook Marketplace em tempo real e traz os anúncios mais recentes, já com análise de preço, score de oportunidade e comparação com a média do mercado.</div>
+    </div>
+  </div>
+</section>
+
 <section class="cta-section">
   <h2>Pronto para parar<br>de perder oportunidades?</h2>
-  <p>Crie sua conta grátis agora. Sem cartão de crédito.</p>
+  <p>Crie sua conta grátis agora. 7 dias de Pro sem cartão de crédito.</p>
   <a href="/app" class="btn-primary" style="display:inline-flex">Criar conta grátis →</a>
 </section>
 
@@ -872,5 +978,13 @@ footer p { font-size: 12px; color: var(--text3); }
   <p>© 2026 MarketScan. Feito para quem vive de compra e venda.</p>
 </footer>
 
+<script>
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+</script>
 </body>
 </html>
