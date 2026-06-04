@@ -1313,6 +1313,8 @@ async function doSearch() {
                 hideLoading();
                 renderStats();
                 renderListings();
+                // Garante que filtros apareçam
+                document.getElementById('filters').style.display = 'flex';
                 btn.textContent = `Carregando mais... (${data.scroll}/3)`;
                 // Mostra botão de carregar mais
                 showLoadMoreBtn(true);
