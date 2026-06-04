@@ -304,10 +304,8 @@ data: ${JSON.stringify(data)}
       sessionId, keyword, location, max,
       { removeNoPrice: removeNoPrice === 'true', blockedWords: blocked, city },
       (partialRaw, scrollNum, totalScrolls) => {
-        batchCount++;
-        const { listings, stats } = analyzeListings(partialRaw);
-        send('batch', { listings, stats, scroll: scrollNum, total: totalScrolls, batch: batchCount });
-        send('status', { message: `Carregando mais anúncios... (${scrollNum}/${totalScrolls})` });
+        // partialRaw = null significa só atualizar o status
+        send('status', { message: `Carregando anúncios... (${scrollNum}/${totalScrolls})` });
       }
     );
 

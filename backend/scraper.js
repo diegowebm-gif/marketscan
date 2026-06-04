@@ -923,34 +923,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
       console.log(`[Scraper] Scroll ${i+1}/6 | anúncios: ${count}`);
 
-      // Aguarda textos carregarem antes de tentar emitir batch
-      if (onBatch && count > lastEmittedCount && count >= 4) {
-        await delay(1500); // Aguarda Facebook preencher títulos e preços
-        try {
-          const partialRaw = await page.evaluate(() => {
-            const results = [];
-            const seen = new Set();
-            document.querySelectorAll('a[href*="/marketplace/item/"]').forEach(a => {
-              const href = a.href?.split('?')[0];
-              if (!href || seen.has(href)) return;
-              seen.add(href);
-              const spans = [...a.querySelectorAll('span')].map(s => s.textContent?.trim()).filter(Boolean);
-              const title = spans.find(t => t.length > 4 && !t.startsWith('R$') && !t.match(/^\d+$/)) || '';
-              const priceText = spans.find(t => t.startsWith('R$')) || '';
-              const img = a.querySelector('img')?.src || '';
-              const locSpan = spans.find(t => t.includes(',') || (t.length > 3 && !t.startsWith('R$') && t !== title)) || '';
-              results.push({ title, price_text: priceText, image_url: img, location: locSpan, listing_url: href });
-            });
-            return results;
-          }).catch(() => []);
-          // Só emite se pelo menos 70% dos anúncios já tem preço E título carregado
-          const withPrice = partialRaw.filter(l => l.price_text && l.title && l.title !== 'Acabou de ser anunciado').length;
-          const hasEnoughPrices = withPrice >= Math.ceil(partialRaw.length * 0.7);
-          if (partialRaw.length > lastEmittedCount && hasEnoughPrices) {
-            onBatch(partialRaw.slice(0, maxItems), i + 1, 6);
-            lastEmittedCount = partialRaw.length;
-          }
-        } catch {}
+      // Apenas atualiza o status no frontend durante o scroll
+      if (onBatch && count > lastEmittedCount) {
+        onBatch(null, i + 1, 6); // null = só atualiza status, sem renderizar
+        lastEmittedCount = count;
       }
 
       if (count >= maxItems) break;

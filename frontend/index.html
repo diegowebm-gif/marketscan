@@ -1182,16 +1182,6 @@ async function doSearch() {
 
             if (event === 'status') {
               btn.textContent = data.message || 'Buscando…';
-            } else if (event === 'batch') {
-              // Renderiza parcialmente
-              if (data.listings?.length) {
-                allListings = data.listings;
-                currentStats = data.stats;
-                hideLoading();
-                renderStats();
-                renderListings();
-                btn.textContent = `Carregando... (${data.scroll}/${data.total})`;
-              }
             } else if (event === 'done') {
               allListings = data.listings || allListings;
               currentStats = data.stats || currentStats;
