@@ -1360,13 +1360,22 @@ async function doSearch() {
           }
           reader.read().then(processChunk).catch(reject);
         }
-        reader.read().then(processChunk).catch(reject);
-      }).catch(reject);
+        reader.read().then(processChunk).catch(err => {
+          // Conexão SSE caiu — se já tem resultados, não mostra erro
+          if (allListings.length > 0) resolve();
+          else reject(err);
+        });
+      }).catch(err => {
+        if (allListings.length > 0) resolve();
+        else reject(err);
+      });
     });
   } catch (err) {
     hideLoading();
-    console.error('SSE erro:', err);
-    toast('Erro na busca. Tente novamente.', 'error');
+    if (allListings.length === 0) {
+      console.error('SSE erro:', err);
+      toast('Erro na busca. Tente novamente.', 'error');
+    }
   } finally {
     btn.disabled = false; btn.textContent = 'Buscar';
   }
