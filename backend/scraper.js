@@ -955,36 +955,35 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
       // Emite batch após primeiro scroll com anúncios suficientes
       if (onBatch && count > lastEmittedCount) {
-        if (lastEmittedCount === 0) {
-          // Primeiro batch — emite independente de ter preço, usuário vê algo rápido
-          await delay(1500);
-          try {
-            const partialRaw = await page.evaluate(() => {
-              const results = [];
-              const seen = new Set();
-              document.querySelectorAll('a[href*="/marketplace/item/"]').forEach(a => {
-                const href = a.href?.split('?')[0];
-                if (!href || seen.has(href)) return;
-                seen.add(href);
-                const spans = [...a.querySelectorAll('span')].map(s => s.textContent?.trim()).filter(Boolean);
-                const title = spans.find(t => t.length > 4 && !t.startsWith('R$') && !t.match(/^\d+$/)) || '';
-                const priceText = spans.find(t => t.startsWith('R$')) || '';
-                const img = a.querySelector('img')?.src || '';
-                const locSpan = spans.find(t => t.includes(',') || (t.length > 3 && !t.startsWith('R$') && t !== title)) || '';
-                results.push({ title, price_text: priceText, image_url: img, location: locSpan, listing_url: href });
-              });
-              return results;
-            }).catch(() => []);
-            if (partialRaw.length >= 4) {
-              onBatch(partialRaw, i + 1, 3);
-              lastEmittedCount = partialRaw.length;
-            } else {
-              onBatch(null, i + 1, 3);
-            }
-          } catch { onBatch(null, i + 1, 3); }
-        } else {
+        // Emite batch em qualquer scroll se tiver anúncios novos
+        await delay(1000);
+        try {
+          const partialRaw = await page.evaluate(() => {
+            const results = [];
+            const seen = new Set();
+            document.querySelectorAll('a[href*="/marketplace/item/"]').forEach(a => {
+              const href = a.href?.split('?')[0];
+              if (!href || seen.has(href)) return;
+              seen.add(href);
+              const spans = [...a.querySelectorAll('span')].map(s => s.textContent?.trim()).filter(Boolean);
+              const title = spans.find(t => t.length > 4 && !t.startsWith('R$') && !t.match(/^\d+$/)) || '';
+              const priceText = spans.find(t => t.startsWith('R$')) || '';
+              const img = a.querySelector('img')?.src || '';
+              const locSpan = spans.find(t => t.includes(',') || (t.length > 3 && !t.startsWith('R$') && t !== title)) || '';
+              results.push({ title, price_text: priceText, image_url: img, location: locSpan, listing_url: href });
+            });
+            return results;
+          }).catch(() => []);
+          if (partialRaw.length > lastEmittedCount) {
+            console.log(`[Scraper] Emitindo batch ${i+1}: ${partialRaw.length} anúncios`);
+            onBatch(partialRaw, i + 1, 3);
+            lastEmittedCount = partialRaw.length;
+          } else {
+            onBatch(null, i + 1, 3);
+          }
+        } catch (e) {
+          console.log('[Scraper] Erro no batch:', e.message);
           onBatch(null, i + 1, 3);
-          lastEmittedCount = count;
         }
       }
 
