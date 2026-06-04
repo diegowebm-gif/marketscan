@@ -1347,8 +1347,14 @@ async function doSearch() {
               }
               resolve();
             } else if (event === 'error') {
-              toast('Erro: ' + (data.message || 'tente novamente'), 'error');
-              document.getElementById('listings-grid').innerHTML = '<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">⚠️</div><p>Erro na busca. Tente novamente.</p></div>';
+              if (data.message === 'limit_reached') {
+                // já tratado acima
+              } else if (allListings.length === 0) {
+                // Só mostra erro se não tiver resultados ainda
+                hideLoading();
+                toast('Erro: ' + (data.message || 'tente novamente'), 'error');
+                document.getElementById('listings-grid').innerHTML = '<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">⚠️</div><p>Erro na busca. Tente novamente.</p></div>';
+              }
               resolve();
             }
           }
