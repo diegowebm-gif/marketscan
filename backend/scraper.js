@@ -828,80 +828,11 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
         currentUrl = page.url();
       }
 
-      // Se redirecionou para /category/search/ = slug não reconhecido pelo Facebook
+      // Se redirecionou para /category/search/ = slug não reconhecido
       if (currentUrl.includes('/category/search/') || currentUrl.includes('/marketplace/category/')) {
-        console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — buscando ID numérico via interceptação`);
-
-        // Intercepta requisições de rede para capturar o ID da cidade
-        let cityId = null;
-        const capturedIds = [];
-        let intercepting = true;
-
-        // Interceptação já está ativa — apenas adiciona listener de resposta
-        page.on('response', async resp => {
-          try {
-            const url = resp.url();
-            if (url.includes('graphql') || url.includes('typeahead') || url.includes('search')) {
-              const text = await resp.text().catch(() => '');
-              // Procura padrões de ID numérico de cidade no JSON do Facebook
-              const matches = text.match(/"id"\s*:\s*"(\d{10,16})"/g) || [];
-              matches.forEach(m => {
-                const id = m.match(/\d{10,16}/)?.[0];
-                if (id) capturedIds.push(id);
-              });
-            }
-          } catch {}
-        });
-
-        // Navega para o Marketplace e usa o campo de localização para buscar a cidade
-        try {
-          await page.goto('https://www.facebook.com/marketplace/', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
-          await delay(1500);
-
-          // Clica no campo de localização
-          const locationInput = await page.$('[aria-label="Location"], [placeholder*="location"], [placeholder*="cidade"], [aria-label*="ocal"]').catch(() => null);
-          if (locationInput) {
-            await locationInput.click({ clickCount: 3 });
-            await locationInput.type(cityRaw, { delay: 80 });
-            await delay(2000); // Aguarda autocomplete
-
-            // Pega o primeiro resultado
-            const firstSuggestion = await page.$('[role="option"], [role="listitem"] a, ul[role="listbox"] li').catch(() => null);
-            if (firstSuggestion) {
-              const href = await firstSuggestion.evaluate(el => el.href || el.querySelector('a')?.href || '').catch(() => '');
-              const idMatch = href.match(/marketplace\/(\d{8,16})\//);
-              if (idMatch) cityId = idMatch[1];
-            }
-          }
-        } catch {}
-
-        // Para de interceptar respostas (request continua ativo para bloquear recursos)
-        intercepting = false;
-        page.removeAllListeners('response');
-
-        // Tenta usar IDs capturados se não achou via campo
-        if (!cityId && capturedIds.length > 0) {
-          cityId = capturedIds[0];
-          console.log(`[Scraper] ID capturado via rede: ${cityId}`);
-        }
-
-        if (cityId) {
-          console.log(`[Scraper] Usando ID numérico ${cityId} para "${cityRaw}"`);
-          const urlComId = `https://www.facebook.com/marketplace/${cityId}/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
-          await page.goto(urlComId, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
-          const urlComIdFinal = page.url();
-          console.log(`[Scraper] URL com ID carregada: ${urlComIdFinal.slice(0, 80)}`);
-          // Se ainda redirecionou, marca mismatch
-          if (urlComIdFinal.includes('/category/search/')) {
-            options._cityMismatch = true;
-            console.warn(`[Scraper] Cidade "${cityRaw}" não resolvida — marcando mismatch`);
-          }
-        } else {
-          options._cityMismatch = true;
-          console.warn('[Scraper] ID não encontrado — usando busca geral, marcando mismatch');
-          await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
-        }
-        await delay(1000);
+        console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — usando busca geral`);
+        options._cityMismatch = true;
+        // Usa a URL atual que já tem os resultados carregados — sem redirecionar
       }
     } catch (gotoErr) {
       if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
