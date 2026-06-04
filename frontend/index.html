@@ -98,6 +98,12 @@ header {
 #auth-status { font-size: 13px; color: var(--text2); height: 18px; }
 
 #screen-app { display: none; }
+.upgrade-banner { display:none; position:fixed; bottom:0; left:0; right:0; z-index:150; background:linear-gradient(135deg,#6a0dad,#4f46e5); color:#fff; padding:.65rem 1.25rem; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:0 -2px 12px rgba(106,13,173,0.25); flex-wrap:wrap; }
+.upgrade-banner p { font-size:13px; font-weight:500; margin:0; flex:1; min-width:200px; }
+.upgrade-banner p span { opacity:.85; font-weight:400; }
+.btn-upgrade-banner { background:#fff; color:#6a0dad; border:none; border-radius:20px; padding:6px 18px; font-size:12px; font-weight:700; cursor:pointer; font-family:'Inter',sans-serif; white-space:nowrap; transition:all .2s; flex-shrink:0; }
+.btn-upgrade-banner:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(255,255,255,0.3); }
+@media (max-width:768px) { .upgrade-banner { padding:.6rem 1rem; } .upgrade-banner p { font-size:12px; } }
 .app-footer { background: var(--surface); border-top: 1px solid var(--border); padding: .75rem 1.5rem; font-size: 11px; color: var(--text3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
 .app-footer a { color: var(--text3); text-decoration: none; transition: color .2s; }
 .app-footer a:hover { color: var(--accent); }
@@ -654,6 +660,12 @@ header {
 
   </div>
 
+  <!-- Banner de upgrade para Free -->
+  <div class="upgrade-banner" id="upgrade-banner" style="display:none">
+    <p>🔒 Você está no plano Free <span>· Desbloqueie alertas, histórico e muito mais com o Pro</span></p>
+    <button class="btn-upgrade-banner" onclick="showUpgradeModal()">Assinar Pro — R$ 29,90/mês</button>
+  </div>
+
   <!-- Footer do app -->
   <footer class="app-footer">
     <span>© 2026 MarketScan</span>
@@ -1042,19 +1054,23 @@ async function doTwoFactor() {
 function showUpgradeModal() { document.getElementById('upgrade-overlay').classList.add('show'); }
 function closeUpgradeModal() { document.getElementById('upgrade-overlay').classList.remove('show'); }
 async function handleUpgrade() {
-  const btn = document.querySelector('.btn-upgrade');
-  if (btn) { btn.disabled = true; btn.textContent = 'Aguarde…'; }
+  // Fecha o modal e vai direto para o checkout do Stripe
+  closeUpgradeModal();
+  toast('Redirecionando para o pagamento...', '');
   const res = await api('POST', '/api/stripe/checkout', {});
   if (res?.ok && res?.url) {
     window.location.href = res.url;
   } else {
     toast('Erro ao abrir checkout: ' + (res?.error || 'tente novamente'), 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Assinar Pro — R$ 29,90/mês'; }
   }
 }
 
 function checkProFeature(featureName) {
-  if (currentUser?.plan !== 'pro') { showUpgradeModal(); return false; }
+  if (currentUser?.plan !== 'pro') {
+    // Redireciona direto para checkout sem modal intermediário
+    handleUpgrade();
+    return false;
+  }
   return true;
 }
 
@@ -1635,6 +1651,12 @@ async function showApp() {
   applyPlanLimits();
   initPush();
   initBlockedWords();
+
+  // Mostra banner de upgrade para Free
+  const upgradeBanner = document.getElementById('upgrade-banner');
+  if (upgradeBanner) {
+    upgradeBanner.style.display = currentUser?.plan === 'pro' ? 'none' : 'flex';
+  }
 }
 
 function applyPlanLimits() {
