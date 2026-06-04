@@ -261,7 +261,6 @@ header {
   flex-direction: column; align-items: center; justify-content: center; gap: 1.5rem;
 }
 #loading-overlay.show { display: flex; visibility: visible; }
-#loading-overlay:not(.show) * { display: none !important; }
 .loading-icon {
   width: 80px; height: 80px; border-radius: 50%;
   background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.25);
@@ -668,19 +667,21 @@ function showCredentialsForm() {
   const stepsEl = document.getElementById('fb-connect-steps');
   stepsEl.innerHTML = `
     <div style="width:100%;background:#f0f7ff;border:1.5px solid #93c5fd;border-radius:10px;padding:1rem;font-size:12px;color:#1e40af;line-height:1.6;text-align:left">
-      🔒 Suas credenciais são usadas <strong>apenas para autenticar sua sessão</strong> no Facebook Marketplace e nunca são armazenadas.
+      🔒 Você será redirecionado para o Facebook para autorizar o acesso ao Marketplace. <strong>Suas credenciais nunca passam pelo MarketScan.</strong>
       <a href="/terms.html" target="_blank" style="color:#6a0dad;font-weight:600;text-decoration:none"> Ver termos de uso →</a>
     </div>
+
     <div style="width:100%;display:flex;flex-direction:column;gap:10px">
-      <input type="email" id="fb-email" placeholder="E-mail do Facebook"
-        style="width:100%;padding:11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
-      <div style="position:relative;width:100%">
-        <input type="password" id="fb-password" placeholder="Senha do Facebook"
-          style="width:100%;padding:11px 40px 11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
-        <button type="button" onclick="togglePass('fb-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px">👁</button>
+      <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:.75rem;font-size:12px;color:#856404;line-height:1.5">
+        📱 <strong>Como funciona:</strong><br>
+        1. Clique no botão abaixo<br>
+        2. Uma janela do Facebook vai abrir<br>
+        3. Se já estiver logado, clique em <strong>"Autorizar"</strong><br>
+        4. A janela fecha automaticamente
       </div>
     </div>
-    <button onclick="doFacebookLogin()"
+
+    <button onclick="doFacebookPopup()"
       style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px;background:#1877f2;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
       Conectar com Facebook
@@ -712,6 +713,50 @@ function showTwoFactorForm() {
     <p id="auth-status" style="font-size:13px;color:var(--text2);min-height:18px;text-align:center"></p>
   `;
   setTimeout(() => document.getElementById('fb-2fa-code')?.focus(), 100);
+}
+
+async function doFacebookPopup() {
+  setAuthStatus('Iniciando conexão…');
+
+  // Cria sessão no servidor
+  const startRes = await api('POST', '/api/session/start');
+  if (!startRes?.ok) { setAuthStatus('Erro ao iniciar sessão. Tente novamente.'); return; }
+  sessionId = startRes.sessionId;
+  localStorage.setItem('mkt_session', sessionId);
+
+  // Abre popup do Facebook
+  const callbackUrl = `${window.location.origin}/facebook-callback?sessionId=${sessionId}`;
+  const popup = window.open(callbackUrl, 'facebook-login', 'width=500,height=700,scrollbars=yes');
+
+  if (!popup) {
+    setAuthStatus('Popup bloqueado. Permita popups para este site.');
+    return;
+  }
+
+  setAuthStatus('Aguardando autorização no Facebook…');
+
+  // Verifica periodicamente se o popup fechou e se a sessão foi autorizada
+  const checkInterval = setInterval(async () => {
+    if (popup.closed) {
+      clearInterval(checkInterval);
+      setAuthStatus('Verificando sessão…');
+      const res = await api('GET', `/api/session/${sessionId}/check`);
+      if (res?.loggedIn) {
+        setAuthStatus('✅ Conectado! Carregando…');
+        await showApp();
+      } else {
+        setAuthStatus('Conexão não detectada. Tente novamente.');
+        localStorage.removeItem('mkt_session');
+        sessionId = null;
+      }
+    }
+  }, 1000);
+
+  // Timeout de 5 minutos
+  setTimeout(() => {
+    clearInterval(checkInterval);
+    if (!popup.closed) popup.close();
+  }, 300000);
 }
 
 async function doFacebookLogin() {

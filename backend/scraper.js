@@ -978,4 +978,5 @@ module.exports = {
   hasSavedCookies,
   hasSavedCookiesAsync,
   saveCookies,
+  launchBrowser,
 };

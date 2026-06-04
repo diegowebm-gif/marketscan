@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const { register, login, getUserByToken, upgradeToPro, getLimits } = require('./auth');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, hasSavedCookiesAsync, saveCookies, loginWithCredentials, submitTwoFactor } = require('./scraper');
+const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, hasSavedCookiesAsync, saveCookies, loginWithCredentials, submitTwoFactor, launchBrowser } = require('./scraper');
 const { createSession, touchSession, saveSearch, saveListings, getListingsBySearch, getRecentSearches, savePriceSnapshot, getPriceHistory } = require('./database');
 const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMonitor, sendPush, startMonitorCron } = require('./alerts');
 
@@ -134,18 +134,95 @@ app.get('/facebook-callback', (req, res) => {
   const { sessionId } = req.query;
   if (!sessionId) return res.redirect('/');
   res.send(`<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Conectando...</title>
-<style>body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#020408;color:#e2e8f0;gap:1rem}.spinner{width:40px;height:40px;border:3px solid rgba(56,189,248,0.2);border-top-color:#38bdf8;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}p{color:#94a3b8;font-size:14px}</style></head>
-<body><div class="spinner"></div><p id="msg">Verificando login no Facebook...</p>
+<html><head><meta charset="UTF-8"><title>Conectar ao Facebook — MarketScan</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f4f5f7;color:#1a1a2e;gap:1.5rem;padding:2rem;text-align:center}
+  .logo{font-size:1.3rem;font-weight:800;font-family:'Syne',sans-serif}
+  .logo span{color:#6a0dad}
+  .btn-fb{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:#1877f2;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;font-family:'Inter',sans-serif;transition:opacity .2s}
+  .btn-fb:hover{opacity:.9}
+  .btn-confirm{padding:11px 24px;background:#6a0dad;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;display:none}
+  .info{max-width:360px;font-size:13px;color:#6b7280;line-height:1.6;background:#fff;border-radius:12px;padding:1rem 1.25rem;border:1px solid rgba(0,0,0,0.08)}
+  .spinner{width:28px;height:28px;border:3px solid rgba(106,13,173,0.2);border-top-color:#6a0dad;border-radius:50%;animation:spin .8s linear infinite;display:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #status{font-size:13px;color:#6b7280;min-height:20px}
+</style>
+</head>
+<body>
+  <div class="logo">Market<span>Scan</span></div>
+  <div class="info">
+    <p style="font-weight:600;margin-bottom:.5rem">📘 Conectar ao Facebook</p>
+    <p>Clique em <strong>Abrir Facebook</strong>, faça login normalmente e volte aqui para confirmar.</p>
+  </div>
+  <a href="https://www.facebook.com/marketplace" target="_blank" class="btn-fb" id="btn-fb" onclick="onFbOpen()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+    Abrir Facebook
+  </a>
+  <button class="btn-confirm" id="btn-confirm" onclick="confirmLogin()">✅ Já fiz login — Continuar</button>
+  <div class="spinner" id="spinner"></div>
+  <p id="status">Clique no botão acima para abrir o Facebook.</p>
 <script>
-async function sendCookies() {
-  const res = await fetch('/api/session/cookies', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ sessionId: '${sessionId}', cookies: document.cookie, userAgent: navigator.userAgent }) });
-  const data = await res.json();
-  document.getElementById('msg').textContent = data.ok ? 'Conectado! Pode fechar esta janela.' : 'Erro: ' + (data.error || 'tente novamente');
-  if (data.ok) setTimeout(() => window.close(), 1500);
+const SESSION_ID = '${sessionId}';
+function onFbOpen() {
+  setTimeout(() => {
+    document.getElementById('btn-confirm').style.display = 'inline-block';
+    document.getElementById('status').textContent = 'Após fazer login no Facebook, clique em Continuar.';
+  }, 2000);
 }
-sendCookies();
-</script></body></html>`);
+async function confirmLogin() {
+  document.getElementById('spinner').style.display = 'block';
+  document.getElementById('btn-confirm').style.display = 'none';
+  document.getElementById('status').textContent = 'Verificando sessão...';
+  try {
+    const res = await fetch('/api/session/fb-cookies', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ sessionId: SESSION_ID })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('status').textContent = '✅ Conectado! Fechando...';
+      setTimeout(() => window.close(), 1500);
+    } else {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('btn-confirm').style.display = 'inline-block';
+      document.getElementById('status').textContent = data.error || 'Não detectado. Tente novamente.';
+    }
+  } catch(e) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('btn-confirm').style.display = 'inline-block';
+    document.getElementById('status').textContent = 'Erro de conexão.';
+  }
+}
+</script>
+</body></html>`);
+});
+
+// Captura cookies do Facebook via Puppeteer após usuário fazer login no browser
+app.post('/api/session/fb-cookies', async (req, res) => {
+  const { sessionId } = req.body;
+  if (!sessionId) return res.status(400).json({ ok: false, error: 'sessionId obrigatório' });
+  try {
+    const { launchBrowser } = require('./scraper');
+    const browser = await launchBrowser();
+    const page = await browser.newPage();
+    // Acessa o Facebook sem proxy para pegar os cookies da sessão do usuário
+    await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const cookies = await page.cookies();
+    await browser.close().catch(() => {});
+    const hasSession = cookies.some(c => c.name === 'c_user');
+    if (!hasSession) {
+      return res.json({ ok: false, error: 'Sessão do Facebook não detectada. Faça login no Facebook primeiro.' });
+    }
+    saveCookies(sessionId, cookies);
+    await touchSession(sessionId);
+    console.log('[Auth] Cookies do Facebook capturados via browser para sessão', sessionId.slice(0, 8));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 app.post('/api/session/cookies', async (req, res) => {
