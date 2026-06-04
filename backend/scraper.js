@@ -910,40 +910,22 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       throw new Error('Não foi possível acessar o Marketplace: ' + gotoErr.message);
     }
 
-    // Tenta fechar o modal de login se aparecer (dados são públicos)
-    await page.evaluate(() => {
+    // Tenta fechar modal de login (sem delay — fire and forget)
+    page.evaluate(() => {
       const closeBtn = document.querySelector('[aria-label="Close"], [aria-label="Fechar"]');
       if (closeBtn) closeBtn.click();
     }).catch(() => {});
-    await delay(1000);
 
-    // Aguarda anúncios com timeout curto e continua mesmo sem eles
+    // Aguarda anúncios aparecerem (para assim que encontrar, não espera timeout)
     await page.waitForSelector('a[href*="/marketplace/item/"]', {
-      timeout: 20000,
+      timeout: 8000,
     }).catch(() => {
-      console.log('[Scraper] Seletor não encontrado em 20s — coletando o que carregou');
+      console.log('[Scraper] Seletor não encontrado em 8s — coletando o que carregou');
     });
-    
-    // Log do que está na página para debug
+
     const pageTitle = await page.title().catch(() => 'erro');
     const itemCount = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
     console.log(`[Scraper] Título: ${pageTitle} | Anúncios encontrados: ${itemCount}`);
-    if (itemCount === 0) {
-      const pageText = await page.evaluate(() => document.body?.innerText?.slice(0, 300)).catch(() => '');
-      console.log('[Scraper] Texto da página:', pageText.replace(/\s+/g, ' ').slice(0, 200));
-      // Verificar todos os hrefs da página para achar formato dos anúncios
-      const hrefs = await page.evaluate(() => {
-        const links = [...document.querySelectorAll('a[href]')];
-        // Pega hrefs que parecem ser de itens/anúncios
-        const all = links.map(a => a.href);
-        const items = all.filter(h => h.includes('item') || h.includes('listing') || h.includes('/marketplace/') && h.length > 50);
-        return items.slice(0, 8);
-      }).catch(() => []);
-      console.log('[Scraper] Possíveis links de anúncios:', JSON.stringify(hrefs));
-    }
-
-    // Aguarda página estabilizar antes de scrollar
-    await delay(1000);
     
     console.log(`[Scraper] [T] Iniciando scroll... [${Date.now()}]`);
     let lastEmittedCount = 0;
