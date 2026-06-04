@@ -274,6 +274,17 @@ header {
 .btn-feedback { padding:7px 16px; border-radius:var(--radius-sm); border:1.5px solid #f59e0b; background:transparent; color:#92400e; font-size:12px; font-family:'Inter',sans-serif; cursor:pointer; font-weight:600; transition:all .2s; white-space:nowrap; }
 .btn-feedback:hover { background:#fef3c7; }
 .feedback-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:300; align-items:center; justify-content:center; }
+.welcome-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:400; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.welcome-modal.show { display:flex; }
+.welcome-box { background:var(--surface); border-radius:var(--radius); padding:2rem 2rem 1.5rem; max-width:380px; width:90%; box-shadow:0 8px 40px rgba(106,13,173,0.25); text-align:center; animation:welcomePop .4s cubic-bezier(.34,1.56,.64,1); }
+@keyframes welcomePop { from { transform:scale(.7); opacity:0; } to { transform:scale(1); opacity:1; } }
+.welcome-box .welcome-emoji { font-size:3rem; margin-bottom:1rem; display:block; }
+.welcome-box h2 { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; color:var(--text); margin-bottom:.5rem; }
+.welcome-box p { font-size:13px; color:var(--text2); line-height:1.6; margin-bottom:1.25rem; }
+.welcome-box .welcome-badge { display:inline-block; background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; font-size:13px; font-weight:700; padding:6px 18px; border-radius:20px; margin-bottom:1.25rem; }
+.welcome-box .btn-welcome { width:100%; padding:13px; border-radius:var(--radius-sm); border:none; background:var(--accent); color:#fff; font-weight:700; font-size:15px; font-family:'Inter',sans-serif; cursor:pointer; transition:all .2s; }
+.welcome-box .btn-welcome:hover { opacity:.9; transform:translateY(-1px); }
+.welcome-box .btn-skip { background:none; border:none; font-size:12px; color:var(--text3); cursor:pointer; font-family:'Inter',sans-serif; margin-top:10px; text-decoration:underline; display:block; width:100%; }
 .feedback-modal.show { display:flex; }
 .feedback-box { background:var(--surface); border-radius:var(--radius); padding:1.5rem; max-width:400px; width:90%; box-shadow:var(--shadow-md); }
 .feedback-box h3 { font-size:15px; font-weight:700; margin-bottom:.5rem; }
@@ -616,6 +627,19 @@ header {
     </main>
   </div>
 
+  <!-- Modal de boas-vindas trial -->
+  <div class="welcome-modal" id="welcome-modal">
+    <div class="welcome-box">
+      <span class="welcome-emoji">🎁</span>
+      <h2>Presente de boas-vindas!</h2>
+      <div class="welcome-badge">⭐ 7 dias de Pro grátis ativados</div>
+      <p>Você ganhou acesso completo ao <strong>MarketScan Pro</strong> por 7 dias sem pagar nada.<br><br>
+      Aproveite alertas de preço, histórico, filtros avançados e muito mais para encontrar as melhores oportunidades de compra e venda.</p>
+      <button class="btn-welcome" onclick="closeWelcomeModal()">Começar a usar agora 🚀</button>
+      <button class="btn-skip" onclick="closeWelcomeModal()">Fechar</button>
+    </div>
+  </div>
+
   <!-- Modal de feedback de cidade -->
   <div class="feedback-modal" id="feedback-modal">
     <div class="feedback-box">
@@ -752,7 +776,7 @@ async function doRegister() {
   authToken = res.token;
   currentUser = { email: res.email, plan: res.plan };
   localStorage.setItem('mkt_token', authToken);
-  if (res.trial) toast('🎉 Bem-vindo! Você ganhou 7 dias de Pro grátis!', 'success');
+  if (res.trial) showWelcomeModal();
   showApp();
 }
 
@@ -1620,6 +1644,13 @@ async function api(method, url, body) {
     if (e.name === 'AbortError') return { ok: false, error: 'Busca demorou demais. Tente novamente.' };
     return null;
   }
+}
+
+function showWelcomeModal() {
+  document.getElementById('welcome-modal').classList.add('show');
+}
+function closeWelcomeModal() {
+  document.getElementById('welcome-modal').classList.remove('show');
 }
 
 let _feedbackCity = '';
