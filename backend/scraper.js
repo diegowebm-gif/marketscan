@@ -634,11 +634,17 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       const currentUrl = page.url().slice(0, 80);
       console.log('[Scraper] Página carregada, URL atual:', currentUrl);
       
-      // Verifica se foi redirecionado para login
+      // Se redirecionou para login, tenta fechar o modal (Marketplace é público)
       if (currentUrl.includes('login') || currentUrl.includes('checkpoint')) {
-        console.log('[Scraper] ERRO: Redirecionado para login/checkpoint — sessão expirada');
-        await browser.close().catch(() => null);
-        throw new Error('Sessão expirada. Faça login no Facebook novamente.');
+        console.log('[Scraper] Modal de login detectado — tentando fechar');
+        // Navega direto para o Marketplace sem login
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+        // Fecha o modal se aparecer
+        await page.evaluate(() => {
+          const closeBtn = document.querySelector('[aria-label="Close"], [aria-label="Fechar"], [data-testid="dialog_dismiss"]');
+          if (closeBtn) closeBtn.click();
+        }).catch(() => {});
+        await delay(1500);
       }
     } catch (gotoErr) {
       if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
