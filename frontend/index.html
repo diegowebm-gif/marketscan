@@ -651,8 +651,8 @@ header {
         <button class="btn-feedback" onclick="showFeedbackModal()">Reportar cidade incorreta</button>
       </div>
       <!-- Link discreto de feedback sempre visível após busca -->
-      <div id="city-feedback-link" style="display:none;text-align:right;margin-bottom:.5rem">
-        <button onclick="showFeedbackModal()" style="background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline;padding:0" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text3)'">Resultados incorretos? Reportar cidade</button>
+      <div id="city-feedback-link" style="display:none;margin-bottom:.75rem">
+        <button onclick="showFeedbackModal()" style="background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;padding:5px 14px;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">⚠️ Resultados incorretos? Reportar cidade</button>
       </div>
 
       <div class="listings-grid" id="listings-grid">
