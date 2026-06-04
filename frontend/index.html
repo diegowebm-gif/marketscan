@@ -199,7 +199,9 @@ header {
 .listing-meta { font-size: 11px; color: var(--text2); margin-bottom: 10px; display:flex; align-items:center; gap:4px; }
 .pct-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; background: #dcfce7; color: #15803d; margin-bottom: 8px; }
 .pct-badge.above { background: #fee2e2; color: #b91c1c; }
-.score-badge { position: absolute; top: 8px; right: 8px; border-radius: 8px; padding: 3px 8px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 3px; }
+.score-badge { position: absolute; top: 8px; right: 8px; border-radius: 8px; padding: 3px 8px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 3px; cursor: default; }
+.score-badge .score-tip { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: #1a1a2e; color: #fff; font-size: 11px; font-weight: 400; padding: 6px 10px; border-radius: 6px; white-space: nowrap; line-height: 1.5; z-index: 10; pointer-events: none; }
+.score-badge:hover .score-tip { display: block; }
 .score-hot { background: #fef3c7; color: #92400e; }
 .score-good { background: #dcfce7; color: #166534; }
 .score-ok { background: #f3f4f6; color: #6b7280; }
@@ -729,6 +731,31 @@ function showTwoFactorForm() {
   setTimeout(() => document.getElementById('fb-2fa-code')?.focus(), 100);
 }
 
+function showBlockedForm(msg) {
+  const stepsEl = document.getElementById('fb-connect-steps');
+  stepsEl.innerHTML = `
+    <div style="width:100%;background:#fee2e2;border:1.5px solid #f87171;border-radius:10px;padding:1rem 1.25rem;font-size:13px;color:#7f1d1d;line-height:1.7;text-align:left">
+      <p style="font-weight:700;font-size:14px;margin-bottom:6px">⚠️ Facebook bloqueou o acesso</p>
+      <p style="margin-bottom:10px">Isso acontece quando a sua conta detecta um login de um local desconhecido. <strong>Não é um erro do MarketScan.</strong></p>
+      <p style="font-weight:600;margin-bottom:4px">Como resolver:</p>
+      <ol style="padding-left:1.2rem;display:flex;flex-direction:column;gap:4px">
+        <li>Abra o <strong>facebook.com</strong> normalmente no seu celular ou computador</li>
+        <li>O Facebook vai mostrar um aviso de segurança — confirme que foi você</li>
+        <li>Depois disso, volte aqui e tente conectar novamente</li>
+      </ol>
+    </div>
+    <a href="https://www.facebook.com" target="_blank" rel="noopener"
+      style="width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:#1877f2;color:#fff;border:none;border-radius:8px;font-weight:700;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;text-decoration:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+      Abrir Facebook para confirmar
+    </a>
+    <button onclick="showCredentialsForm()"
+      style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline">
+      ← Tentar conectar novamente
+    </button>
+  `;
+}
+
 async function doFacebookPopup() {
   setAuthStatus('Iniciando conexão…');
 
@@ -822,6 +849,11 @@ async function doFacebookLogin() {
 
   if (res.status === 'needs_2fa') {
     showTwoFactorForm();
+    return;
+  }
+
+  if (res.status === 'blocked') {
+    showBlockedForm(res.error);
     return;
   }
 
@@ -1064,7 +1096,12 @@ function renderListings() {
       const cls = l.score >= 85 ? 'score-hot' : l.score >= 70 ? 'score-good' : 'score-ok';
       const icon = l.score >= 85 ? '🔥' : l.score >= 70 ? '✦' : '·';
       const barColor = l.score >= 85 ? '#f59e0b' : l.score >= 70 ? '#22c55e' : '#d1d5db';
-      return `<div class="score-badge ${cls}">${icon} ${l.score}</div><div class="score-bar-wrap"><div class="score-bar" style="width:${l.score}%;background:${barColor}"></div></div>`;
+      const tipText = l.score >= 85
+        ? `Score ${l.score}/100 — oportunidade quente!<br>Preço muito abaixo da média e perto de você.`
+        : l.score >= 70
+        ? `Score ${l.score}/100 — boa oportunidade.<br>Preço abaixo da média da região.`
+        : `Score ${l.score}/100 — oportunidade regular.<br>Preço próximo ou acima da média.`;
+      return `<div class="score-badge ${cls}">${icon} ${l.score}<span class="score-tip">${tipText}</span></div><div class="score-bar-wrap"><div class="score-bar" style="width:${l.score}%;background:${barColor}"></div></div>`;
     })() : '';
     return `<div class="listing-card ${l.is_opportunity ? 'opportunity' : ''}">${l.is_opportunity ? '<div class="opp-badge">🔥 OPORTUNIDADE</div>' : ''}${imgHtml}${ph}${scoreHtml}<div class="listing-body"><div class="listing-title">${esc(l.title)}</div>${priceHtml}${pctHtml}<div class="listing-meta">${esc(l.location || '')}</div><a class="btn-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver anúncio →</a>
       ${l.price ? `

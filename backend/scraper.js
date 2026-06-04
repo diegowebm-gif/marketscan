@@ -361,12 +361,42 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
       return { ok: true, status: 'logged_in' };
     }
 
-    // Verifica se precisa de 2FA / checkpoint
+    // Detecta bloqueio real (sem código — Facebook pedindo identidade/foto/doc)
+    const isHardBlock =
+      url.includes('/checkpoint') && (
+        url.includes('?next') === false ||
+        await page.evaluate(() => {
+          const txt = document.body.innerText || '';
+          return (
+            txt.includes('identidade') ||
+            txt.includes('identity') ||
+            txt.includes('documento') ||
+            txt.includes('foto') ||
+            txt.includes('selfie') ||
+            txt.includes('bloqueada') ||
+            txt.includes('suspended') ||
+            txt.includes('disabled') ||
+            txt.includes('desativada') ||
+            txt.includes('não conseguimos') ||
+            txt.includes('unusual activity') ||
+            txt.includes('atividade incomum')
+          );
+        }).catch(() => false)
+      );
+
+    if (isHardBlock) {
+      if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
+      await browser.close();
+      console.log('[Login] Conta bloqueada pelo Facebook:', sessionId.slice(0, 8));
+      return { ok: false, status: 'blocked', error: 'O Facebook bloqueou o acesso a esta conta. Isso acontece quando a conta detecta um login de local desconhecido. Acesse o facebook.com normalmente pelo seu celular, confirme sua identidade lá e tente novamente aqui.' };
+    }
+
+    // Verifica se precisa de 2FA com código (código foi enviado por email/SMS)
     const needs2FA =
-      url.includes('/checkpoint') ||
       url.includes('/two_step_verification') ||
       url.includes('/login/device-based') ||
       url.includes('approvals') ||
+      (url.includes('/checkpoint') && !isHardBlock) ||
       await page.$('input[name="approvals_code"]').catch(() => null) ||
       await page.$('#approvals_code').catch(() => null) ||
       await page.$('input[autocomplete="one-time-code"]').catch(() => null);
