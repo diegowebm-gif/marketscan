@@ -280,8 +280,9 @@ app.post('/api/search', requireAuth, async (req, res) => {
   const maxItems = Math.min(parseInt(req.body.maxItems) || 40, limitMax);
   const finalBlockedWords = canBlockWords ? blockedWords : [];
   try {
-    // Tenta sem cookies primeiro (localização correta pela URL)
-    // Só exige login se scraping sem cookies falhar
+    const hasSession = await hasSavedCookiesAsync(sessionId);
+    const { loggedIn } = hasSession ? { loggedIn: true } : await checkLogin(sessionId);
+    if (!loggedIn) return res.status(401).json({ ok: false, error: 'Sessão expirada. Faça login no Facebook.' });
     await touchSession(sessionId);
     const rawListings = await scrapeMarketplace(sessionId, keyword, location, maxItems, {
       removeNoPrice: req.body.removeNoPrice !== false,
@@ -293,25 +294,6 @@ app.post('/api/search', requireAuth, async (req, res) => {
     const { listings, stats } = analyzeListings(rawListings);
     if (stats && stats.with_price >= 3) await savePriceSnapshot(keyword, city || location, stats.avg, stats.median, stats.min, stats.max, stats.with_price);
     res.json({ ok: true, searchId, keyword, location, stats, listings, plan: req.user.plan, limits: req.limits });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
-});
-
-// ── Busca pública (teste sem login no Facebook) ──────────────
-app.post('/api/search-public', requireAuth, async (req, res) => {
-  const { keyword, location = 'Brasil', city = '' } = req.body;
-  if (!keyword) return res.status(400).json({ ok: false, error: 'keyword obrigatório.' });
-  try {
-    // Usa sessionId fictício — sem cookies, sem login no Facebook
-    const fakeSessionId = 'public-test-no-cookies';
-    const rawListings = await scrapeMarketplace(fakeSessionId, keyword, location, 20, {
-      removeNoPrice: false,
-      blockedWords: [],
-      city,
-    }) || [];
-    const { listings, stats } = analyzeListings(rawListings);
-    res.json({ ok: true, keyword, location, total: rawListings.length, stats, listings });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }

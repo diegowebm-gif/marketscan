@@ -307,7 +307,6 @@ header {
     <div class="dot" id="status-dot"></div>
     <span id="status-text">Desconectado</span>
     <span id="plan-badge" class="plan-badge" style="display:none"></span>
-    <button id="btn-connect-fb" onclick="showFacebookConnect()" style="display:none;font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid #1877f2;background:transparent;color:#1877f2;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;margin-right:4px" onmouseover="this.style.background='#1877f2';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#1877f2'">📘 Conectar Facebook</button>
     <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
   </div>
 </header>
@@ -611,8 +610,7 @@ window.onload = async () => {
         localStorage.removeItem('mkt_session');
         sessionId = null;
       }
-      // Facebook é opcional — vai direto pro app
-      showApp();
+      showFacebookConnect();
       return;
     }
     localStorage.removeItem('mkt_token');
@@ -639,7 +637,7 @@ async function doLogin() {
   authToken = res.token;
   currentUser = { email: res.email, plan: res.plan };
   localStorage.setItem('mkt_token', authToken);
-  showApp(); // Facebook opcional
+  showFacebookConnect();
 }
 
 async function doRegister() {
@@ -657,7 +655,7 @@ async function doRegister() {
   currentUser = { email: res.email, plan: res.plan };
   localStorage.setItem('mkt_token', authToken);
   if (res.trial) toast('🎉 Bem-vindo! Você ganhou 7 dias de Pro grátis!', 'success');
-  showApp(); // Facebook opcional
+  showFacebookConnect();
 }
 
 async function showFacebookConnect() {
@@ -1374,12 +1372,6 @@ async function showApp() {
   document.getElementById('status-dot').className = 'dot online';
   document.getElementById('status-text').textContent = currentUser?.email || 'Conectado';
   document.getElementById('btn-logout').style.display = 'inline-block';
-  // Mostra botão de conectar Facebook se ainda não tiver sessão FB
-  const fbBtn = document.getElementById('btn-connect-fb');
-  if (fbBtn) {
-    const hasFb = sessionId && await api('GET', `/api/session/${sessionId}/check`).then(r => r?.loggedIn).catch(() => false);
-    fbBtn.style.display = hasFb ? 'none' : 'inline-block';
-  }
   const badge = document.getElementById('plan-badge');
   if (badge) {
     badge.style.display = 'inline-block';

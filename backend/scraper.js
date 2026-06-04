@@ -491,33 +491,11 @@ async function checkLogin(sessionId) {
 // ─── Scraping ─────────────────────────────────────────────
 
 async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}) {
-  // Tenta sem cookies primeiro — localização correta via URL slug
-  // Se retornar 0 anúncios, tenta com cookies do usuário como fallback
   let cookies = loadCookies(sessionId);
-  if (!cookies) cookies = await loadCookiesFromDB(sessionId);
-
-  console.log(`[Scraper] Iniciando busca sem cookies (localização pela URL): "${keyword}"`);
-
-  const rawWithoutCookies = await _doScrape(null, keyword, location, maxItems, options);
-
-  if (rawWithoutCookies.length > 0) {
-    console.log(`[Scraper] Sem cookies retornou ${rawWithoutCookies.length} anúncios — usando resultado`);
-    return rawWithoutCookies;
+  if (!cookies) {
+    cookies = await loadCookiesFromDB(sessionId);
   }
-
-  // Fallback: tenta com cookies se tiver
-  if (cookies && cookies.length > 0) {
-    console.log(`[Scraper] Sem cookies retornou 0 — tentando com cookies do usuário`);
-    return await _doScrape(cookies, keyword, location, maxItems, options);
-  }
-
-  console.log(`[Scraper] Sem cookies e sem fallback — retornando vazio`);
-  return [];
-}
-
-async function _doScrape(cookies, keyword, location, maxItems = 40, options = {}) {
-  const useCookies = cookies && cookies.length > 0;
-  console.log(`[Scraper] _doScrape ${useCookies ? 'COM cookies' : 'SEM cookies'}: "${keyword}"`);
+  console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem login)'}: "${keyword}"`);
 
   const browser = await launchBrowser(getNextProxyUrl());
   const page = await browser.newPage();
@@ -527,7 +505,7 @@ async function _doScrape(cookies, keyword, location, maxItems = 40, options = {}
   });
 
   await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
-  if (useCookies) {
+  if (cookies && cookies.length > 0) {
     await page.setCookie(...cookies);
   }
 
@@ -877,8 +855,7 @@ async function _doScrape(cookies, keyword, location, maxItems = 40, options = {}
   } catch (err) {
     if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     await browser.close().catch(() => null);
-    console.log('[Scraper] _doScrape erro:', err.message, '— retornando []');
-    return [];
+    throw err;
   }
 }
 
