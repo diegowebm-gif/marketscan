@@ -38,18 +38,22 @@ async function register(email, password) {
   if (existing.rows.length > 0) {
     return { ok: false, error: 'E-mail já cadastrado.' };
   }
+  // 7 dias grátis como Pro para todos os novos cadastros
+  const trialDays = 7;
+  const planExpiresAt = Date.now() + trialDays * 24 * 60 * 60 * 1000;
   const user = {
     id: crypto.randomUUID(),
     email,
     password: hashPassword(password),
-    plan: 'free',
+    plan: 'pro',
     token: generateToken(),
+    plan_expires_at: planExpiresAt,
   };
   await pool.query(
-    'INSERT INTO users (id, email, password, plan, token) VALUES ($1, $2, $3, $4, $5)',
-    [user.id, user.email, user.password, user.plan, user.token]
+    'INSERT INTO users (id, email, password, plan, token, plan_expires_at) VALUES ($1, $2, $3, $4, $5, $6)',
+    [user.id, user.email, user.password, user.plan, user.token, user.plan_expires_at]
   );
-  return { ok: true, token: user.token, plan: user.plan, email: user.email };
+  return { ok: true, token: user.token, plan: user.plan, email: user.email, trial: true, trialDays };
 }
 
 async function login(email, password) {

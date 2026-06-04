@@ -654,6 +654,7 @@ async function doRegister() {
   authToken = res.token;
   currentUser = { email: res.email, plan: res.plan };
   localStorage.setItem('mkt_token', authToken);
+  if (res.trial) toast('🎉 Bem-vindo! Você ganhou 7 dias de Pro grátis!', 'success');
   showFacebookConnect();
 }
 
