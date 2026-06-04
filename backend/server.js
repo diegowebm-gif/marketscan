@@ -11,6 +11,93 @@ const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeLis
 const { createSession, touchSession, saveSearch, saveListings, getListingsBySearch, getRecentSearches, savePriceSnapshot, getPriceHistory } = require('./database');
 const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMonitor, sendPush, startMonitorCron } = require('./alerts');
 
+// ── Email (Resend) ────────────────────────────────────────────
+async function sendEmail(to, subject, html) {
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'MarketScan <noreply@marketscan.app>',
+        to,
+        subject,
+        html,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Erro ao enviar email');
+    console.log(`[Email] Enviado para ${to}: ${subject}`);
+    return true;
+  } catch (err) {
+    console.error(`[Email] Erro ao enviar para ${to}:`, err.message);
+    return false;
+  }
+}
+
+function emailBoasVindas(email) {
+  return sendEmail(email, '🎁 Seu presente: 7 dias de MarketScan Pro grátis!', `
+    <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:2rem;background:#f4f5f7">
+      <div style="background:#fff;border-radius:12px;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+        <h1 style="font-size:1.4rem;color:#1a1a2e;margin-bottom:.5rem">Bem-vindo ao MarketScan! 🎉</h1>
+        <p style="color:#6b7280;font-size:14px;margin-bottom:1.5rem">Você ganhou <strong>7 dias grátis do plano Pro</strong>. Aproveite tudo sem pagar nada.</p>
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:1rem;margin-bottom:1.5rem">
+          <p style="color:#15803d;font-size:13px;margin:0;font-weight:600">✅ O que você pode fazer agora:</p>
+          <ul style="color:#166534;font-size:13px;margin:.75rem 0 0;padding-left:1.25rem;line-height:1.8">
+            <li>Buscar anúncios em qualquer cidade do Brasil</li>
+            <li>Ver score de oportunidade em cada anúncio</li>
+            <li>Configurar alertas de preço</li>
+            <li>Ver histórico de preços do mercado</li>
+            <li>Usar a calculadora de lucro</li>
+          </ul>
+        </div>
+        <a href="${process.env.BASE_URL}/app" style="display:inline-block;background:#6a0dad;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Começar a usar →</a>
+        <p style="color:#9ca3af;font-size:11px;margin-top:1.5rem">Se tiver dúvidas, responda este email ou acesse <a href="${process.env.BASE_URL}/contact" style="color:#6a0dad">nossa página de contato</a>.</p>
+      </div>
+    </div>
+  `);
+}
+
+function emailTrialExpirando(email, diasRestantes) {
+  return sendEmail(email, `⏳ Seu Pro grátis expira ${diasRestantes === 1 ? 'amanhã' : `em ${diasRestantes} dias`}!`, `
+    <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:2rem;background:#f4f5f7">
+      <div style="background:#fff;border-radius:12px;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+        <h1 style="font-size:1.4rem;color:#1a1a2e;margin-bottom:.5rem">⏳ Seu trial está acabando</h1>
+        <p style="color:#6b7280;font-size:14px;margin-bottom:1rem">Seu período gratuito do <strong>MarketScan Pro</strong> expira ${diasRestantes === 1 ? 'amanhã' : `em ${diasRestantes} dias`}. Não perca o acesso às ferramentas que você já usa.</p>
+        <div style="background:#fefce8;border:1px solid #fde047;border-radius:8px;padding:1rem;margin-bottom:1.5rem">
+          <p style="color:#854d0e;font-size:13px;margin:0">🔒 Sem o Pro você perde: alertas de preço, histórico, calculadora de lucro e buscas ilimitadas.</p>
+        </div>
+        <a href="${process.env.BASE_URL}/app" style="display:inline-block;background:#6a0dad;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Assinar Pro — R$ 29,90/mês →</a>
+        <p style="color:#9ca3af;font-size:11px;margin-top:1.5rem">Cancele quando quiser. Sem fidelidade.</p>
+      </div>
+    </div>
+  `);
+}
+
+function emailTrialExpirado(email) {
+  return sendEmail(email, '🔓 Seu trial expirou — continue com o Pro', `
+    <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:2rem;background:#f4f5f7">
+      <div style="background:#fff;border-radius:12px;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+        <h1 style="font-size:1.4rem;color:#1a1a2e;margin-bottom:.5rem">Seu trial gratuito expirou</h1>
+        <p style="color:#6b7280;font-size:14px;margin-bottom:1rem">Esperamos que você tenha encontrado boas oportunidades durante esses 7 dias! Para continuar usando todos os recursos, assine o Pro.</p>
+        <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:1rem;margin-bottom:1.5rem">
+          <p style="color:#5b21b6;font-size:13px;margin:0;font-weight:600">Por apenas R$ 29,90/mês você tem:</p>
+          <ul style="color:#6d28d9;font-size:13px;margin:.75rem 0 0;padding-left:1.25rem;line-height:1.8">
+            <li>Buscas ilimitadas</li>
+            <li>Alertas de preço em tempo real</li>
+            <li>Histórico de preços do mercado</li>
+            <li>Calculadora de lucro</li>
+          </ul>
+        </div>
+        <a href="${process.env.BASE_URL}/app" style="display:inline-block;background:#6a0dad;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Assinar agora →</a>
+        <p style="color:#9ca3af;font-size:11px;margin-top:1.5rem">Cancele quando quiser. Sem fidelidade mínima.</p>
+      </div>
+    </div>
+  `);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
@@ -101,6 +188,7 @@ app.post('/api/auth/register', async (req, res) => {
   if (!email || !password) return res.status(400).json({ ok: false, error: 'E-mail e senha obrigatórios.' });
   if (password.length < 6) return res.status(400).json({ ok: false, error: 'Senha mínima de 6 caracteres.' });
   const result = await register(email, password);
+  if (result.ok) emailBoasVindas(email).catch(() => {});
   res.json(result);
 });
 
@@ -668,5 +756,33 @@ app.get('/app', (req, res) => {
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../frontend/index.html')));
 
 startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies);
+
+// ── Cron de emails do trial ───────────────────────────────────
+const cron = require('node-cron');
+cron.schedule('0 10 * * *', async () => {
+  console.log('[Cron] Verificando trials expirando...');
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    const now = Date.now();
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const twoDaysMs = 2 * oneDayMs;
+
+    const expiring1 = await pool.query(`SELECT email FROM users WHERE plan = 'pro' AND plan_expires_at > $1 AND plan_expires_at <= $2`, [now, now + oneDayMs]);
+    for (const u of expiring1.rows) await emailTrialExpirando(u.email, 1).catch(() => {});
+
+    const expiring2 = await pool.query(`SELECT email FROM users WHERE plan = 'pro' AND plan_expires_at > $1 AND plan_expires_at <= $2`, [now + oneDayMs, now + twoDaysMs]);
+    for (const u of expiring2.rows) await emailTrialExpirando(u.email, 2).catch(() => {});
+
+    const expired = await pool.query(`SELECT email, token FROM users WHERE plan = 'pro' AND plan_expires_at < $1 AND plan_expires_at > $2`, [now, now - oneDayMs]);
+    for (const u of expired.rows) {
+      await pool.query("UPDATE users SET plan = 'free' WHERE token = $1", [u.token]);
+      await emailTrialExpirado(u.email).catch(() => {});
+    }
+
+    await pool.end();
+    console.log(`[Cron] ${expiring1.rows.length} expirando em 1d, ${expiring2.rows.length} em 2d, ${expired.rows.length} expirados`);
+  } catch (err) { console.error('[Cron] Erro:', err.message); }
+}, { timezone: 'America/Sao_Paulo' });
 
 app.listen(PORT, () => console.log(`\n🚀 MarketScan rodando em ${BASE_URL}\n`));
