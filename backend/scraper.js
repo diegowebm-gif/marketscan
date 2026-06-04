@@ -810,11 +810,11 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
   console.log(`[Scraper] URL: ${finalUrl}`);
 
   try {
-    console.log('[Scraper] Acessando URL do Marketplace...');
+    console.log(`[Scraper] [T] Acessando URL do Marketplace... [${Date.now()}]`);
     try {
       await page.goto(finalUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
       let currentUrl = page.url();
-      console.log('[Scraper] Página carregada, URL atual:', currentUrl.slice(0, 80));
+      console.log(`[Scraper] [T] Página carregada [${Date.now()}]`, currentUrl.slice(0, 80));
       
       // Se redirecionou para login
       if (currentUrl.includes('login') || currentUrl.includes('checkpoint')) {
@@ -945,13 +945,13 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     // Aguarda página estabilizar antes de scrollar
     await delay(2000);
     
-    console.log('[Scraper] Iniciando scroll...');
+    console.log(`[Scraper] [T] Iniciando scroll... [${Date.now()}]`);
     let lastEmittedCount = 0;
     for (let i = 0; i < 3; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 3));
       await delay(1500);
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
-      console.log(`[Scraper] Scroll ${i+1}/3 | anúncios: ${count}`);
+      console.log(`[Scraper] [T] Scroll ${i+1}/3 | anúncios: ${count} [${Date.now()}]`);
 
       // Emite batch após primeiro scroll com anúncios suficientes
       if (onBatch && count > lastEmittedCount) {
@@ -993,7 +993,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     await page.evaluate(() => window.scrollTo(0, 0));
     await delay(1000);
     
-    console.log('[Scraper] Coletando dados dos anúncios...');
+    console.log(`[Scraper] [T] Coletando dados dos anúncios... [${Date.now()}]`);
     // Aguarda títulos reais carregarem (substituem "Acabou de ser anunciado")
     await page.waitForFunction(() => {
       const anchors = document.querySelectorAll('a[href*="/marketplace/item/"]');
@@ -1103,7 +1103,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       new Promise(resolve => setTimeout(resolve, 5000))
     ]).catch(() => {});
     if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
-    console.log('[Scraper] Browser fechado, processando...');
+    console.log(`[Scraper] [T] Browser fechado, processando... [${Date.now()}]`);
 
     const processed = listings.map(item => ({
       ...item,
