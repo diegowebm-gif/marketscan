@@ -199,6 +199,12 @@ header {
 .listing-meta { font-size: 11px; color: var(--text2); margin-bottom: 10px; display:flex; align-items:center; gap:4px; }
 .pct-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 20px; background: #dcfce7; color: #15803d; margin-bottom: 8px; }
 .pct-badge.above { background: #fee2e2; color: #b91c1c; }
+.score-badge { position: absolute; top: 8px; right: 8px; border-radius: 8px; padding: 3px 8px; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 3px; }
+.score-hot { background: #fef3c7; color: #92400e; }
+.score-good { background: #dcfce7; color: #166534; }
+.score-ok { background: #f3f4f6; color: #6b7280; }
+.score-bar-wrap { height: 3px; background: var(--surface2); margin: 0; }
+.score-bar { height: 3px; }
 .btn-link { display: block; text-align: center; padding: 8px; border-radius: var(--radius-sm); border: 1.5px solid var(--accent); color: var(--accent); font-size: 12px; text-decoration: none; transition: all .2s; font-weight: 500; }
 .btn-link:hover { background: var(--accent); color: #fff; }
 
@@ -506,6 +512,7 @@ header {
           <option value="price_asc">Menor preço</option>
           <option value="price_desc">Maior preço</option>
           <option value="pct_desc">Maior desconto</option>
+          <option value="score_desc">Melhor score</option>
         </select>
       </div>
 
@@ -1042,6 +1049,7 @@ function renderListings() {
       if (sort === 'price_asc') return (a.price ?? Infinity) - (b.price ?? Infinity);
       if (sort === 'price_desc') return (b.price ?? -1) - (a.price ?? -1);
       if (sort === 'pct_desc') return (b.pct_below_avg ?? -999) - (a.pct_below_avg ?? -999);
+      if (sort === 'score_desc') return (b.score ?? -1) - (a.score ?? -1);
       return 0;
     });
   }
@@ -1052,7 +1060,13 @@ function renderListings() {
     const pctHtml = l.pct_below_avg !== null ? `<div class="pct-badge ${l.pct_below_avg < 0 ? 'above' : ''}">${l.pct_below_avg >= 0 ? `${l.pct_below_avg}% abaixo da média` : `${Math.abs(l.pct_below_avg)}% acima da média`}</div>` : '';
     const imgHtml = l.image_url ? `<img class="listing-img" src="${esc(l.image_url)}" alt="${esc(l.title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
     const ph = `<div class="listing-img-placeholder" ${l.image_url ? 'style="display:none"' : ''}>🖼️</div>`;
-    return `<div class="listing-card ${l.is_opportunity ? 'opportunity' : ''}">${l.is_opportunity ? '<div class="opp-badge">🔥 OPORTUNIDADE</div>' : ''}${imgHtml}${ph}<div class="listing-body"><div class="listing-title">${esc(l.title)}</div>${priceHtml}${pctHtml}<div class="listing-meta">${esc(l.location || '')}</div><a class="btn-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver anúncio →</a>
+    const scoreHtml = l.score !== null && l.score !== undefined ? (() => {
+      const cls = l.score >= 85 ? 'score-hot' : l.score >= 70 ? 'score-good' : 'score-ok';
+      const icon = l.score >= 85 ? '🔥' : l.score >= 70 ? '✦' : '·';
+      const barColor = l.score >= 85 ? '#f59e0b' : l.score >= 70 ? '#22c55e' : '#d1d5db';
+      return `<div class="score-badge ${cls}">${icon} ${l.score}</div><div class="score-bar-wrap"><div class="score-bar" style="width:${l.score}%;background:${barColor}"></div></div>`;
+    })() : '';
+    return `<div class="listing-card ${l.is_opportunity ? 'opportunity' : ''}">${l.is_opportunity ? '<div class="opp-badge">🔥 OPORTUNIDADE</div>' : ''}${imgHtml}${ph}${scoreHtml}<div class="listing-body"><div class="listing-title">${esc(l.title)}</div>${priceHtml}${pctHtml}<div class="listing-meta">${esc(l.location || '')}</div><a class="btn-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver anúncio →</a>
       ${l.price ? `
       <button class="calc-btn" onclick="toggleCalc(this, ${l.price}, ${currentStats?.avg || 0})">Calcular lucro</button>
       <div class="calc-panel">

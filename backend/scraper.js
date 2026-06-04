@@ -822,7 +822,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
     console.log(`[Scraper] "${keyword}" em ${cityRaw}: ${processed.length} brutos → ${sorted.length} resultados`);
 
-    return sorted.slice(0, maxItems);
+    return sorted.slice(0, maxItems).map(l => ({ ...l, _cityRaw: cityRaw }));
 
   } catch (err) {
     if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
@@ -948,13 +948,35 @@ function analyzeListings(listings) {
   const max = prices[prices.length - 1];
   const opportunityThreshold = avg * 0.70;
 
-  const analyzed = listings.map(l => ({
-    ...l,
-    is_opportunity: l.price !== null && l.price <= opportunityThreshold,
-    pct_below_avg: l.price !== null
+  const analyzed = listings.map(l => {
+    const pct_below_avg = l.price !== null
       ? Math.round(((avg - l.price) / avg) * 100)
-      : null,
-  }));
+      : null;
+    const is_opportunity = l.price !== null && l.price <= opportunityThreshold;
+
+    // Score de oportunidade (0-100)
+    let score = null;
+    if (l.price !== null) {
+      let s = 0;
+      // % abaixo da média (0-50pts)
+      if (pct_below_avg >= 30) s += 50;
+      else if (pct_below_avg >= 20) s += 40;
+      else if (pct_below_avg >= 10) s += 25;
+      else if (pct_below_avg >= 0) s += 10;
+      // abaixo da mediana (0-15pts)
+      if (l.price <= median) s += 15;
+      // tem imagem (0-15pts)
+      if (l.image_url) s += 15;
+      // proximidade — mesma cidade (0-20pts)
+      const locNorm = (l.location || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').split(',')[0].trim();
+      const cityNorm = (l._cityRaw || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+      if (cityNorm && locNorm === cityNorm) s += 20;
+      else if (cityNorm && locNorm.includes(cityNorm)) s += 10;
+      score = Math.min(100, s);
+    }
+
+    return { ...l, is_opportunity, pct_below_avg, score };
+  });
 
   return {
     listings: analyzed,
