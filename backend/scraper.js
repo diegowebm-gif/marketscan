@@ -608,21 +608,23 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Bloqueia apenas recursos claramente desnecessários (mantém imagens pois Facebook precisa delas para renderizar)
+  // Bloqueia recursos desnecessários para economizar banda
   await page.setRequestInterception(true);
   page.on('request', req => {
     const type = req.resourceType();
     const url = req.url();
-    // Bloqueia só fontes externas, vídeos e rastreadores de terceiros
-    if (type === 'media') {
-      req.abort();
-    } else if (type === 'font' && !url.includes('facebook.com') && !url.includes('fbcdn.net')) {
-      req.abort();
-    } else if (type === 'other' && (url.includes('google-analytics') || url.includes('doubleclick') || url.includes('googlesyndication'))) {
-      req.abort();
-    } else {
-      req.continue().catch(() => {});
+    // Bloqueia vídeos, fontes externas e rastreadores
+    if (type === 'media') { req.abort(); return; }
+    if (type === 'font' && !url.includes('facebook.com') && !url.includes('fbcdn.net')) { req.abort(); return; }
+    if (type === 'other' && (url.includes('google-analytics') || url.includes('doubleclick') || url.includes('googlesyndication') || url.includes('facebook.net/signals'))) { req.abort(); return; }
+    // Bloqueia imagens grandes (perfil, banners) mas mantém thumbnails dos anúncios
+    if (type === 'image') {
+      // Mantém imagens do fbcdn (thumbnails dos anúncios) e bloqueia o resto
+      if (!url.includes('fbcdn.net') && !url.includes('facebook.com')) { req.abort(); return; }
+      // Bloqueia imagens de alta resolução (scontent com dimensões grandes)
+      if (url.includes('_n.jpg') || url.includes('_o.jpg') || url.includes('p720x720') || url.includes('p960x960')) { req.abort(); return; }
     }
+    req.continue().catch(() => {});
   });
 
   await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
@@ -945,16 +947,46 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     
     console.log('[Scraper] Iniciando scroll...');
     let lastEmittedCount = 0;
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 3; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 3));
       await delay(1500);
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
-      console.log(`[Scraper] Scroll ${i+1}/6 | anúncios: ${count}`);
+      console.log(`[Scraper] Scroll ${i+1}/3 | anúncios: ${count}`);
 
-      // Apenas atualiza o status no frontend durante o scroll
+      // Emite batch após primeiro scroll com anúncios suficientes
       if (onBatch && count > lastEmittedCount) {
-        onBatch(null, i + 1, 6); // null = só atualiza status, sem renderizar
-        lastEmittedCount = count;
+        if (count >= 6 && lastEmittedCount === 0) {
+          // Primeiro batch — aguarda títulos e preços carregarem
+          await delay(2000);
+          try {
+            const partialRaw = await page.evaluate(() => {
+              const results = [];
+              const seen = new Set();
+              document.querySelectorAll('a[href*="/marketplace/item/"]').forEach(a => {
+                const href = a.href?.split('?')[0];
+                if (!href || seen.has(href)) return;
+                seen.add(href);
+                const spans = [...a.querySelectorAll('span')].map(s => s.textContent?.trim()).filter(Boolean);
+                const title = spans.find(t => t.length > 4 && !t.startsWith('R$') && !t.match(/^\d+$/)) || '';
+                const priceText = spans.find(t => t.startsWith('R$')) || '';
+                const img = a.querySelector('img')?.src || '';
+                const locSpan = spans.find(t => t.includes(',') || (t.length > 3 && !t.startsWith('R$') && t !== title)) || '';
+                results.push({ title, price_text: priceText, image_url: img, location: locSpan, listing_url: href });
+              });
+              return results;
+            }).catch(() => []);
+            const withPrice = partialRaw.filter(l => l.price_text && l.title && l.title !== 'Acabou de ser anunciado').length;
+            if (withPrice >= 4) {
+              onBatch(partialRaw, i + 1, 3);
+              lastEmittedCount = partialRaw.length;
+            } else {
+              onBatch(null, i + 1, 3);
+            }
+          } catch { onBatch(null, i + 1, 3); }
+        } else {
+          onBatch(null, i + 1, 3);
+          lastEmittedCount = count;
+        }
       }
 
       if (count >= maxItems) break;
