@@ -910,8 +910,9 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
       console.log(`[Scraper] Scroll ${i+1}/6 | anúncios: ${count}`);
 
-      // Emite batch parcial só quando anúncios já tiverem preço carregado
+      // Aguarda textos carregarem antes de tentar emitir batch
       if (onBatch && count > lastEmittedCount && count >= 4) {
+        await delay(1500); // Aguarda Facebook preencher títulos e preços
         try {
           const partialRaw = await page.evaluate(() => {
             const results = [];
@@ -929,9 +930,9 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
             });
             return results;
           }).catch(() => []);
-          // Só emite se pelo menos 50% dos anúncios já tem preço carregado
-          const withPrice = partialRaw.filter(l => l.price_text).length;
-          const hasEnoughPrices = withPrice >= Math.ceil(partialRaw.length * 0.5);
+          // Só emite se pelo menos 70% dos anúncios já tem preço E título carregado
+          const withPrice = partialRaw.filter(l => l.price_text && l.title && l.title !== 'Acabou de ser anunciado').length;
+          const hasEnoughPrices = withPrice >= Math.ceil(partialRaw.length * 0.7);
           if (partialRaw.length > lastEmittedCount && hasEnoughPrices) {
             onBatch(partialRaw.slice(0, maxItems), i + 1, 6);
             lastEmittedCount = partialRaw.length;
