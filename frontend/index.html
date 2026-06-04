@@ -776,6 +776,7 @@ let sessionId = localStorage.getItem('mkt_session');
 let authToken = localStorage.getItem('mkt_token');
 let currentUser = null;
 let allListings = [];
+let _pendingListings = null;
 let currentFilter = 'all';
 let currentStats = null;
 let checkInterval = null;
@@ -1828,8 +1829,6 @@ async function applyCoupon() {
     toast('Erro: ' + (res?.error || 'Cupom inválido'), 'error');
   }
 }
-
-let _pendingListings = null; // Guarda resultado final enquanto batch está visível
 
 function showLoadMoreBtn(loading) {
   const bar = document.getElementById('load-more-bar');
