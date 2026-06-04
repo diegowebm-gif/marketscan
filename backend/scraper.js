@@ -607,6 +607,22 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
+  // Bloqueia recursos desnecessários para economizar banda do proxy
+  await page.setRequestInterception(true);
+  page.on('request', req => {
+    const type = req.resourceType();
+    const url = req.url();
+    // Bloqueia imagens, fontes, vídeos e rastreadores
+    // Mantém: document, script, xhr, fetch (necessários para o Facebook funcionar)
+    if (['image', 'media', 'font', 'other'].includes(type)) {
+      req.abort();
+    } else if (type === 'stylesheet' && !url.includes('facebook.com')) {
+      req.abort();
+    } else {
+      req.continue().catch(() => {});
+    }
+  });
+
   await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
   if (cookies && cookies.length > 0) {
     await page.setCookie(...cookies);
@@ -791,8 +807,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
         const capturedIds = [];
         let intercepting = true;
 
-        await page.setRequestInterception(true);
-        page.on('request', req => { if (intercepting) req.continue().catch(() => {}); });
+        // Interceptação já está ativa — apenas adiciona listener de resposta
         page.on('response', async resp => {
           try {
             const url = resp.url();
@@ -830,10 +845,8 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
           }
         } catch {}
 
-        // Desliga interceptação
+        // Para de interceptar respostas (request continua ativo para bloquear recursos)
         intercepting = false;
-        await page.setRequestInterception(false).catch(() => {});
-        page.removeAllListeners('request');
         page.removeAllListeners('response');
 
         // Tenta usar IDs capturados se não achou via campo
