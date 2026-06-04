@@ -607,16 +607,17 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Bloqueia recursos desnecessários para economizar banda do proxy
+  // Bloqueia apenas recursos claramente desnecessários (mantém imagens pois Facebook precisa delas para renderizar)
   await page.setRequestInterception(true);
   page.on('request', req => {
     const type = req.resourceType();
     const url = req.url();
-    // Bloqueia imagens, fontes, vídeos e rastreadores
-    // Mantém: document, script, xhr, fetch (necessários para o Facebook funcionar)
-    if (['image', 'media', 'font', 'other'].includes(type)) {
+    // Bloqueia só fontes externas, vídeos e rastreadores de terceiros
+    if (type === 'media') {
       req.abort();
-    } else if (type === 'stylesheet' && !url.includes('facebook.com')) {
+    } else if (type === 'font' && !url.includes('facebook.com') && !url.includes('fbcdn.net')) {
+      req.abort();
+    } else if (type === 'other' && (url.includes('google-analytics') || url.includes('doubleclick') || url.includes('googlesyndication'))) {
       req.abort();
     } else {
       req.continue().catch(() => {});
