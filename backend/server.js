@@ -299,6 +299,25 @@ app.post('/api/search', requireAuth, async (req, res) => {
   }
 });
 
+// ── Busca pública (teste sem login no Facebook) ──────────────
+app.post('/api/search-public', requireAuth, async (req, res) => {
+  const { keyword, location = 'Brasil', city = '' } = req.body;
+  if (!keyword) return res.status(400).json({ ok: false, error: 'keyword obrigatório.' });
+  try {
+    // Usa sessionId fictício — sem cookies, sem login no Facebook
+    const fakeSessionId = 'public-test-no-cookies';
+    const rawListings = await scrapeMarketplace(fakeSessionId, keyword, location, 20, {
+      removeNoPrice: false,
+      blockedWords: [],
+      city,
+    }) || [];
+    const { listings, stats } = analyzeListings(rawListings);
+    res.json({ ok: true, keyword, location, total: rawListings.length, stats, listings });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ── Histórico (Pro) ───────────────────────────────────────
 app.get('/api/price-history', requireAuth, requirePro, async (req, res) => {
   const { keyword, city, days } = req.query;
