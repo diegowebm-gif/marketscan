@@ -640,27 +640,9 @@ async function doRegister() {
 }
 
 async function showFacebookConnect() {
-  if (authToken) {
-    const me = await api('GET', '/api/auth/me');
-    if (me?.ok) currentUser = me;
-  }
-  document.getElementById('screen-auth').style.display = 'flex';
-  document.getElementById('screen-app').style.display = 'none';
-  document.getElementById('form-login').style.display = 'none';
-  document.getElementById('form-register').style.display = 'none';
-  document.querySelector('.auth-tabs').style.display = 'none';
-  document.querySelector('.auth-icon').textContent = '📘';
-  document.querySelector('.auth-title').innerHTML = 'Conectar Facebook';
-  document.querySelector('.auth-sub').textContent = 'Digite suas credenciais do Facebook para conectar ao Marketplace.';
-
-  let stepsEl = document.getElementById('fb-connect-steps');
-  if (!stepsEl) {
-    const div = document.createElement('div');
-    div.id = 'fb-connect-steps';
-    div.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1rem;width:100%;max-width:360px';
-    document.getElementById('screen-auth').appendChild(div);
-  }
-  showCredentialsForm();
+  // Marketplace é público — não precisa de login no Facebook
+  // Vai direto para o app
+  await showApp();
 }
 
 function showCredentialsForm() {
@@ -1264,6 +1246,14 @@ function showAuth() {
 
 async function showApp() {
   if (authToken) { const me = await api('GET', '/api/auth/me'); if (me?.ok) currentUser = me; }
+  // Cria sessionId automaticamente se não existir
+  if (!sessionId) {
+    const startRes = await api('POST', '/api/session/start');
+    if (startRes?.ok) {
+      sessionId = startRes.sessionId;
+      localStorage.setItem('mkt_session', sessionId);
+    }
+  }
   document.getElementById('screen-auth').style.display = 'none';
   document.getElementById('screen-app').style.display = 'block';
   document.getElementById('status-dot').className = 'dot online';
