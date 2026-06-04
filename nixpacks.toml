@@ -3,4 +3,4 @@ nixPkgs = ["nodejs_20", "chromium", "nss", "freetype", "harfbuzz", "dejavu_fonts
 
 [variables]
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
-PUPPETEER_EXECUTABLE_PATH = "/run/current-system/sw/bin/chromium"
+PUPPETEER_EXECUTABLE_PATH = "/root/.nix-profile/bin/chromium"
