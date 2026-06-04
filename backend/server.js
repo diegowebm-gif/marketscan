@@ -521,18 +521,7 @@ data: ${JSON.stringify(data)}
       sessionId, keyword, location, max,
       { removeNoPrice: removeNoPrice === 'true', blockedWords: blocked, city },
       (partialRaw, scrollNum, totalScrolls) => {
-        try {
-          if (partialRaw && partialRaw.length > 0) {
-            const { listings: partialListings, stats: partialStats } = analyzeListings(partialRaw);
-            if (partialListings?.length > 0) {
-              send('batch', { listings: partialListings, stats: partialStats, scroll: scrollNum, total: totalScrolls });
-            }
-          }
-          send('status', { message: `Carregando mais anúncios... (${scrollNum}/${totalScrolls})` });
-        } catch(e) {
-          console.error('[SSE] Erro no batch:', e.message);
-          send('status', { message: `Carregando... (${scrollNum}/${totalScrolls})` });
-        }
+        send('status', { message: `Carregando anúncios... (${scrollNum}/${totalScrolls})` });
       }
     );
 

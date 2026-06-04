@@ -1305,22 +1305,6 @@ async function doSearch() {
                 </div>`;
               resolve();
               return;
-            } else if (event === 'batch') {
-              if (data.listings?.length) {
-                // Mostra primeiros resultados imediatamente
-                allListings = data.listings;
-                currentStats = data.stats;
-                hideLoading();
-                renderStats();
-                renderListings();
-                // Garante que filtros apareçam
-                document.getElementById('filters').style.display = 'flex';
-                btn.textContent = `Carregando mais... (${data.scroll}/3)`;
-                // Mostra botão de carregar mais
-                showLoadMoreBtn(true);
-              } else {
-                btn.textContent = `Carregando... (${data.scroll}/3)`;
-              }
             } else if (event === 'done') {
               hideLoading();
               loadPriceHistory(keyword, city);
@@ -1329,22 +1313,14 @@ async function doSearch() {
               document.getElementById('mobile-search-panel').style.display = 'none';
               document.getElementById('city-feedback-link').style.display = 'block';
               const cacheMsg = data.fromCache ? ' (cache)' : '';
-              if (allListings.length > 0 && !data.fromCache) {
-                // Já tem batch visível — guarda completo e mostra botão
-                _pendingListings = data.listings || allListings;
-                currentStats = data.stats || currentStats;
-                showLoadMoreBtn(false);
-                toast(`${_pendingListings.length} anúncios encontrados${cacheMsg}`, 'success');
-              } else {
-                // Sem batch ou cache — mostra tudo direto
-                allListings = data.listings || [];
-                currentStats = data.stats || currentStats;
-                _pendingListings = null;
-                renderStats();
-                renderListings();
-                document.getElementById('load-more-bar').style.display = 'none';
-                toast(`${allListings.length} anúncios encontrados${cacheMsg}`, 'success');
-              }
+              allListings = data.listings || [];
+              currentStats = data.stats || currentStats;
+              _pendingListings = null;
+              renderStats();
+              renderListings();
+              document.getElementById('filters').style.display = allListings.length > 0 ? 'flex' : 'none';
+              document.getElementById('load-more-bar').style.display = 'none';
+              toast(`${allListings.length} anúncios encontrados${cacheMsg}`, 'success');
               resolve();
             } else if (event === 'error') {
               if (data.message === 'limit_reached') {
