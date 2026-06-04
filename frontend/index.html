@@ -422,48 +422,54 @@ header {
         </div>
       </div>
 
-      <hr class="sidebar-divider">
-
-      <div style="background:linear-gradient(135deg,rgba(106,13,173,0.06),rgba(106,13,173,0.02));border:1px solid rgba(106,13,173,0.18);border-radius:var(--radius);padding:1rem;margin:-0.25rem">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-          <div style="width:28px;height:28px;border-radius:50%;background:rgba(106,13,173,0.12);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🔔</div>
-          <div>
-            <p style="font-size:12px;font-weight:600;color:var(--accent);margin:0">Alertas de preço</p>
-            <p style="font-size:10px;color:var(--text3);margin:0">Notificação automática de oportunidades</p>
-          </div>
-        </div>
-        <div id="permission-banner" style="display:none">
-          <p style="font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:8px">Ative as notificações para ser avisado no celular ou computador assim que aparecer um anúncio abaixo do preço que você definir.</p>
-          <button class="btn-allow" id="btn-allow-notif" onclick="requestNotificationPermission()" style="background:var(--accent);color:#000;font-weight:600;font-size:12px;padding:9px;border-radius:var(--radius-sm);border:none;width:100%;cursor:pointer;font-family:'Inter',sans-serif">🔔 Ativar notificações</button>
-        </div>
-        <div id="monitor-panel" style="display:none">
-          <button class="btn-add-monitor" onclick="toggleMonitorForm()" style="background:var(--accent);color:#000;font-weight:600;border:none;font-size:12px;padding:9px;border-radius:var(--radius-sm);width:100%;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:10px">+ Criar novo alerta</button>
-          <div class="monitor-form" id="monitor-form">
-            <label>Produto</label>
-            <input type="text" id="mon-keyword" placeholder="ex: iPhone 11" />
-            <label>Estado</label>
-            <select id="mon-state" onchange="onMonStateChange()">
-              <option value="">Selecione</option>
-            </select>
-            <label>Cidade</label>
-            <select id="mon-city" style="opacity:.4;pointer-events:none">
-              <option value="">Selecione o estado</option>
-            </select>
-            <label>Preço máximo (R$)</label>
-            <input type="number" id="mon-price" placeholder="ex: 800" min="1" />
-            <label>Verificar a cada (horas)</label>
-            <input type="number" id="mon-interval" value="2" min="1" max="24" />
-            <button class="btn-save-monitor" onclick="saveMonitor()">Salvar alerta</button>
-          </div>
-          <div id="monitor-list">
-            <div class="monitor-empty" style="font-size:11px;color:var(--text3);text-align:center;padding:.5rem 0">Nenhum alerta configurado.</div>
-          </div>
-        </div>
-      </div>
     </aside>
 
     <main class="main-content">
       <div class="stats-grid" id="stats-grid" style="display:none"></div>
+
+      <!-- Banner Alertas de Preço -->
+      <div id="price-alert-banner" style="display:none;align-items:center;gap:16px;background:linear-gradient(135deg,rgba(106,13,173,0.07),rgba(106,13,173,0.03));border:1.5px solid rgba(106,13,173,0.28);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;flex-wrap:wrap">
+        <div style="width:38px;height:38px;border-radius:50%;background:rgba(106,13,173,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔔</div>
+        <div style="flex:1;min-width:200px">
+          <p style="font-size:13px;font-weight:700;color:var(--accent);margin:0 0 2px">Alertas de preço — seja avisado de oportunidades</p>
+          <p style="font-size:12px;color:var(--text2);margin:0">Receba uma notificação assim que aparecer um anúncio abaixo do preço que você definir.</p>
+        </div>
+        <!-- Estado: sem permissão -->
+        <div id="alert-banner-perm" style="display:none">
+          <button onclick="requestNotificationPermission()" style="white-space:nowrap;padding:9px 18px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🔔 Ativar notificações</button>
+        </div>
+        <!-- Estado: com permissão -->
+        <div id="alert-banner-actions" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
+          <button onclick="toggleMonitorForm()" style="white-space:nowrap;padding:9px 18px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Criar alerta</button>
+          <button onclick="document.getElementById('alert-monitor-panel').classList.toggle('visible')" style="white-space:nowrap;padding:9px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='transparent'">Ver meus alertas</button>
+        </div>
+      </div>
+
+      <!-- Painel expandido de alertas (abaixo do banner) -->
+      <div id="alert-monitor-panel" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;margin-bottom:1.25rem;margin-top:-0.75rem;box-shadow:var(--shadow)">
+        <div class="monitor-form" id="monitor-form">
+          <p style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:10px">Novo alerta de preço</p>
+          <label>Produto</label>
+          <input type="text" id="mon-keyword" placeholder="ex: iPhone 11" />
+          <label>Estado</label>
+          <select id="mon-state" onchange="onMonStateChange()">
+            <option value="">Selecione</option>
+          </select>
+          <label>Cidade</label>
+          <select id="mon-city" style="opacity:.4;pointer-events:none">
+            <option value="">Selecione o estado</option>
+          </select>
+          <label>Preço máximo (R$)</label>
+          <input type="number" id="mon-price" placeholder="ex: 800" min="1" />
+          <label>Verificar a cada (horas)</label>
+          <input type="number" id="mon-interval" value="2" min="1" max="24" />
+          <button class="btn-save-monitor" onclick="saveMonitor()">Salvar alerta</button>
+        </div>
+        <div id="monitor-list" style="margin-top:8px">
+          <div class="monitor-empty">Nenhum alerta configurado.</div>
+        </div>
+      </div>
+
       <div id="location-tip" style="display:none;align-items:flex-start;gap:12px;background:#eef2ff;border:2px solid #818cf8;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem">
         <span style="font-size:1.4rem;flex-shrink:0;margin-top:1px">📍</span>
         <div>
@@ -1006,6 +1012,21 @@ function renderStats() {
   `;
   document.getElementById('filters').style.display = 'flex';
   document.getElementById('location-tip').style.display = 'flex';
+  // Mostra banner de alertas junto com os resultados
+  const alertBanner = document.getElementById('price-alert-banner');
+  if (alertBanner && alertBanner.style.display === 'none') {
+    const isPro = currentUser?.plan === 'pro';
+    const perm = ('Notification' in window) ? Notification.permission : 'denied';
+    if (isPro && perm !== 'granted') showPermissionBanner();
+    else if (!isPro) {
+      alertBanner.style.display = 'flex';
+      const actEl = document.getElementById('alert-banner-actions');
+      if (actEl && !actEl.innerHTML.includes('Criar alerta')) {
+        actEl.style.display = 'flex';
+        actEl.innerHTML = `<button onclick="showUpgradeModal()" style="white-space:nowrap;padding:9px 18px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🔒 Ativar — Plano Pro</button>`;
+      }
+    }
+  }
 }
 
 function renderListings() {
@@ -1180,19 +1201,23 @@ async function initPush() {
     else if (perm !== 'denied') showPermissionBanner();
   } catch (err) { console.warn('SW erro:', err); }
 }
-function showPermissionBanner() { document.getElementById('permission-banner').style.display = 'block'; }
+function showPermissionBanner() {
+  const banner = document.getElementById('price-alert-banner');
+  if (banner) { banner.style.display = 'flex'; }
+  const permEl = document.getElementById('alert-banner-perm');
+  const actEl = document.getElementById('alert-banner-actions');
+  if (permEl) permEl.style.display = 'block';
+  if (actEl) actEl.style.display = 'none';
+}
 async function requestNotificationPermission() {
-  const btn = document.getElementById('btn-allow-notif');
-  btn.disabled = true; btn.textContent = 'Aguardando…';
   const perm = await Notification.requestPermission();
   if (perm === 'granted') {
-    document.getElementById('permission-banner').style.display = 'none';
     toast('Notificações ativadas!', 'success');
     const reg = await navigator.serviceWorker.ready;
     await subscribePush(reg);
     showMonitorPanel();
     await api('POST', '/api/push/test', { sessionId });
-  } else { toast('Permissão negada.', 'error'); btn.disabled = false; btn.textContent = 'Permitir notificações'; }
+  } else { toast('Permissão negada.', 'error'); }
 }
 async function subscribePush(reg) {
   try {
@@ -1202,10 +1227,27 @@ async function subscribePush(reg) {
     await api('POST', '/api/push/subscribe', { sessionId, subscription: sub.toJSON() });
   } catch (err) { console.warn('Push subscribe erro:', err); }
 }
-function showMonitorPanel() { document.getElementById('monitor-panel').style.display = 'block'; loadMonitors(); }
+function showMonitorPanel() {
+  const banner = document.getElementById('price-alert-banner');
+  if (banner) { banner.style.display = 'flex'; }
+  const permEl = document.getElementById('alert-banner-perm');
+  const actEl = document.getElementById('alert-banner-actions');
+  if (permEl) permEl.style.display = 'none';
+  if (actEl) actEl.style.display = 'flex';
+  const panel = document.getElementById('alert-monitor-panel');
+  if (panel) panel.style.display = 'block';
+  loadMonitors();
+}
 function toggleMonitorForm() {
+  const panel = document.getElementById('alert-monitor-panel');
   const form = document.getElementById('monitor-form');
-  form.classList.toggle('visible');
+  if (panel) {
+    const isVisible = panel.style.display !== 'none' && panel.style.display !== '';
+    panel.style.display = isVisible ? 'none' : 'block';
+    if (!isVisible && form) form.classList.add('visible');
+  } else if (form) {
+    form.classList.toggle('visible');
+  }
   const kw = document.getElementById('input-keyword').value;
   if (kw) document.getElementById('mon-keyword').value = kw;
   const curState = document.getElementById('input-state').value;
@@ -1304,16 +1346,17 @@ function applyPlanLimits() {
   const addWordBtn = document.querySelector('.btn-add-word');
   if (wordInput) { wordInput.disabled = !isPro; wordInput.placeholder = isPro ? 'ex: caixa, defeito…' : '🔒 Recurso Pro'; }
   if (addWordBtn) addWordBtn.disabled = !isPro;
-  const monitorPanel = document.getElementById('monitor-panel');
-  if (monitorPanel && !isPro) {
-    monitorPanel.style.display = 'block';
-    monitorPanel.innerHTML = `
-      <div onclick="showUpgradeModal()" style="text-align:center;padding:1rem;border:2px dashed #c4b5fd;border-radius:var(--radius-sm);cursor:pointer;background:#faf5ff;transition:all .2s" onmouseover="this.style.background='#f3e8ff'" onmouseout="this.style.background='#faf5ff'">
-        <p style="font-size:1.5rem;margin-bottom:4px">🔒</p>
-        <p style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:2px">Recurso exclusivo Pro</p>
-        <p style="font-size:11px;color:#6b7280">Alertas automáticos de oportunidades</p>
-        <p style="font-size:11px;color:#7c3aed;font-weight:600;margin-top:6px">Clique para ver planos →</p>
-      </div>`;
+  // Banner de alertas: para free mostra CTA de upgrade, para pro é gerenciado pelo initPush
+  const alertBanner = document.getElementById('price-alert-banner');
+  const alertBannerActions = document.getElementById('alert-banner-actions');
+  const alertBannerPerm = document.getElementById('alert-banner-perm');
+  if (alertBanner && !isPro) {
+    alertBanner.style.display = 'flex';
+    if (alertBannerPerm) alertBannerPerm.style.display = 'none';
+    if (alertBannerActions) {
+      alertBannerActions.style.display = 'flex';
+      alertBannerActions.innerHTML = `<button onclick="showUpgradeModal()" style="white-space:nowrap;padding:9px 18px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🔒 Ativar — Plano Pro</button>`;
+    }
   }
 }
 
