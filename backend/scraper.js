@@ -686,9 +686,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
         // Intercepta requisições de rede para capturar o ID da cidade
         let cityId = null;
         const capturedIds = [];
+        let intercepting = true;
 
         await page.setRequestInterception(true);
-        page.on('request', req => req.continue());
+        page.on('request', req => { if (intercepting) req.continue().catch(() => {}); });
         page.on('response', async resp => {
           try {
             const url = resp.url();
@@ -727,7 +728,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
         } catch {}
 
         // Desliga interceptação
+        intercepting = false;
         await page.setRequestInterception(false).catch(() => {});
+        page.removeAllListeners('request');
+        page.removeAllListeners('response');
 
         // Tenta usar IDs capturados se não achou via campo
         if (!cityId && capturedIds.length > 0) {
