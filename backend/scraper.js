@@ -680,39 +680,69 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       }
 
       // Se redirecionou para /category/search/ = slug não reconhecido pelo Facebook
-      // Tenta buscar o ID numérico da cidade interceptando requisições do próprio Facebook
       if (currentUrl.includes('/category/search/') || currentUrl.includes('/marketplace/category/')) {
-        console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — tentando ID numérico via busca`);
-        
-        // Usa a busca de localização do próprio Facebook para pegar o ID da cidade
-        const cityId = await page.evaluate(async (cityName) => {
+        console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — buscando ID numérico via interceptação`);
+
+        // Intercepta requisições de rede para capturar o ID da cidade
+        let cityId = null;
+        const capturedIds = [];
+
+        await page.setRequestInterception(true);
+        page.on('request', req => req.continue());
+        page.on('response', async resp => {
           try {
-            const res = await fetch(
-              `https://www.facebook.com/ajax/mercury/search_city.php?query=${encodeURIComponent(cityName)}&limit=5`,
-              { credentials: 'include', headers: { 'x-requested-with': 'XMLHttpRequest' } }
-            );
-            const text = await res.text();
-            // Remove prefixo de segurança do Facebook (for(;;);)
-            const json = JSON.parse(text.replace(/^for\s*\(\s*;;\s*\)\s*;\s*/, ''));
-            const entries = json?.payload?.entries || json?.payload || [];
-            if (Array.isArray(entries) && entries.length > 0) {
-              return entries[0]?.uid || entries[0]?.id || null;
+            const url = resp.url();
+            if (url.includes('graphql') || url.includes('typeahead') || url.includes('search')) {
+              const text = await resp.text().catch(() => '');
+              // Procura padrões de ID numérico de cidade no JSON do Facebook
+              const matches = text.match(/"id"\s*:\s*"(\d{10,16})"/g) || [];
+              matches.forEach(m => {
+                const id = m.match(/\d{10,16}/)?.[0];
+                if (id) capturedIds.push(id);
+              });
             }
           } catch {}
-          return null;
-        }, cityRaw).catch(() => null);
+        });
+
+        // Navega para o Marketplace e usa o campo de localização para buscar a cidade
+        try {
+          await page.goto('https://www.facebook.com/marketplace/', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+          await delay(1500);
+
+          // Clica no campo de localização
+          const locationInput = await page.$('[aria-label="Location"], [placeholder*="location"], [placeholder*="cidade"], [aria-label*="ocal"]').catch(() => null);
+          if (locationInput) {
+            await locationInput.click({ clickCount: 3 });
+            await locationInput.type(cityRaw, { delay: 80 });
+            await delay(2000); // Aguarda autocomplete
+
+            // Pega o primeiro resultado
+            const firstSuggestion = await page.$('[role="option"], [role="listitem"] a, ul[role="listbox"] li').catch(() => null);
+            if (firstSuggestion) {
+              const href = await firstSuggestion.evaluate(el => el.href || el.querySelector('a')?.href || '').catch(() => '');
+              const idMatch = href.match(/marketplace\/(\d{8,16})\//);
+              if (idMatch) cityId = idMatch[1];
+            }
+          }
+        } catch {}
+
+        // Desliga interceptação
+        await page.setRequestInterception(false).catch(() => {});
+
+        // Tenta usar IDs capturados se não achou via campo
+        if (!cityId && capturedIds.length > 0) {
+          cityId = capturedIds[0];
+          console.log(`[Scraper] ID capturado via rede: ${cityId}`);
+        }
 
         if (cityId) {
-          console.log(`[Scraper] ID numérico encontrado: ${cityId} — tentando URL com ID`);
+          console.log(`[Scraper] Usando ID numérico ${cityId} para "${cityRaw}"`);
           const urlComId = `https://www.facebook.com/marketplace/${cityId}/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
           await page.goto(urlComId, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
-          const newUrl = page.url();
-          console.log(`[Scraper] URL com ID carregada: ${newUrl.slice(0, 80)}`);
+          console.log(`[Scraper] URL com ID carregada: ${page.url().slice(0, 80)}`);
         } else {
-          // Último fallback: intercepta o autocomplete de localização do Marketplace
-          console.warn('[Scraper] ID não encontrado via API — usando busca geral');
-          const urlGeral = `https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
-          await page.goto(urlGeral, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+          console.warn('[Scraper] ID não encontrado — usando busca geral');
+          await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
         }
         await delay(1000);
       }
