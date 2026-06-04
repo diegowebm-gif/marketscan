@@ -16,10 +16,22 @@
   --accent: #6a0dad; --accent-dim: rgba(106,13,173,0.08); --accent-dim2: rgba(106,13,173,0.18);
   --accent-text: #ffffff;
   --warn: #e67e00; --danger: #d32f2f; --danger-dim: rgba(211,47,47,0.08);
+  --success: #16a34a; --success-dim: rgba(22,163,74,0.08);
   --text: #1a1a2e; --text2: #6b7280; --text3: #9ca3af;
   --radius: 12px; --radius-sm: 8px;
   --shadow: 0 1px 4px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+}
+
+[data-theme="dark"] {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+  --accent: #a855f7; --accent-dim: rgba(168,85,247,0.12); --accent-dim2: rgba(168,85,247,0.22);
+  --warn: #f59e0b; --danger: #f87171; --danger-dim: rgba(248,113,113,0.12);
+  --success: #4ade80; --success-dim: rgba(74,222,128,0.12);
+  --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+  --shadow: 0 1px 4px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
@@ -387,6 +399,7 @@ header {
     <div class="dot" id="status-dot"></div>
     <span id="status-text">Desconectado</span>
     <span id="plan-badge" class="plan-badge" style="display:none"></span>
+    <button id="btn-darkmode" onclick="toggleDarkMode()" title="Alternar modo escuro" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s;margin-right:4px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">🌙</button>
     <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
   </div>
 </header>
@@ -1645,6 +1658,33 @@ async function api(method, url, body) {
     return null;
   }
 }
+
+// Dark mode
+function initDarkMode() {
+  const saved = localStorage.getItem('mkt_theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const isDark = saved ? saved === 'dark' : prefersDark;
+  if (isDark) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('btn-darkmode').textContent = '☀️';
+  }
+}
+
+function toggleDarkMode() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('mkt_theme', 'light');
+    document.getElementById('btn-darkmode').textContent = '🌙';
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('mkt_theme', 'dark');
+    document.getElementById('btn-darkmode').textContent = '☀️';
+  }
+}
+
+// Inicializa dark mode antes de renderizar
+initDarkMode();
 
 function showWelcomeModal() {
   document.getElementById('welcome-modal').classList.add('show');
