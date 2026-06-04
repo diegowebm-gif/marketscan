@@ -152,6 +152,32 @@ header {
   color: var(--text); font-size: 22px; cursor: pointer; padding: 4px 8px;
 }
 @media (max-width: 768px) { .btn-menu { display: flex; align-items: center; } }
+
+/* Painel de busca inline no mobile (antes da primeira busca) */
+#mobile-search-panel {
+  display: none;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+#mobile-search-panel label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+#mobile-search-panel input, #mobile-search-panel select {
+  width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 11px; color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 14px; outline: none; margin-bottom: 10px;
+}
+#mobile-search-panel input:focus, #mobile-search-panel select:focus { border-color: var(--accent); }
+#mobile-search-panel .btn-search-mobile {
+  width: 100%; padding: 13px; border-radius: var(--radius-sm); border: none;
+  background: var(--accent); color: #fff; font-weight: 700; font-size: 15px;
+  font-family: 'Inter', sans-serif; cursor: pointer; margin-top: 2px;
+  box-shadow: 0 2px 8px rgba(106,13,173,0.25);
+}
+@media (max-width: 768px) { #mobile-search-panel { display: block; } }
+@media (min-width: 769px) { #mobile-search-panel { display: none !important; } }
 .sidebar-section-title { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
 .sidebar label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
 .sidebar input[type=text], .sidebar input[type=number], .sidebar select {
@@ -479,6 +505,23 @@ header {
     </aside>
 
     <main class="main-content">
+
+      <!-- Painel de busca inline mobile (some após primeira busca) -->
+      <div id="mobile-search-panel">
+        <p style="font-size:15px;font-weight:700;color:var(--text);margin:0 0 14px">🔍 O que você quer buscar?</p>
+        <label>Produto</label>
+        <input type="text" id="mob-keyword" placeholder="ex: iPhone 11, PS5..." />
+        <label>Estado <span style="color:var(--danger)">*</span></label>
+        <select id="mob-state" onchange="onMobStateChange()">
+          <option value="">Selecione o estado</option>
+        </select>
+        <label>Cidade <span style="color:var(--danger)">*</span></label>
+        <select id="mob-city" style="opacity:.4;pointer-events:none">
+          <option value="">Selecione o estado primeiro</option>
+        </select>
+        <button class="btn-search-mobile" onclick="doMobileSearch()">Buscar</button>
+      </div>
+
       <div class="stats-grid" id="stats-grid" style="display:none"></div>
 
       <!-- Banner Alertas de Preço -->
@@ -661,6 +704,7 @@ window.onload = async () => {
     window.history.replaceState({}, '', '/');
   }
   populateStates();
+  populateMobStates();
   if (authToken) {
     const res = await api('GET', '/api/auth/me');
     if (res?.ok) {
@@ -1052,6 +1096,38 @@ function onMonStateChange(preselect) {
   if (preselect) citySelect.value = preselect;
 }
 
+function onMobStateChange() {
+  const state = document.getElementById('mob-state').value;
+  const citySelect = document.getElementById('mob-city');
+  citySelect.innerHTML = '<option value="">Selecione a cidade</option>';
+  if (!state || !CITIES[state]) { citySelect.style.opacity = '.4'; citySelect.style.pointerEvents = 'none'; return; }
+  CITIES[state].forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
+  citySelect.style.opacity = '1'; citySelect.style.pointerEvents = 'auto';
+}
+
+function populateMobStates() {
+  const sel = document.getElementById('mob-state');
+  if (!sel) return;
+  Object.keys(CITIES).sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+}
+
+async function doMobileSearch() {
+  const keyword = document.getElementById('mob-keyword').value.trim();
+  const state = document.getElementById('mob-state').value;
+  const city = document.getElementById('mob-city').value;
+  if (!keyword) { toast('Digite o produto.', 'error'); return; }
+  if (!state) { toast('Selecione o estado.', 'error'); return; }
+  if (!city) { toast('Selecione a cidade.', 'error'); return; }
+  // Sincroniza com a sidebar
+  document.getElementById('input-keyword').value = keyword;
+  document.getElementById('input-state').value = state;
+  await onStateChange(city);
+  document.getElementById('input-city').value = city;
+  // Esconde painel mobile e faz busca
+  document.getElementById('mobile-search-panel').style.display = 'none';
+  doSearch();
+}
+
 async function doSearch() {
   const keyword = document.getElementById('input-keyword').value.trim();
   const state = document.getElementById('input-state').value;
@@ -1129,6 +1205,7 @@ async function doSearch() {
               const feedbackBar = document.getElementById('city-feedback-bar');
               if (feedbackBar) feedbackBar.style.display = data.cityMismatch ? 'flex' : 'none';
               toast(`${allListings.length} anúncios encontrados!`, 'success');
+              document.getElementById('mobile-search-panel').style.display = 'none';
               resolve();
             } else if (event === 'error') {
               toast('Erro: ' + (data.message || 'tente novamente'), 'error');
