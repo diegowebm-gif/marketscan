@@ -633,13 +633,8 @@ window.onload = async () => {
     const res = await api('GET', '/api/auth/me');
     if (res?.ok) {
       currentUser = res;
-      if (sessionId) {
-        const fbRes = await api('GET', `/api/session/${sessionId}/check`);
-        if (fbRes?.loggedIn) { showApp(); return; }
-        localStorage.removeItem('mkt_session');
-        sessionId = null;
-      }
-      showFacebookConnect();
+      // Facebook não é mais necessário — vai direto pro app
+      showApp();
       return;
     }
     localStorage.removeItem('mkt_token');
@@ -666,7 +661,7 @@ async function doLogin() {
   authToken = res.token;
   currentUser = { email: res.email, plan: res.plan };
   localStorage.setItem('mkt_token', authToken);
-  showFacebookConnect();
+  showApp();
 }
 
 async function doRegister() {
@@ -684,7 +679,7 @@ async function doRegister() {
   currentUser = { email: res.email, plan: res.plan };
   localStorage.setItem('mkt_token', authToken);
   if (res.trial) toast('🎉 Bem-vindo! Você ganhou 7 dias de Pro grátis!', 'success');
-  showFacebookConnect();
+  showApp();
 }
 
 async function showFacebookConnect() {

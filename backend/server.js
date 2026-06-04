@@ -280,9 +280,6 @@ app.post('/api/search', requireAuth, async (req, res) => {
   const maxItems = Math.min(parseInt(req.body.maxItems) || 40, limitMax);
   const finalBlockedWords = canBlockWords ? blockedWords : [];
   try {
-    const hasSession = await hasSavedCookiesAsync(sessionId);
-    const { loggedIn } = hasSession ? { loggedIn: true } : await checkLogin(sessionId);
-    if (!loggedIn) return res.status(401).json({ ok: false, error: 'Sessão expirada. Faça login no Facebook.' });
     await touchSession(sessionId);
     const rawListings = await scrapeMarketplace(sessionId, keyword, location, maxItems, {
       removeNoPrice: req.body.removeNoPrice !== false,
@@ -405,7 +402,30 @@ app.post('/api/feedback/city', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/admin/city-feedback', requireAdmin, async (req, res) => {
+app.post('/api/admin/reconnect-shared', requireAdmin, async (req, res) => {
+  try {
+    const { ensureSharedSession } = require('./scraper');
+    // Apaga cookies da sessão compartilhada para forçar novo login
+    const { Pool } = require('pg');
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
+    await pool.query("DELETE FROM session_cookies WHERE session_id = 'shared-pool-account'");
+    await pool.end();
+    const fs = require('fs'), path = require('path');
+    const cookieFile = path.join(__dirname, '../data/cookies/shared-pool-account.json');
+    if (fs.existsSync(cookieFile)) fs.unlinkSync(cookieFile);
+    // Reconecta
+    const result = await ensureSharedSession();
+    res.json({ ok: !!result, message: result ? 'Reconectado com sucesso!' : 'Falhou — verifique FB_EMAIL e FB_PASSWORD' });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/api/admin/city-feedback'
+, requireAdmin, async (req, res) => {
   try {
     const { Pool } = require('pg');
     const pool = new Pool({

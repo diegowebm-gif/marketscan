@@ -268,6 +268,40 @@ async function launchBrowser(proxyUrl = null) {
   return browser;
 }
 
+// ─── Conta compartilhada (pool) ───────────────────────────────
+const SHARED_SESSION_ID = 'shared-pool-account';
+
+// Garante que a conta compartilhada está logada — faz login automático se necessário
+async function ensureSharedSession() {
+  // Verifica se já tem cookies válidos
+  if (hasSavedCookies(SHARED_SESSION_ID)) {
+    console.log('[Pool] Sessão compartilhada ativa (arquivo)');
+    return SHARED_SESSION_ID;
+  }
+  const dbCookies = await loadCookiesFromDB(SHARED_SESSION_ID);
+  if (dbCookies && dbCookies.some(c => c.name === 'c_user')) {
+    console.log('[Pool] Sessão compartilhada ativa (banco)');
+    return SHARED_SESSION_ID;
+  }
+
+  // Sem cookies — faz login automático com credenciais do ambiente
+  const email = process.env.FB_EMAIL;
+  const password = process.env.FB_PASSWORD;
+  if (!email || !password) {
+    console.warn('[Pool] FB_EMAIL/FB_PASSWORD não configurados — sem sessão compartilhada');
+    return null;
+  }
+
+  console.log('[Pool] Fazendo login automático na conta compartilhada...');
+  const result = await loginWithCredentials(SHARED_SESSION_ID, email, password);
+  if (result.ok && result.status === 'logged_in') {
+    console.log('[Pool] Login automático bem-sucedido!');
+    return SHARED_SESSION_ID;
+  }
+  console.warn('[Pool] Login automático falhou:', result.error || result.status);
+  return null;
+}
+
 // ─── Login ────────────────────────────────────────────────
 
 // Sessões aguardando 2FA: { sessionId: { browser, page } }
@@ -491,11 +525,21 @@ async function checkLogin(sessionId) {
 // ─── Scraping ─────────────────────────────────────────────
 
 async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}) {
-  let cookies = loadCookies(sessionId);
-  if (!cookies) {
-    cookies = await loadCookiesFromDB(sessionId);
+  // Usa sessão compartilhada se disponível, senão usa a do próprio usuário
+  const sharedSessionId = await ensureSharedSession();
+  const effectiveSessionId = sharedSessionId || sessionId;
+
+  if (sharedSessionId) {
+    console.log(`[Scraper] Usando sessão compartilhada para busca: "${keyword}"`);
+  } else {
+    console.log(`[Scraper] Sessão compartilhada indisponível — usando sessão do usuário`);
   }
-  console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem login)'}: "${keyword}"`);
+
+  let cookies = loadCookies(effectiveSessionId);
+  if (!cookies) {
+    cookies = await loadCookiesFromDB(effectiveSessionId);
+  }
+  console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem cookies)'}: "${keyword}"`);
 
   const browser = await launchBrowser(getNextProxyUrl());
   const page = await browser.newPage();
@@ -1123,4 +1167,6 @@ module.exports = {
   hasSavedCookiesAsync,
   saveCookies,
   launchBrowser,
+  ensureSharedSession,
+  SHARED_SESSION_ID,
 };
