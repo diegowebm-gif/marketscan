@@ -635,7 +635,7 @@ app.get('/success', async (req, res) => {
       if (session.payment_status === 'paid') await upgradeToPro(token, 1);
     } catch (e) { console.error('[Stripe] Success page error:', e); }
   }
-  res.redirect('/?upgraded=true');
+  res.sendFile(path.join(__dirname, '../frontend/success.html'));
 });
 
 // ── Feedback de cidade incorreta ─────────────────────────────
