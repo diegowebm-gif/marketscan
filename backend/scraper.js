@@ -600,8 +600,8 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
   }
   console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem cookies)'}: "${keyword}"`);
 
-  // Scraping sem proxy — economiza banda (proxy só é usado no login)
-  const browser = await launchBrowser(null);
+  // Scraping com proxy BR para garantir resultados do Facebook
+  const browser = await launchBrowser(getNextProxyUrl());
   const page = await browser.newPage();
 
   await page.evaluateOnNewDocument(() => {
