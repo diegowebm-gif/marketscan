@@ -1064,9 +1064,7 @@ async function doSearch() {
         function processChunk({ done, value }) {
           if (done) { resolve(); return; }
           buffer += decoder.decode(value, { stream: true });
-          const parts = buffer.split('
-
-');
+          const SEP = '\n\n'; const parts = buffer.split(SEP);
           buffer = parts.pop();
 
           for (const part of parts) {
