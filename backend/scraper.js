@@ -830,9 +830,9 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
       // Se redirecionou para /category/search/ = slug não reconhecido
       if (currentUrl.includes('/category/search/') || currentUrl.includes('/marketplace/category/')) {
-        console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — usando busca geral`);
+        console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — redirecionando para busca geral`);
         options._cityMismatch = true;
-        // Usa a URL atual que já tem os resultados carregados — sem redirecionar
+        await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
       }
     } catch (gotoErr) {
       if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
