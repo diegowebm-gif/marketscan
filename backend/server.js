@@ -432,9 +432,14 @@ app.get('/terms.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/terms.html'));
 });
 
-// Landing page na raiz
-app.get('/', (req, res) => {
+// Landing page
+app.get('/landing', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/landing.html'));
+});
+
+// Raiz redireciona para landing
+app.get('/', (req, res) => {
+  res.redirect('/landing');
 });
 
 // App em /app
