@@ -389,6 +389,44 @@ app.delete('/api/session/:id', requireAuth, async (req, res) => {
 });
 
 // ── Busca ─────────────────────────────────────────────────
+// ── Limite de buscas diárias ─────────────────────────────────
+const FREE_DAILY_LIMIT = 5;
+
+async function checkSearchLimit(userId, isPro) {
+  if (isPro) return { allowed: true };
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await pool.query(`CREATE TABLE IF NOT EXISTS search_limits (user_id TEXT PRIMARY KEY, count INT DEFAULT 0, reset_at BIGINT DEFAULT 0)`);
+    const now = Date.now();
+    const midnight = new Date(); midnight.setHours(24,0,0,0);
+    const resetAt = midnight.getTime();
+    const result = await pool.query('SELECT count, reset_at FROM search_limits WHERE user_id = $1', [userId]);
+    let count = 0;
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      if (now > parseInt(row.reset_at)) {
+        await pool.query('UPDATE search_limits SET count = 1, reset_at = $1 WHERE user_id = $2', [resetAt, userId]);
+        await pool.end();
+        return { allowed: true, count: 1, limit: FREE_DAILY_LIMIT };
+      }
+      count = parseInt(row.count);
+      if (count >= FREE_DAILY_LIMIT) {
+        await pool.end();
+        return { allowed: false, count, limit: FREE_DAILY_LIMIT };
+      }
+      await pool.query('UPDATE search_limits SET count = count + 1 WHERE user_id = $1', [userId]);
+    } else {
+      await pool.query('INSERT INTO search_limits (user_id, count, reset_at) VALUES ($1, 1, $2)', [userId, resetAt]);
+    }
+    await pool.end();
+    return { allowed: true, count: count + 1, limit: FREE_DAILY_LIMIT };
+  } catch (err) {
+    console.error('[Limit] Erro:', err.message);
+    return { allowed: true };
+  }
+}
+
 // ── Busca com streaming (SSE) ────────────────────────────────
 app.get('/api/search/stream', requireAuth, async (req, res) => {
   const { keyword, city = '', state = '', maxItems = 40, removeNoPrice = 'false', blockedWords = '' } = req.query;
