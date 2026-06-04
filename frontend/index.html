@@ -952,8 +952,9 @@ async function doSearch() {
   hideLoading();
 
   if (!res?.ok) {
-    if (res?.error?.includes('autenticada') || res?.error?.includes('login')) {
-      localStorage.removeItem('mkt_session'); sessionId = null;
+    if (res?.error?.includes('autenticado') || res?.error?.includes('Não autenticado')) {
+      localStorage.removeItem('mkt_token');
+      authToken = null; currentUser = null;
       toast('Sessão expirada. Faça login novamente.', 'error');
       setTimeout(() => showAuth(), 1500); return;
     }
