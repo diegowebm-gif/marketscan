@@ -195,12 +195,18 @@ async function hasSavedCookiesAsync(sessionId) {
 // ─── Chrome ───────────────────────────────────────────────
 function findChromePath() {
   const candidates = [
+    // Variável de ambiente tem prioridade máxima
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    // Caminhos do Nix (Railway)
+    '/root/.nix-profile/bin/chromium',
+    '/run/current-system/sw/bin/chromium',
+    // Caminhos padrão Linux
     '/usr/bin/chromium',
-    '/usr/bin/chromium-browser',
     '/usr/bin/google-chrome',
     '/usr/bin/google-chrome-stable',
-    process.env.PUPPETEER_EXECUTABLE_PATH,
+    // Cache do Puppeteer
     path.join(os.homedir(), '.cache', 'puppeteer', 'chrome', 'linux-131.0.6778.204', 'chrome-linux64', 'chrome'),
+    // Windows
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
   ].filter(Boolean);
