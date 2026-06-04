@@ -8,7 +8,7 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
-// Pool PostgreSQL para persistir cookies entre deploys
+// Pool PostgreSQL para persistir cookies entre deploys 0
 const { Pool } = require('pg');
 const cookiePool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -1176,3 +1176,5 @@ module.exports = {
   ensureSharedSession,
   SHARED_SESSION_ID,
 };
+/ /   p o o l   f i x  
+ 
