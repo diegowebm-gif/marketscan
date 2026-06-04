@@ -475,6 +475,23 @@ app.post('/api/admin/grant-pro', requireAdmin, async (req, res) => {
   res.json(result);
 });
 
+app.delete('/api/admin/users/:token', requireAdmin, async (req, res) => {
+  const { token } = req.params;
+  if (!token) return res.status(400).json({ ok: false, error: 'Token obrigatório.' });
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    });
+    await pool.query('DELETE FROM users WHERE token = $1', [token]);
+    await pool.end();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/api/admin/revoke-pro', requireAdmin, async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ ok: false, error: 'Token obrigatório.' });

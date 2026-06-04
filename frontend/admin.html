@@ -63,6 +63,8 @@ tr:hover td { background: var(--surface2); }
 .btn-pro:hover { opacity: .85; }
 .btn-revoke { background: var(--danger-dim); color: var(--danger); border: 1px solid rgba(211,47,47,0.2); }
 .btn-revoke:hover { background: var(--danger); color: #fff; }
+.btn-delete { background: #fff0f0; color: #b91c1c; border: 1px solid rgba(185,28,28,0.2); margin-left: 4px; }
+.btn-delete:hover { background: #b91c1c; color: #fff; }
 .btn-refresh { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent-dim); }
 .btn-refresh:hover { background: var(--accent); color: #fff; }
 
@@ -243,7 +245,7 @@ function renderUsers(users) {
       <td><span class="badge ${u.plan}">${u.plan.toUpperCase()}</span></td>
       <td>${createdAt}</td>
       <td>${isPro ? expiresAt : '—'}</td>
-      <td>${actionBtn}</td>
+      <td style="white-space:nowrap">${actionBtn}<button class="btn btn-delete" onclick="deleteUser('${u.token}', '${u.email}')">🗑 Excluir</button></td>
     </tr>`;
   }).join('');
 }
@@ -265,6 +267,13 @@ async function revokeUser(token, email) {
   if (!confirm(`Revogar plano Pro de ${email}?`)) return;
   const res = await api('POST', '/api/admin/revoke-pro', { token });
   if (res?.ok) { toast(`✅ Pro revogado de ${email}`, 'success'); loadUsers(); }
+  else toast('Erro: ' + (res?.error || ''), 'error');
+}
+
+async function deleteUser(token, email) {
+  if (!confirm(`⚠️ Excluir permanentemente o usuário ${email}?\nEssa ação não pode ser desfeita.`)) return;
+  const res = await api('DELETE', `/api/admin/users/${token}`);
+  if (res?.ok) { toast(`✅ Usuário ${email} excluído`, 'success'); loadUsers(); }
   else toast('Erro: ' + (res?.error || ''), 'error');
 }
 
