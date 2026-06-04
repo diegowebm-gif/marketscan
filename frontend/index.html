@@ -1366,8 +1366,15 @@ async function doSearch() {
           else reject(err);
         });
       }).catch(err => {
-        if (allListings.length > 0) resolve();
-        else reject(err);
+        if (allListings.length > 0) {
+          // Conexão caiu mas temos resultados — renderiza o que temos
+          hideLoading();
+          renderStats();
+          renderListings();
+          document.getElementById('filters').style.display = 'flex';
+          if (_pendingListings) showLoadMoreBtn(false);
+          resolve();
+        } else reject(err);
       });
     });
   } catch (err) {
