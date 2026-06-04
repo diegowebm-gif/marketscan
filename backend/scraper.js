@@ -473,9 +473,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     cookies = await loadCookiesFromDB(sessionId);
   }
   // Marketplace é público — não precisa de login para ver anúncios
-  console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem login)'}`);
-
-  console.log(`[Scraper] Iniciando busca headless: "${keyword}" (${cookies.length} cookies)`);
+  console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem login)'}: "${keyword}"`);
 
   const browser = await launchBrowser();
   const page = await browser.newPage();
