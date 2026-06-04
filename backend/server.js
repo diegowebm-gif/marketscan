@@ -482,6 +482,8 @@ app.get('/api/search/stream', requireAuth, async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.socket?.setTimeout(0);
   res.flushHeaders();
 
   const send = (event, data) => res.write(`event: ${event}

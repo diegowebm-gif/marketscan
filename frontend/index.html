@@ -1356,6 +1356,7 @@ async function doSearch() {
     });
   } catch (err) {
     hideLoading();
+    console.error('SSE erro:', err);
     toast('Erro na busca. Tente novamente.', 'error');
   } finally {
     btn.disabled = false; btn.textContent = 'Buscar';
