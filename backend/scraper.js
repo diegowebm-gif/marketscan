@@ -217,8 +217,8 @@ function findChromePath() {
 // ─── Proxy residencial Brasil (proxy-seller.com) via proxy-chain ──
 const ProxyChain = require('proxy-chain');
 
-// Proxy-seller residencial BR
-const PROXY_USER = '9418de876b2eeb75';
+// Proxy-seller residencial BR — sufixo -cc-br força IPs do Brasil
+const PROXY_USER = '9418de876b2eeb75-cc-br';
 const PROXY_PASS = 'L7cyB6AnifHUxKeZ';
 const PROXY_HOST = 'res.proxy-seller.com';
 const PROXY_PORT = 10000;
@@ -289,7 +289,7 @@ async function loginWithCredentials(sessionId, email, password) {
 
   for (let i = 0; i < attempts.length; i++) {
     const proxyUrl = attempts[i];
-    console.log(`[Login] Tentativa ${i + 1}/${attempts.length}${proxyUrl ? ' via Bright Data BR' : ' direto'}`);
+    console.log(`[Login] Tentativa ${i + 1}/${attempts.length}${proxyUrl ? ' via proxy-seller BR' : ' direto'}`);
     const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
     if (result.ok || result.status === 'needs_2fa') return result;
     lastError = result.error || 'Falha desconhecida';
@@ -475,7 +475,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
   // Marketplace é público — não precisa de login para ver anúncios
   console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem login)'}: "${keyword}"`);
 
-  const browser = await launchBrowser();
+  const browser = await launchBrowser(getNextProxyUrl());
   const page = await browser.newPage();
 
   await page.evaluateOnNewDocument(() => {
@@ -809,6 +809,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       browser.close(),
       new Promise(resolve => setTimeout(resolve, 5000))
     ]).catch(() => {});
+    if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     console.log('[Scraper] Browser fechado, processando...');
 
     const processed = listings.map(item => ({
@@ -831,6 +832,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     return sorted.slice(0, maxItems);
 
   } catch (err) {
+    if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     await browser.close().catch(() => null);
     throw err;
   }
