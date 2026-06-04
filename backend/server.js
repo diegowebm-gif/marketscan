@@ -18,7 +18,8 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 app.use(cors());
 
 // ⚠️ WEBHOOK STRIPE: antes do express.json()
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// Aceita ambas as rotas para compatibilidade
+async function handleStripeWebhook(req, res) {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
@@ -32,20 +33,47 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), async
     console.error('[Stripe] Webhook error:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
   console.log('[Stripe] Evento recebido:', event.type);
+
+  // Checkout concluído — ativa Pro
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const token = session.metadata?.userToken;
     if (token) {
       await upgradeToPro(token, 1);
-      console.log(`[Stripe] Plano Pro ativado para token: ${token.slice(0, 8)}...`);
+      console.log(`[Stripe] Pro ativado via checkout para token: ${token.slice(0, 8)}...`);
     }
   }
-  if (event.type === 'customer.subscription.deleted') {
-    console.log('[Stripe] Assinatura cancelada:', event.data.object.id);
+
+  // Renovação mensal — renova Pro por mais 1 mês
+  if (event.type === 'invoice.payment_succeeded') {
+    const invoice = event.data.object;
+    const token = invoice.metadata?.userToken || invoice.subscription_details?.metadata?.userToken;
+    if (token) {
+      await upgradeToPro(token, 1);
+      console.log(`[Stripe] Pro renovado via invoice para token: ${token.slice(0, 8)}...`);
+    }
   }
+
+  // Cancelamento — rebaixa para Free
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object;
+    const token = sub.metadata?.userToken;
+    if (token) {
+      const { Pool } = require('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+      await pool.query('UPDATE users SET plan = $1, plan_expires_at = NULL WHERE token = $2', ['free', token]);
+      await pool.end();
+      console.log(`[Stripe] Assinatura cancelada — rebaixado para Free: ${token.slice(0, 8)}...`);
+    }
+  }
+
   res.json({ received: true });
-});
+}
+
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
+app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend')));
