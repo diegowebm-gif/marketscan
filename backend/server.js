@@ -21,7 +21,7 @@ async function sendEmail(to, subject, html) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'MarketScan <noreply@marketscan.app>',
+        from: 'MarketScan <onboarding@resend.dev>',
         to,
         subject,
         html,
