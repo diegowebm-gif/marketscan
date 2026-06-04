@@ -910,7 +910,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
       console.log(`[Scraper] Scroll ${i+1}/6 | anúncios: ${count}`);
 
-      // Emite batch parcial se tiver novos anúncios e onBatch estiver definido
+      // Emite batch parcial só quando anúncios já tiverem preço carregado
       if (onBatch && count > lastEmittedCount && count >= 4) {
         try {
           const partialRaw = await page.evaluate(() => {
@@ -929,7 +929,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
             });
             return results;
           }).catch(() => []);
-          if (partialRaw.length > lastEmittedCount) {
+          // Só emite se pelo menos 50% dos anúncios já tem preço carregado
+          const withPrice = partialRaw.filter(l => l.price_text).length;
+          const hasEnoughPrices = withPrice >= Math.ceil(partialRaw.length * 0.5);
+          if (partialRaw.length > lastEmittedCount && hasEnoughPrices) {
             onBatch(partialRaw.slice(0, maxItems), i + 1, 6);
             lastEmittedCount = partialRaw.length;
           }
