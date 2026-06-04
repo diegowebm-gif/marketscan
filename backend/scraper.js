@@ -943,20 +943,20 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     }
 
     // Aguarda página estabilizar antes de scrollar
-    await delay(2000);
+    await delay(1000);
     
     console.log(`[Scraper] [T] Iniciando scroll... [${Date.now()}]`);
     let lastEmittedCount = 0;
     for (let i = 0; i < 3; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 3));
-      await delay(1500);
+      await delay(800);
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
       console.log(`[Scraper] [T] Scroll ${i+1}/3 | anúncios: ${count} [${Date.now()}]`);
 
       // Emite batch após primeiro scroll com anúncios suficientes
       if (onBatch && count > lastEmittedCount) {
         // Emite batch em qualquer scroll se tiver anúncios novos
-        await delay(1000);
+        await delay(500);
         try {
           const partialRaw = await page.evaluate(() => {
             const results = [];
@@ -991,7 +991,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     }
     // Volta ao topo para garantir que todos os itens estão no DOM
     await page.evaluate(() => window.scrollTo(0, 0));
-    await delay(1000);
+    await delay(500);
     
     console.log(`[Scraper] [T] Coletando dados dos anúncios... [${Date.now()}]`);
     // Aguarda títulos reais carregarem (substituem "Acabou de ser anunciado")
