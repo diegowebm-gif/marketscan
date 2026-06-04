@@ -8,7 +8,7 @@ const COOKIES_DIR = path.join(__dirname, '../data/cookies');
 
 if (!fs.existsSync(COOKIES_DIR)) fs.mkdirSync(COOKIES_DIR, { recursive: true });
 
-// Pool PostgreSQL para persistir cookies entre deploys 0
+// Pool PostgreSQL para persistir cookies entre deploys
 const { Pool } = require('pg');
 const cookiePool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -621,12 +621,12 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     'caxias do sul':'caxias-do-sul','macapa':'macapa','mogi das cruzes':'mogi-das-cruzes',
     'duque de caxias':'duque-de-caxias','nova iguacu':'nova-iguacu',
     'sao joao de meriti':'sao-joao-de-meriti','sao goncalo':'sao-goncalo',
-    'marica':'marica','petropolis':'petropolis','volta redonda':'volta-redonda',
-    'cabo frio':'cabo-frio','santos':'santos','taubate':'taubate',
-    'praia grande':'praia-grande','bauru':'bauru','marilia':'marilia',
-    'americana':'americana','limeira':'limeira','piracicaba':'piracicaba',
+    'marica':'103415559698972','petropolis':'petropolis','volta redonda':'volta-redonda',
+    'cabo frio':'cabo-frio','santos':'107844482581802','taubate':'taubate',
+    'praia grande':'praia-grande','bauru':'109494869076117','marilia':'marilia',
+    'americana':'110272192335221','limeira':'102199689822308','piracicaba':'piracicaba',
     'jundiai':'jundiai','indaiatuba':'indaiatuba','sao jose dos campos':'sao-jose-dos-campos',
-    'franca':'franca','guaruja':'guaruja','suzano':'suzano',
+    'franca':'franca','guaruja':'115251048487079','suzano':'suzano',
     'rio de janeiro — centro':'rio-de-janeiro',
     'rio de janeiro — zona sul (copacabana, ipanema)':'copacabana',
     'rio de janeiro — barra da tijuca':'barra-da-tijuca',
