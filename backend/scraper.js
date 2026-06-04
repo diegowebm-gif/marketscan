@@ -491,12 +491,33 @@ async function checkLogin(sessionId) {
 // ─── Scraping ─────────────────────────────────────────────
 
 async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}) {
+  // Tenta sem cookies primeiro — localização correta via URL slug
+  // Se retornar 0 anúncios, tenta com cookies do usuário como fallback
   let cookies = loadCookies(sessionId);
-  if (!cookies) {
-    cookies = await loadCookiesFromDB(sessionId);
+  if (!cookies) cookies = await loadCookiesFromDB(sessionId);
+
+  console.log(`[Scraper] Iniciando busca sem cookies (localização pela URL): "${keyword}"`);
+
+  const rawWithoutCookies = await _doScrape(null, keyword, location, maxItems, options);
+
+  if (rawWithoutCookies.length > 0) {
+    console.log(`[Scraper] Sem cookies retornou ${rawWithoutCookies.length} anúncios — usando resultado`);
+    return rawWithoutCookies;
   }
-  // Marketplace é público — não precisa de login para ver anúncios
-  console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem login)'}: "${keyword}"`);
+
+  // Fallback: tenta com cookies se tiver
+  if (cookies && cookies.length > 0) {
+    console.log(`[Scraper] Sem cookies retornou 0 — tentando com cookies do usuário`);
+    return await _doScrape(cookies, keyword, location, maxItems, options);
+  }
+
+  console.log(`[Scraper] Sem cookies e sem fallback — retornando vazio`);
+  return [];
+}
+
+async function _doScrape(cookies, keyword, location, maxItems = 40, options = {}) {
+  const useCookies = cookies && cookies.length > 0;
+  console.log(`[Scraper] _doScrape ${useCookies ? 'COM cookies' : 'SEM cookies'}: "${keyword}"`);
 
   const browser = await launchBrowser(getNextProxyUrl());
   const page = await browser.newPage();
@@ -506,11 +527,10 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
   });
 
   await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
-  if (cookies && cookies.length > 0) {
+  if (useCookies) {
     await page.setCookie(...cookies);
   }
-  
-  // Verifica se tem sessão (opcional — Marketplace é público)
+
   const testCookies = await page.cookies();
   const hasSession = testCookies.some(c => c.name === 'c_user');
   console.log(`[Scraper] Sessão Facebook ativa: ${hasSession}`);
@@ -857,7 +877,8 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
   } catch (err) {
     if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     await browser.close().catch(() => null);
-    throw err;
+    console.log('[Scraper] _doScrape erro:', err.message, '— retornando []');
+    return [];
   }
 }
 
