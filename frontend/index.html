@@ -586,17 +586,13 @@ window.onload = async () => {
     const res = await api('GET', '/api/auth/me');
     if (res?.ok) {
       currentUser = res;
-      if (sessionId) {
-        const fbRes = await api('GET', `/api/session/${sessionId}/check`);
-        if (fbRes?.loggedIn) { showApp(); return; }
-        localStorage.removeItem('mkt_session');
-        sessionId = null;
-      }
-      showFacebookConnect();
+      showApp();
       return;
     }
     localStorage.removeItem('mkt_token');
+    localStorage.removeItem('mkt_session');
     authToken = null;
+    sessionId = null;
   }
   showAuth();
 };
