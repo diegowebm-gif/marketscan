@@ -60,6 +60,8 @@ header {
 .auth-error.show { display:block; }
 
 .plan-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; }
+.trial-badge { font-size:11px; font-weight:600; padding:2px 10px; border-radius:20px; background:rgba(245,158,11,0.12); color:#92400e; border:1px solid rgba(245,158,11,0.3); cursor:default; }
+[data-theme="dark"] .trial-badge { background:rgba(245,158,11,0.15); color:#fbbf24; border-color:rgba(245,158,11,0.3); }
 .plan-badge.free { background:#f3f4f6; color:#6b7280; }
 .plan-badge.pro { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; }
 
@@ -165,7 +167,7 @@ header {
 }
 @media (max-width: 768px) { .btn-menu { display: flex; align-items: center; } }
 
-/* Painel de busca inline no mobile (antes da primeira busca) */
+/* Painel de busca inline no mobile (antes da primeira busca 1) */
 #mobile-search-panel {
   display: none;
   background: var(--surface);
@@ -399,6 +401,7 @@ header {
     <div class="dot" id="status-dot"></div>
     <span id="status-text">Desconectado</span>
     <span id="plan-badge" class="plan-badge" style="display:none"></span>
+    <span id="trial-badge" class="trial-badge" style="display:none" title="Seu período de teste gratuito"></span>
     <button id="btn-darkmode" onclick="toggleDarkMode()" title="Alternar modo escuro" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s;margin-right:4px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">🌙</button>
     <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
   </div>
@@ -1594,6 +1597,18 @@ async function showApp() {
     const isPro = currentUser?.plan === 'pro';
     badge.textContent = isPro ? '⭐ Pro' : 'Free';
     badge.className = `plan-badge ${isPro ? 'pro' : 'free'}`;
+  }
+  // Contador do trial
+  const trialBadge = document.getElementById('trial-badge');
+  if (trialBadge && currentUser?.planExpiresAt && currentUser?.plan === 'pro') {
+    const msLeft = currentUser.planExpiresAt - Date.now();
+    const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+    if (daysLeft > 0 && daysLeft <= 7) {
+      trialBadge.style.display = 'inline-block';
+      trialBadge.textContent = daysLeft === 1 ? '⏳ Último dia grátis' : `⏳ ${daysLeft} dias grátis`;
+    } else {
+      trialBadge.style.display = 'none';
+    }
   }
   applyPlanLimits();
   initPush();
