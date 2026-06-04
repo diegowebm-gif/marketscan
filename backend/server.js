@@ -273,6 +273,57 @@ app.delete('/api/session/:id', requireAuth, async (req, res) => {
 });
 
 // ── Busca ─────────────────────────────────────────────────
+// ── Busca com streaming (SSE) ────────────────────────────────
+app.get('/api/search/stream', requireAuth, async (req, res) => {
+  const { keyword, city = '', state = '', maxItems = 40, removeNoPrice = 'false', blockedWords = '' } = req.query;
+  if (!keyword) return res.status(400).json({ ok: false, error: 'keyword obrigatório.' });
+
+  const sessionId = req.headers['x-session-id'] || 'shared';
+  const location = state || 'Brasil';
+  const max = Math.min(parseInt(maxItems) || 40, req.limits.maxItems);
+  const blocked = blockedWords ? blockedWords.split(',').map(w => w.trim()).filter(Boolean) : [];
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const send = (event, data) => res.write(`event: ${event}
+data: ${JSON.stringify(data)}
+
+`);
+
+  send('status', { message: 'Conectando ao Marketplace...' });
+
+  try {
+    await touchSession(sessionId);
+    let batchCount = 0;
+
+    const rawListings = await scrapeMarketplace(
+      sessionId, keyword, location, max,
+      { removeNoPrice: removeNoPrice === 'true', blockedWords: blocked, city },
+      (partialRaw, scrollNum, totalScrolls) => {
+        batchCount++;
+        const { listings, stats } = analyzeListings(partialRaw);
+        send('batch', { listings, stats, scroll: scrollNum, total: totalScrolls, batch: batchCount });
+        send('status', { message: `Carregando mais anúncios... (${scrollNum}/${totalScrolls})` });
+      }
+    );
+
+    const { listings, stats } = analyzeListings(rawListings);
+    if (stats && stats.with_price >= 3) {
+      await savePriceSnapshot(keyword, city || location, stats.avg, stats.median, stats.min, stats.max, stats.with_price);
+    }
+    const cityMismatch = rawListings.length > 0 && rawListings[0]?._cityMismatch === true;
+    send('done', { listings, stats, cityMismatch, plan: req.user.plan, limits: req.limits });
+  } catch (err) {
+    send('error', { message: err.message });
+  } finally {
+    res.end();
+  }
+});
+
 app.post('/api/search', requireAuth, async (req, res) => {
   const { sessionId, keyword, location = 'Brasil', city = '', blockedWords = [] } = req.body;
   const { maxItems: limitMax, canBlockWords } = req.limits;

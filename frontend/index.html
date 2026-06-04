@@ -1031,40 +1031,92 @@ async function doSearch() {
   if (!state) { toast('Selecione o estado.', 'error'); return; }
   if (!city) { toast('Selecione a cidade.', 'error'); return; }
 
-  const location = `${city}, ${state}`;
   closeSidebar();
   const btn = document.getElementById('btn-search');
   btn.disabled = true; btn.textContent = 'Buscando…';
   document.getElementById('listings-grid').innerHTML = '';
   document.getElementById('stats-grid').style.display = 'none';
   document.getElementById('filters').style.display = 'none';
+  document.getElementById('city-feedback-bar').style.display = 'none';
   showLoading();
 
-  const res = await api('POST', '/api/search', { sessionId, keyword, location, city, maxItems, removeAccessories: false, removeDefects: false, removeNoPrice, blockedWords });
-  btn.disabled = false; btn.textContent = 'Buscar';
-  hideLoading();
-
-  if (!res?.ok) {
-    if (res?.error?.includes('autenticada') || res?.error?.includes('login') || res?.error?.includes('autenticado')) {
-      localStorage.removeItem('mkt_session'); sessionId = null;
-      toast('Sessão expirada. Faça login novamente.', 'error');
-      setTimeout(() => showFacebookConnect(), 1500); return;
-    }
-    toast('Erro: ' + (res?.error || 'tente novamente'), 'error');
-    document.getElementById('listings-grid').innerHTML = '<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">⚠️</div><p>Erro na busca. Tente novamente.</p></div>';
-    return;
-  }
-
-  allListings = res.listings || [];
-  currentStats = res.stats;
+  allListings = [];
+  currentStats = null;
   currentFilter = 'all';
-  renderStats();
-  renderListings();
-  loadPriceHistory(keyword, city);
-  // Mostra aviso se cidade não foi reconhecida
-  const feedbackBar = document.getElementById('city-feedback-bar');
-  if (feedbackBar) feedbackBar.style.display = res.cityMismatch ? 'flex' : 'none';
-  toast(`${allListings.length} anúncios encontrados!`, 'success');
+
+  const params = new URLSearchParams({ keyword, city, state, maxItems, removeNoPrice, blockedWords: blockedWords.join(',') });
+  const url = `/api/search/stream?${params}`;
+
+  try {
+    await new Promise((resolve, reject) => {
+      const es = new EventSource(url, { headers: { 'x-auth-token': authToken, 'x-session-id': sessionId || '' } });
+
+      // EventSource não suporta headers nativamente — usa fetch + ReadableStream
+      es.close();
+
+      fetch(url, {
+        headers: { 'x-auth-token': authToken, 'x-session-id': sessionId || '', 'Accept': 'text/event-stream' }
+      }).then(response => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        function processChunk({ done, value }) {
+          if (done) { resolve(); return; }
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split('
+
+');
+          buffer = parts.pop();
+
+          for (const part of parts) {
+            const eventMatch = part.match(/^event: (\w+)/m);
+            const dataMatch = part.match(/^data: (.+)/m);
+            if (!eventMatch || !dataMatch) continue;
+            const event = eventMatch[1];
+            let data;
+            try { data = JSON.parse(dataMatch[1]); } catch { continue; }
+
+            if (event === 'status') {
+              btn.textContent = data.message || 'Buscando…';
+            } else if (event === 'batch') {
+              // Renderiza parcialmente
+              if (data.listings?.length) {
+                allListings = data.listings;
+                currentStats = data.stats;
+                hideLoading();
+                renderStats();
+                renderListings();
+                btn.textContent = `Carregando... (${data.scroll}/${data.total})`;
+              }
+            } else if (event === 'done') {
+              allListings = data.listings || allListings;
+              currentStats = data.stats || currentStats;
+              hideLoading();
+              renderStats();
+              renderListings();
+              loadPriceHistory(keyword, city);
+              const feedbackBar = document.getElementById('city-feedback-bar');
+              if (feedbackBar) feedbackBar.style.display = data.cityMismatch ? 'flex' : 'none';
+              toast(`${allListings.length} anúncios encontrados!`, 'success');
+              resolve();
+            } else if (event === 'error') {
+              toast('Erro: ' + (data.message || 'tente novamente'), 'error');
+              document.getElementById('listings-grid').innerHTML = '<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">⚠️</div><p>Erro na busca. Tente novamente.</p></div>';
+              resolve();
+            }
+          }
+          reader.read().then(processChunk).catch(reject);
+        }
+        reader.read().then(processChunk).catch(reject);
+      }).catch(reject);
+    });
+  } catch (err) {
+    hideLoading();
+    toast('Erro na busca. Tente novamente.', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Buscar';
+  }
 }
 
 function renderStats() {

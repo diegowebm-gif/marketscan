@@ -583,7 +583,7 @@ async function checkLogin(sessionId) {
 
 // ─── Scraping ─────────────────────────────────────────────
 
-async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}) {
+async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}, onBatch = null) {
   // Usa sessão compartilhada se disponível, senão usa a do próprio usuário
   const sharedSessionId = await ensureSharedSession();
   const effectiveSessionId = sharedSessionId || sessionId;
@@ -903,12 +903,40 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     await delay(2000);
     
     console.log('[Scraper] Iniciando scroll...');
+    let lastEmittedCount = 0;
     for (let i = 0; i < 6; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 3));
       await delay(1500);
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
       console.log(`[Scraper] Scroll ${i+1}/6 | anúncios: ${count}`);
-      if (count >= 10) break;
+
+      // Emite batch parcial se tiver novos anúncios e onBatch estiver definido
+      if (onBatch && count > lastEmittedCount && count >= 4) {
+        try {
+          const partialRaw = await page.evaluate(() => {
+            const results = [];
+            const seen = new Set();
+            document.querySelectorAll('a[href*="/marketplace/item/"]').forEach(a => {
+              const href = a.href?.split('?')[0];
+              if (!href || seen.has(href)) return;
+              seen.add(href);
+              const spans = [...a.querySelectorAll('span')].map(s => s.textContent?.trim()).filter(Boolean);
+              const title = spans.find(t => t.length > 4 && !t.startsWith('R$') && !t.match(/^\d+$/)) || '';
+              const priceText = spans.find(t => t.startsWith('R$')) || '';
+              const img = a.querySelector('img')?.src || '';
+              const locSpan = spans.find(t => t.includes(',') || (t.length > 3 && !t.startsWith('R$') && t !== title)) || '';
+              results.push({ title, price_text: priceText, image_url: img, location: locSpan, listing_url: href });
+            });
+            return results;
+          }).catch(() => []);
+          if (partialRaw.length > lastEmittedCount) {
+            onBatch(partialRaw.slice(0, maxItems), i + 1, 6);
+            lastEmittedCount = partialRaw.length;
+          }
+        } catch {}
+      }
+
+      if (count >= maxItems) break;
     }
     // Volta ao topo para garantir que todos os itens estão no DOM
     await page.evaluate(() => window.scrollTo(0, 0));
