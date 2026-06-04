@@ -638,6 +638,66 @@ app.post('/api/contact', async (req, res) => {
   }
 });
 
+// ── Cupons ──────────────────────────────────────────────────
+async function getCouponPool() {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  await pool.query(`CREATE TABLE IF NOT EXISTS coupons (
+    code TEXT PRIMARY KEY, days_pro INT DEFAULT 30,
+    max_uses INT DEFAULT 100, uses_remaining INT DEFAULT 100,
+    created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
+  )`);
+  return pool;
+}
+
+app.get('/api/admin/coupons', requireAdmin, async (req, res) => {
+  try {
+    const pool = await getCouponPool();
+    const result = await pool.query('SELECT * FROM coupons ORDER BY created_at DESC');
+    await pool.end();
+    res.json({ ok: true, coupons: result.rows });
+  } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+});
+
+app.post('/api/admin/coupons', requireAdmin, async (req, res) => {
+  const { code, days_pro = 30, max_uses = 100 } = req.body;
+  if (!code) return res.status(400).json({ ok: false, error: 'Código obrigatório.' });
+  try {
+    const pool = await getCouponPool();
+    await pool.query('INSERT INTO coupons (code, days_pro, max_uses, uses_remaining) VALUES ($1,$2,$3,$3) ON CONFLICT (code) DO NOTHING', [code.toUpperCase(), days_pro, max_uses]);
+    await pool.end();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+});
+
+app.delete('/api/admin/coupons/:code', requireAdmin, async (req, res) => {
+  try {
+    const pool = await getCouponPool();
+    await pool.query('DELETE FROM coupons WHERE code = $1', [req.params.code.toUpperCase()]);
+    await pool.end();
+    res.json({ ok: true });
+  } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+});
+
+// Aplicar cupom
+app.post('/api/coupon/apply', requireAuth, async (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ ok: false, error: 'Código obrigatório.' });
+  try {
+    const pool = await getCouponPool();
+    const result = await pool.query('SELECT * FROM coupons WHERE code = $1', [code.toUpperCase()]);
+    if (!result.rows.length) { await pool.end(); return res.json({ ok: false, error: 'Cupom inválido ou inexistente.' }); }
+    const coupon = result.rows[0];
+    if (coupon.uses_remaining <= 0) { await pool.end(); return res.json({ ok: false, error: 'Este cupom já esgotou os usos.' }); }
+    await pool.query('UPDATE coupons SET uses_remaining = uses_remaining - 1 WHERE code = $1', [code.toUpperCase()]);
+    await pool.end();
+    const months = Math.ceil(coupon.days_pro / 30);
+    await upgradeToPro(req.headers['x-auth-token'], months);
+    console.log(`[Cupom] ${code} aplicado por ${req.user.email} — ${coupon.days_pro} dias Pro`);
+    res.json({ ok: true, days: coupon.days_pro, message: `✅ Cupom aplicado! Você ganhou ${coupon.days_pro} dias de Pro.` });
+  } catch (err) { res.status(500).json({ ok: false, error: err.message }); }
+});
+
 // ── Alertas do pool ──────────────────────────────────────────
 app.get('/api/admin/pool-alerts', requireAdmin, async (req, res) => {
   try {

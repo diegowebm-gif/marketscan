@@ -666,6 +666,13 @@ header {
     <button class="btn-upgrade-banner" onclick="handleUpgrade()">Assinar Pro</button>
   </div>
 
+  <!-- Campo de cupom -->
+  <div id="coupon-bar" style="display:none;background:var(--surface);border-top:1px solid var(--border);padding:.5rem 1.5rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--text2)">🎟️ Tem um cupom?</span>
+    <input type="text" id="coupon-input" placeholder="CÓDIGO" style="padding:5px 10px;border-radius:var(--radius-sm);border:1.5px solid var(--border2);font-size:12px;font-family:'Inter',sans-serif;outline:none;text-transform:uppercase;width:120px" oninput="this.value=this.value.toUpperCase()" />
+    <button onclick="applyCoupon()" style="padding:5px 12px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer">Aplicar</button>
+  </div>
+
   <!-- Footer do app -->
   <footer class="app-footer">
     <span>© 2026 MarketScan</span>
@@ -1674,11 +1681,11 @@ async function showApp() {
   initPush();
   initBlockedWords();
 
-  // Mostra banner de upgrade para Free
+  // Mostra banner e cupom para Free
   const upgradeBanner = document.getElementById('upgrade-banner');
-  if (upgradeBanner) {
-    upgradeBanner.style.display = currentUser?.plan === 'pro' ? 'none' : 'flex';
-  }
+  if (upgradeBanner) upgradeBanner.style.display = currentUser?.plan === 'pro' ? 'none' : 'flex';
+  const couponBar = document.getElementById('coupon-bar');
+  if (couponBar) couponBar.style.display = currentUser?.plan === 'pro' ? 'none' : 'flex';
 }
 
 function applyPlanLimits() {
@@ -1770,6 +1777,21 @@ initDarkMode();
 function showWelcomeModal() {
   document.getElementById('welcome-modal').classList.add('show');
 }
+async function applyCoupon() {
+  const code = document.getElementById('coupon-input').value.trim();
+  if (!code) return;
+  const res = await api('POST', '/api/coupon/apply', { code });
+  if (res?.ok) {
+    toast(res.message || '✅ Cupom aplicado!', 'success');
+    document.getElementById('coupon-input').value = '';
+    // Recarrega dados do usuário
+    const me = await api('GET', '/api/auth/me');
+    if (me?.ok) { currentUser = me; showApp(); }
+  } else {
+    toast('Erro: ' + (res?.error || 'Cupom inválido'), 'error');
+  }
+}
+
 function closeWelcomeModal() {
   document.getElementById('welcome-modal').classList.remove('show');
 }
