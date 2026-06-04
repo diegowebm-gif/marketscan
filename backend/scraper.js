@@ -655,17 +655,23 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       const currentUrl = page.url().slice(0, 80);
       console.log('[Scraper] Página carregada, URL atual:', currentUrl);
       
-      // Se redirecionou para login, tenta fechar o modal (Marketplace é público)
+      // Se redirecionou para login
       if (currentUrl.includes('login') || currentUrl.includes('checkpoint')) {
         console.log('[Scraper] Modal de login detectado — tentando fechar');
-        // Navega direto para o Marketplace sem login
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
-        // Fecha o modal se aparecer
         await page.evaluate(() => {
           const closeBtn = document.querySelector('[aria-label="Close"], [aria-label="Fechar"], [data-testid="dialog_dismiss"]');
           if (closeBtn) closeBtn.click();
         }).catch(() => {});
         await delay(1500);
+      }
+      // Se redirecionou para /category/search/ = Facebook não reconheceu o slug da cidade
+      if (currentUrl.includes('/category/search/') || currentUrl.includes('/marketplace/category/')) {
+        console.warn('[Scraper] Facebook não reconheceu o slug da cidade — buscando sem filtro de cidade');
+        // Tenta URL sem cidade (busca geral com localização do perfil)
+        const urlSemCidade = `https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
+        await page.goto(urlSemCidade, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+        await delay(1000);
       }
     } catch (gotoErr) {
       if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
