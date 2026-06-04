@@ -14,7 +14,7 @@
     "lowdb": "^1.0.0",
     "node-cron": "^3.0.3",
     "pg": "^8.21.0",
-    "proxy-chain": "^3.0.0",
+    "proxy-chain": "^2.5.9",
     "puppeteer": "^21.0.0",
     "stripe": "^14.0.0",
     "uuid": "^9.0.0",
