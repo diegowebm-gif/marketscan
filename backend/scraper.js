@@ -470,10 +470,10 @@ async function checkLogin(sessionId) {
 async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}) {
   let cookies = loadCookies(sessionId);
   if (!cookies) {
-    // Tenta carregar do PostgreSQL (após redeploy)
     cookies = await loadCookiesFromDB(sessionId);
   }
-  if (!cookies) throw new Error('Sessão não encontrada. Faça login primeiro.');
+  // Marketplace é público — não precisa de login para ver anúncios
+  console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem login)'}`);
 
   console.log(`[Scraper] Iniciando busca headless: "${keyword}" (${cookies.length} cookies)`);
 
@@ -485,16 +485,14 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
   });
 
   await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' });
-  await page.setCookie(...cookies);
+  if (cookies && cookies.length > 0) {
+    await page.setCookie(...cookies);
+  }
   
-  // Verifica se os cookies funcionaram
+  // Verifica se tem sessão (opcional — Marketplace é público)
   const testCookies = await page.cookies();
   const hasSession = testCookies.some(c => c.name === 'c_user');
   console.log(`[Scraper] Sessão Facebook ativa: ${hasSession}`);
-  if (!hasSession) {
-    await browser.close();
-    throw new Error('Sessão expirada. Faça login no Facebook novamente.');
-  }
 
   const encodedKeyword = encodeURIComponent(keyword);
 
@@ -650,6 +648,13 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       await browser.close().catch(() => null);
       throw new Error('Não foi possível acessar o Marketplace: ' + gotoErr.message);
     }
+
+    // Tenta fechar o modal de login se aparecer (dados são públicos)
+    await page.evaluate(() => {
+      const closeBtn = document.querySelector('[aria-label="Close"], [aria-label="Fechar"]');
+      if (closeBtn) closeBtn.click();
+    }).catch(() => {});
+    await delay(1000);
 
     // Aguarda anúncios com timeout curto e continua mesmo sem eles
     await page.waitForSelector('a[href*="/marketplace/item/"]', {

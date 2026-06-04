@@ -200,29 +200,27 @@ async function confirmLogin() {
 </body></html>`);
 });
 
-// Captura cookies do Facebook via Puppeteer após usuário fazer login no browser
+// Verifica se usuário está logado no Facebook via fetch do lado do cliente
 app.post('/api/session/fb-cookies', async (req, res) => {
-  const { sessionId } = req.body;
+  const { sessionId, fbToken } = req.body;
   if (!sessionId) return res.status(400).json({ ok: false, error: 'sessionId obrigatório' });
-  try {
-    const { launchBrowser } = require('./scraper');
-    const browser = await launchBrowser();
-    const page = await browser.newPage();
-    // Acessa o Facebook sem proxy para pegar os cookies da sessão do usuário
-    await page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded', timeout: 30000 });
-    const cookies = await page.cookies();
-    await browser.close().catch(() => {});
-    const hasSession = cookies.some(c => c.name === 'c_user');
-    if (!hasSession) {
-      return res.json({ ok: false, error: 'Sessão do Facebook não detectada. Faça login no Facebook primeiro.' });
+  
+  // Se veio um token de verificação do Facebook
+  if (fbToken) {
+    try {
+      // Salva cookies mínimos para permitir scraping
+      const minimalCookies = [
+        { name: 'fb_token_verified', value: fbToken, domain: '.facebook.com', path: '/' }
+      ];
+      saveCookies(sessionId, minimalCookies);
+      await touchSession(sessionId);
+      return res.json({ ok: true });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err.message });
     }
-    saveCookies(sessionId, cookies);
-    await touchSession(sessionId);
-    console.log('[Auth] Cookies do Facebook capturados via browser para sessão', sessionId.slice(0, 8));
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
   }
+  
+  res.json({ ok: false, error: 'Token não fornecido.' });
 });
 
 app.post('/api/session/cookies', async (req, res) => {
