@@ -955,9 +955,9 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
 
       // Emite batch após primeiro scroll com anúncios suficientes
       if (onBatch && count > lastEmittedCount) {
-        if (count >= 6 && lastEmittedCount === 0) {
-          // Primeiro batch — aguarda títulos e preços carregarem
-          await delay(2000);
+        if (lastEmittedCount === 0) {
+          // Primeiro batch — emite independente de ter preço, usuário vê algo rápido
+          await delay(1500);
           try {
             const partialRaw = await page.evaluate(() => {
               const results = [];
@@ -975,8 +975,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
               });
               return results;
             }).catch(() => []);
-            const withPrice = partialRaw.filter(l => l.price_text && l.title && l.title !== 'Acabou de ser anunciado').length;
-            if (withPrice >= 4) {
+            if (partialRaw.length >= 4) {
               onBatch(partialRaw, i + 1, 3);
               lastEmittedCount = partialRaw.length;
             } else {
