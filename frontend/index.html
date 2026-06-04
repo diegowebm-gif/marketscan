@@ -98,6 +98,10 @@ header {
 #auth-status { font-size: 13px; color: var(--text2); height: 18px; }
 
 #screen-app { display: none; }
+.app-footer { background: var(--surface); border-top: 1px solid var(--border); padding: .75rem 1.5rem; font-size: 11px; color: var(--text3); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.app-footer a { color: var(--text3); text-decoration: none; transition: color .2s; }
+.app-footer a:hover { color: var(--accent); }
+.app-footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
 .app-layout { display: flex; min-height: calc(100vh - 56px); }
 
 .sidebar {
@@ -646,6 +650,17 @@ header {
         </div>
       </div>
     </main>
+
+    <!-- Footer do app -->
+    <footer class="app-footer">
+      <span>© 2026 MarketScan</span>
+      <div class="app-footer-links">
+        <a href="/terms.html" target="_blank">Termos de uso</a>
+        <a href="/landing#faq" target="_blank">FAQ</a>
+        <a href="mailto:contato@marketscan.app">Contato</a>
+        <a href="https://wa.me/5521999999999" target="_blank">Suporte</a>
+      </div>
+    </footer>
   </div>
 
   <!-- Modal de boas-vindas trial -->
