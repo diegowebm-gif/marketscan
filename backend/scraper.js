@@ -217,8 +217,8 @@ function findChromePath() {
 // ─── Proxy residencial Brasil (proxy-seller.com) via proxy-chain ──
 const ProxyChain = require('proxy-chain');
 
-// Proxy-seller residencial BR — sufixo -cc-br força IPs do Brasil
-const PROXY_USER = '9418de876b2eeb75-cc-br';
+// Proxy-seller residencial BR (país BR configurado no painel do proxy-seller)
+const PROXY_USER = '9418de876b2eeb75';
 const PROXY_PASS = 'L7cyB6AnifHUxKeZ';
 const PROXY_HOST = 'res.proxy-seller.com';
 const PROXY_PORT = 10000;
@@ -283,20 +283,13 @@ async function loginWithCredentials(sessionId, email, password) {
     return { ok: true, status: 'already_logged' };
   }
 
-  // Tenta com proxy BR primeiro, depois direto como fallback
-  const attempts = [getNextProxyUrl(), null];
-  let lastError = '';
-
-  for (let i = 0; i < attempts.length; i++) {
-    const proxyUrl = attempts[i];
-    console.log(`[Login] Tentativa ${i + 1}/${attempts.length}${proxyUrl ? ' via proxy-seller BR' : ' direto'}`);
-    const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
-    if (result.ok || result.status === 'needs_2fa') return result;
-    lastError = result.error || 'Falha desconhecida';
-    console.log(`[Login] Tentativa ${i + 1} falhou: ${lastError}`);
-  }
-
-  return { ok: false, status: 'error', error: lastError };
+  // Sem fallback direto — garante que o login sempre usa proxy BR
+  const proxyUrl = getNextProxyUrl();
+  console.log('[Login] Tentando via proxy-seller BR...');
+  const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
+  if (result.ok || result.status === 'needs_2fa') return result;
+  console.log('[Login] Proxy falhou:', result.error);
+  return { ok: false, status: 'error', error: 'Falha no proxy BR. Tente novamente em alguns segundos.' };
 }
 
 async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
