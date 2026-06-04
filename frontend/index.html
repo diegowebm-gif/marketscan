@@ -1097,18 +1097,20 @@ function onMonStateChange(preselect) {
 }
 
 function onMobStateChange() {
-  const state = document.getElementById('mob-state').value;
+  const uf = document.getElementById('mob-state').value;
   const citySelect = document.getElementById('mob-city');
   citySelect.innerHTML = '<option value="">Selecione a cidade</option>';
-  if (!state || !CITIES[state]) { citySelect.style.opacity = '.4'; citySelect.style.pointerEvents = 'none'; return; }
-  CITIES[state].forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
+  if (!uf || !ESTADOS_CIDADES[uf]) { citySelect.style.opacity = '.4'; citySelect.style.pointerEvents = 'none'; return; }
+  ESTADOS_CIDADES[uf].cidades.sort().forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; citySelect.appendChild(o); });
   citySelect.style.opacity = '1'; citySelect.style.pointerEvents = 'auto';
 }
 
 function populateMobStates() {
   const sel = document.getElementById('mob-state');
-  if (!sel) return;
-  Object.keys(CITIES).sort().forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+  if (!sel || !window.ESTADOS_CIDADES) return;
+  sel.innerHTML = '<option value="">Selecione o estado</option>';
+  const sorted = Object.entries(ESTADOS_CIDADES).sort((a,b) => a[1].nome.localeCompare(b[1].nome));
+  sorted.forEach(([uf, data]) => { const o = document.createElement('option'); o.value = uf; o.textContent = data.nome; sel.appendChild(o); });
 }
 
 async function doMobileSearch() {
@@ -1121,7 +1123,8 @@ async function doMobileSearch() {
   // Sincroniza com a sidebar
   document.getElementById('input-keyword').value = keyword;
   document.getElementById('input-state').value = state;
-  await onStateChange(city);
+  onStateChange();
+  await new Promise(r => setTimeout(r, 100));
   document.getElementById('input-city').value = city;
   // Esconde painel mobile e faz busca
   document.getElementById('mobile-search-panel').style.display = 'none';
