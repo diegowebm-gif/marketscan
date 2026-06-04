@@ -489,6 +489,28 @@ app.get('/api/admin/city-feedback'
   }
 });
 
+// ── Contato ──────────────────────────────────────────────────
+app.get('/contact', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/contact.html'));
+});
+
+app.post('/api/contact', async (req, res) => {
+  const { name, email, subject, message } = req.body;
+  if (!name || !email || !message) return res.status(400).json({ ok: false, error: 'Campos obrigatórios faltando.' });
+  try {
+    // Salva no banco e notifica por email (via log por enquanto)
+    console.log(`[Contato] De: ${name} <${email}> | Assunto: ${subject} | Msg: ${message.slice(0, 100)}`);
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await pool.query(`CREATE TABLE IF NOT EXISTS contact_messages (id SERIAL PRIMARY KEY, name TEXT, email TEXT, subject TEXT, message TEXT, created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000)`);
+    await pool.query('INSERT INTO contact_messages (name, email, subject, message) VALUES ($1,$2,$3,$4)', [name, email, subject, message]);
+    await pool.end();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // ── Alertas do pool ──────────────────────────────────────────
 app.get('/api/admin/pool-alerts', requireAdmin, async (req, res) => {
   try {
