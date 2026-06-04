@@ -100,13 +100,45 @@ header {
     position: fixed; top: 56px; left: 0; z-index: 200;
     height: calc(100vh - 56px); transform: translateX(-100%);
     box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+    width: 85vw; max-width: 320px;
   }
   .sidebar.open { transform: translateX(0); }
-  .main-content { padding: 1rem; }
+  .main-content { padding: .75rem; }
   .app-layout { display: block; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .listings-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
-  .listing-img { height: 130px; }
+  
+  /* Stats — 2 colunas compactas */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: .75rem; }
+  .stat-card { padding: .65rem .75rem; }
+  .stat-label { font-size: 9px; }
+  .stat-value { font-size: 1.1rem; }
+
+  /* Cards — 2 colunas */
+  .listings-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .listing-img { height: 120px; }
+  .listing-card { font-size: 12px; }
+  .listing-card .listing-title { font-size: 12px; }
+  .listing-card .listing-price { font-size: 1rem; }
+
+  /* Header — esconde email, mostra só indicador */
+  .session-badge span#status-text { display: none; }
+  .header-right { gap: 6px; }
+
+  /* Banner alertas — compacto no mobile */
+  #price-alert-banner { padding: .65rem .85rem; gap: 10px; }
+  #price-alert-banner p:last-of-type { display: none; }
+
+  /* Aviso raio — texto menor */
+  #location-tip { font-size: 11px; padding: .6rem .85rem; }
+
+  /* Filtros — linha única com scroll */
+  .filter-bar { flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+  .filter-bar::-webkit-scrollbar { display: none; }
+
+  /* Sort select menor */
+  #sort-select { font-size: 12px; padding: 5px 8px; }
+
+  /* Botões de filtro menores */
+  .filter-btn { font-size: 11px; padding: 5px 10px; white-space: nowrap; }
 }
 
 .sidebar-overlay {
@@ -492,11 +524,11 @@ header {
         </div>
       </div>
 
-      <div id="location-tip" style="display:none;align-items:flex-start;gap:12px;background:#eef2ff;border:2px solid #818cf8;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem">
-        <span style="font-size:1.4rem;flex-shrink:0;margin-top:1px">📍</span>
+      <div id="location-tip" style="display:none;align-items:flex-start;gap:10px;background:#eef2ff;border:2px solid #818cf8;border-radius:var(--radius);padding:.75rem 1rem;margin-bottom:1rem">
+        <span style="font-size:1.1rem;flex-shrink:0;margin-top:1px">📍</span>
         <div>
-          <p style="font-size:14px;font-weight:700;color:#3730a3;margin:0 0 4px">Atenção: os resultados dependem do seu raio de busca no Facebook</p>
-          <p style="font-size:13px;color:#4338ca;margin:0;line-height:1.5">A cidade selecionada direciona a busca, mas o alcance dos resultados é definido pela configuração do seu perfil no Facebook. Para ver mais ou menos anúncios por distância, acesse no Facebook: <strong>Marketplace → Filtros → Localização → ajuste o raio em km</strong>.</p>
+          <p style="font-size:13px;font-weight:700;color:#3730a3;margin:0 0 2px">Resultados dependem do seu raio no Facebook</p>
+          <p class="location-tip-detail" style="font-size:12px;color:#4338ca;margin:0;line-height:1.4">Ajuste em: <strong>Marketplace → Filtros → Localização → raio em km</strong>.</p>
         </div>
       </div>
 
