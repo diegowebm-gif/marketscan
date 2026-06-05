@@ -29,7 +29,7 @@ function saveSubscription(sessionId, subscription) {
 }
 
 // Salva um monitor de preço
-function saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours = 2) {
+function saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours = 2, whatsappPhone = null) {
   const id = `${sessionId}_${Date.now()}`;
   db.get('monitors').push({
     id,
@@ -39,10 +39,11 @@ function saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours
     city,
     maxPrice,
     intervalHours,
+    whatsappPhone,
     active: true,
     createdAt: Date.now(),
     lastChecked: null,
-    nextCheck: Date.now(), // roda imediatamente na primeira vez
+    nextCheck: Date.now(),
   }).write();
   return id;
 }
@@ -93,6 +94,33 @@ function markFired(monitorId, listingId) {
   }
 }
 
+// ─── Z-API WhatsApp ───────────────────────────────────────
+const ZAPI_INSTANCE = process.env.ZAPI_INSTANCE_ID;
+const ZAPI_TOKEN    = process.env.ZAPI_TOKEN;
+
+async function sendWhatsApp(phone, message) {
+  if (!ZAPI_INSTANCE || !ZAPI_TOKEN) {
+    console.warn('[WhatsApp] ZAPI_INSTANCE_ID ou ZAPI_TOKEN não configurados.');
+    return false;
+  }
+  let number = phone.replace(/\D/g, '');
+  if (!number.startsWith('55')) number = '55' + number;
+  try {
+    const res = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE}/token/${ZAPI_TOKEN}/send-text`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: number, message }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || JSON.stringify(data));
+    console.log(`[WhatsApp] Mensagem enviada para ${number}`);
+    return true;
+  } catch (err) {
+    console.error(`[WhatsApp] Erro ao enviar para ${number}:`, err.message);
+    return false;
+  }
+}
+
 // Inicia o cron que verifica os monitores a cada 30 minutos
 function startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies) {
   cron.schedule('*/30 * * * *', async () => {
@@ -125,17 +153,35 @@ function startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies) {
         );
 
         for (const hit of hits) {
-          const pct = Math.abs(hit.pct_below_avg || 0);
-          const sent = await sendPush(monitor.sessionId, {
+          const priceFormatted = hit.price.toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+          const pctText = hit.pct_below_avg > 0 ? ` (${hit.pct_below_avg}% abaixo da média)` : '';
+
+          // Push notification
+          const pushSent = await sendPush(monitor.sessionId, {
             title: '🔥 Oportunidade no MarketScan!',
-            body: `${hit.title} por R$ ${hit.price.toLocaleString('pt-BR')} em ${hit.location || monitor.city}`,
+            body: `${hit.title} por R$ ${priceFormatted} em ${hit.location || monitor.city}`,
             url: hit.listing_url,
             tag: `alert_${hit.external_id}`,
           });
 
-          if (sent) {
+          // WhatsApp via Z-API
+          let waSent = false;
+          if (monitor.whatsappPhone) {
+            const waMessage = `🔔 *Alerta MarketScan!*
+
+📦 *${hit.title}*
+💰 R$ ${priceFormatted}${pctText}
+📍 ${hit.location || monitor.city}
+
+👉 ${hit.listing_url}
+
+_Alerta configurado para: ${monitor.keyword} abaixo de R$ ${monitor.maxPrice}_`;
+            waSent = await sendWhatsApp(monitor.whatsappPhone, waMessage);
+          }
+
+          if (pushSent || waSent) {
             markFired(monitor.id, hit.external_id);
-            console.log(`[Monitor] Alerta enviado: ${hit.title} — R$ ${hit.price}`);
+            console.log(`[Monitor] Alerta enviado: ${hit.title} — R$ ${hit.price} | push:${pushSent} wa:${waSent}`);
           }
         }
 
@@ -155,6 +201,7 @@ function startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies) {
 }
 
 module.exports = {
+  sendWhatsApp,
   VAPID_PUBLIC_KEY: VAPID_PUBLIC,
   saveSubscription,
   saveMonitor,

@@ -9,7 +9,7 @@ const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, hasSavedCookiesAsync, saveCookies, loginWithCredentials, submitTwoFactor, launchBrowser } = require('./scraper');
 const { createSession, touchSession, saveSearch, saveListings, getListingsBySearch, getRecentSearches, savePriceSnapshot, getPriceHistory } = require('./database');
-const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMonitor, sendPush, startMonitorCron } = require('./alerts');
+const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMonitor, sendPush, sendWhatsApp, startMonitorCron } = require('./alerts');
 
 // ── Email (Resend) ────────────────────────────────────────────
 async function sendEmail(to, subject, html) {
@@ -613,12 +613,20 @@ app.post('/api/push/subscribe', requireAuth, requirePro, (req, res) => {
 });
 
 app.post('/api/monitor', requireAuth, requirePro, (req, res) => {
-  const { sessionId, keyword, location, city, maxPrice, intervalHours = 2 } = req.body;
+  const { sessionId, keyword, location, city, maxPrice, intervalHours = 2, whatsappPhone } = req.body;
   if (!sessionId || !keyword || !maxPrice) return res.status(400).json({ ok: false, error: 'Dados incompletos.' });
   const existing = getMonitors(sessionId);
   if (existing.length >= req.limits.maxAlerts) return res.status(403).json({ ok: false, error: `Limite de ${req.limits.maxAlerts} alertas atingido.` });
-  const id = saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours);
+  const id = saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone || null);
   res.json({ ok: true, id });
+});
+
+// Testa envio de WhatsApp
+app.post('/api/push/test-whatsapp', requireAuth, requirePro, async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ ok: false, error: 'Número obrigatório.' });
+  const sent = await sendWhatsApp(phone, '✅ *MarketScan*\n\nSeu WhatsApp está conectado! Você receberá alertas de oportunidades aqui. 🔥');
+  res.json({ ok: sent, error: sent ? null : 'Falha ao enviar. Verifique se o número está correto.' });
 });
 
 app.get('/api/monitor/:sessionId', requireAuth, requirePro, (req, res) => {

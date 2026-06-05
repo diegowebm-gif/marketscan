@@ -611,6 +611,15 @@ header {
           <input type="number" id="mon-price" placeholder="ex: 800" min="1" />
           <label>Verificar a cada (horas)</label>
           <input type="number" id="mon-interval" value="2" min="1" max="24" />
+          <label>WhatsApp para alertas <span style="color:var(--text3);font-weight:400">(opcional)</span></label>
+          <div style="position:relative">
+            <input type="tel" id="mon-whatsapp" placeholder="ex: 48991846246" style="padding-left:42px" />
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-60%);font-size:14px">📲</span>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;margin-top:-4px;margin-bottom:8px">
+            <p style="font-size:10px;color:var(--text3);flex:1">Só o número, sem +55. Ex: 48991846246</p>
+            <button type="button" onclick="testWhatsApp()" style="font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid #25d366;background:transparent;color:#25d366;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif">Testar WhatsApp</button>
+          </div>
           <button class="btn-save-monitor" onclick="saveMonitor()">Salvar alerta</button>
         </div>
         <div id="monitor-list" style="margin-top:8px">
@@ -1744,19 +1753,35 @@ async function saveMonitor() {
   const city = document.getElementById('mon-city').value;
   const maxPrice = parseFloat(document.getElementById('mon-price').value);
   const intervalHours = parseInt(document.getElementById('mon-interval').value) || 2;
+  const whatsappPhone = document.getElementById('mon-whatsapp').value.replace(/\D/g, '') || null;
   const location = city && state ? `${city}, ${state}` : 'Brasil';
   if (!keyword) { toast('Digite o produto.', 'error'); return; }
   if (!state) { toast('Selecione o estado.', 'error'); return; }
   if (!city) { toast('Selecione a cidade.', 'error'); return; }
   if (!maxPrice || maxPrice <= 0) { toast('Digite o preço máximo.', 'error'); return; }
-  const res = await api('POST', '/api/monitor', { sessionId, keyword, location, city, maxPrice, intervalHours });
+  if (whatsappPhone && whatsappPhone.length < 10) { toast('Número de WhatsApp inválido.', 'error'); return; }
+  const res = await api('POST', '/api/monitor', { sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone });
   if (res?.ok) {
-    toast(`Alerta criado para "${keyword}"!`, 'success');
+    toast(`Alerta criado para "${keyword}"! ${whatsappPhone ? '📲 Você receberá no WhatsApp.' : ''}`, 'success');
     document.getElementById('monitor-form').classList.remove('visible');
     document.getElementById('mon-keyword').value = '';
     document.getElementById('mon-price').value = '';
+    document.getElementById('mon-whatsapp').value = '';
     loadMonitors();
   } else toast('Erro ao salvar: ' + (res?.error || ''), 'error');
+}
+
+async function testWhatsApp() {
+  const phone = document.getElementById('mon-whatsapp').value.replace(/\D/g, '');
+  if (!phone || phone.length < 10) { toast('Digite um número válido antes de testar.', 'error'); return; }
+  const btn = event.target;
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+  const res = await api('POST', '/api/push/test-whatsapp', { phone });
+  btn.textContent = 'Testar WhatsApp';
+  btn.disabled = false;
+  if (res?.ok) toast('✅ Mensagem enviada! Verifique seu WhatsApp.', 'success');
+  else toast('Erro: ' + (res?.error || 'Falha ao enviar'), 'error');
 }
 async function loadMonitors() {
   if (!sessionId) return;
@@ -1765,7 +1790,7 @@ async function loadMonitors() {
   if (!res?.monitors?.length) { list.innerHTML = '<div class="monitor-empty">Nenhum alerta configurado.</div>'; return; }
   list.innerHTML = res.monitors.map(m => `
     <div class="monitor-item">
-      <div class="monitor-info"><strong>${esc(m.keyword)}</strong><span>Até R$ ${fmt(m.maxPrice)} · ${esc(m.city || '')} · ${m.intervalHours}h</span></div>
+      <div class="monitor-info"><strong>${esc(m.keyword)}</strong><span>Até R$ ${fmt(m.maxPrice)} · ${esc(m.city || '')} · ${m.intervalHours}h ${m.whatsappPhone ? '📲' : '🔔'}</span></div>
       <button class="btn-remove-monitor" onclick="deleteMonitor('${m.id}')">×</button>
     </div>`).join('');
 }
