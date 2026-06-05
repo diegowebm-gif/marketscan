@@ -290,8 +290,10 @@ header {
 .score-ok { background: #f3f4f6; color: #6b7280; }
 .score-bar-wrap { height: 3px; background: var(--surface2); margin: 0; }
 .score-bar { height: 3px; }
-.btn-link { display: block; text-align: center; padding: 8px; border-radius: var(--radius-sm); border: 1.5px solid var(--accent); color: var(--accent); font-size: 12px; text-decoration: none; transition: all .2s; font-weight: 500; }
+.btn-link { display: block; text-align: center; padding: 8px; border-radius: var(--radius-sm); border: 1.5px solid var(--accent); color: var(--accent); font-size: 12px; text-decoration: none; transition: all .2s; font-weight: 500; flex: 1; }
 .btn-link:hover { background: var(--accent); color: #fff; }
+.btn-whatsapp { display: block; text-align: center; padding: 8px; border-radius: var(--radius-sm); border: 1.5px solid #25d366; color: #25d366; font-size: 12px; text-decoration: none; transition: all .2s; font-weight: 500; flex: 1; }
+.btn-whatsapp:hover { background: #25d366; color: #fff; }
 
 .empty { text-align: center; padding: 3rem 1rem; color: var(--text2); grid-column: 1/-1; }
 .load-more-bar { display:none; text-align:center; padding:1rem 0; margin-top:.5rem; }
@@ -1530,7 +1532,7 @@ function renderListings() {
         : `Score ${l.score}/100 — oportunidade regular.<br>Preço próximo ou acima da média.`;
       return `<div class="score-badge ${cls}">${icon} ${l.score}<span class="score-tip">${tipText}</span></div><div class="score-bar-wrap"><div class="score-bar" style="width:${l.score}%;background:${barColor}"></div></div>`;
     })() : '';
-    return `<div class="listing-card ${l.is_opportunity ? 'opportunity' : ''}">${l.is_opportunity ? '<div class="opp-badge">🔥 OPORTUNIDADE</div>' : ''}${imgHtml}${ph}${scoreHtml}<div class="listing-body"><div class="listing-title">${esc(l.title)}</div>${priceHtml}${pctHtml}<div class="listing-meta">${esc(l.location || '')}</div><a class="btn-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver anúncio →</a>
+    return `<div class="listing-card ${l.is_opportunity ? 'opportunity' : ''}">${l.is_opportunity ? '<div class="opp-badge">🔥 OPORTUNIDADE</div>' : ''}${imgHtml}${ph}${scoreHtml}<div class="listing-body"><div class="listing-title">${esc(l.title)}</div>${priceHtml}${pctHtml}<div class="listing-meta">${esc(l.location || '')}</div><a class="btn-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver anúncio →</a><a class="btn-whatsapp" href="https://wa.me/?text=${encodeURIComponent('📦 ' + l.title + (l.price ? ' · R$ ' + fmt(l.price) : '') + (l.location ? ' · ' + l.location : '') + '\n👉 ' + l.listing_url + '\n\n🔍 Achei no MarketScan!')}" target="_blank" rel="noopener">📲 WhatsApp</a>
       ${l.price ? `
       <button class="calc-btn" onclick="toggleCalc(this, ${l.price}, ${currentStats?.avg || 0})">Calcular lucro</button>
       <div class="calc-panel">
