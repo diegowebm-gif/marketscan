@@ -216,6 +216,47 @@ app.post('/api/auth/update-whatsapp', requireAuth, async (req, res) => {
   res.json(result);
 });
 
+
+app.post('/api/auth/update-email', requireAuth, async (req, res) => {
+  const { newEmail, password } = req.body;
+  if (!newEmail || !password) return res.status(400).json({ ok: false, error: 'Dados obrigatórios.' });
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  try {
+    // Verifica senha atual
+    const { hashPassword } = require('./auth');
+    const result = await pool.query('SELECT * FROM users WHERE token = $1', [req.headers['x-auth-token']]);
+    const user = result.rows[0];
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256').update(password + 'marketscan_salt').digest('hex');
+    if (!user || user.password !== hash) { await pool.end(); return res.json({ ok: false, error: 'Senha incorreta.' }); }
+    // Verifica se novo email já existe
+    const existing = await pool.query('SELECT id FROM users WHERE email = $1 AND token != $2', [newEmail.toLowerCase().trim(), req.headers['x-auth-token']]);
+    if (existing.rows.length) { await pool.end(); return res.json({ ok: false, error: 'E-mail já cadastrado por outro usuário.' }); }
+    await pool.query('UPDATE users SET email = $1 WHERE token = $2', [newEmail.toLowerCase().trim(), req.headers['x-auth-token']]);
+    await pool.end();
+    res.json({ ok: true });
+  } catch (err) { await pool.end(); res.status(500).json({ ok: false, error: err.message }); }
+});
+
+app.post('/api/auth/update-password', requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return res.status(400).json({ ok: false, error: 'Dados obrigatórios.' });
+  if (newPassword.length < 6) return res.status(400).json({ ok: false, error: 'Senha mínima de 6 caracteres.' });
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  try {
+    const crypto = require('crypto');
+    const hashFn = (p) => crypto.createHash('sha256').update(p + 'marketscan_salt').digest('hex');
+    const result = await pool.query('SELECT * FROM users WHERE token = $1', [req.headers['x-auth-token']]);
+    const user = result.rows[0];
+    if (!user || user.password !== hashFn(currentPassword)) { await pool.end(); return res.json({ ok: false, error: 'Senha atual incorreta.' }); }
+    await pool.query('UPDATE users SET password = $1 WHERE token = $2', [hashFn(newPassword), req.headers['x-auth-token']]);
+    await pool.end();
+    res.json({ ok: true });
+  } catch (err) { await pool.end(); res.status(500).json({ ok: false, error: err.message }); }
+});
+
 app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ ok: false, error: 'E-mail obrigatório.' });
