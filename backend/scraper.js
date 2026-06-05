@@ -396,16 +396,6 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
   // Proxy auth já nas credenciais do --proxy-server
 
   try {
-    // Verifica IP de saída antes de tentar o login
-    try {
-      await page.goto('https://api.ipify.org?format=json', { waitUntil: 'domcontentloaded', timeout: 15000 });
-      const ipData = await page.evaluate(() => document.body.innerText).catch(() => '{}');
-      const ip = JSON.parse(ipData).ip || 'desconhecido';
-      console.log('[Proxy] IP de saída:', ip);
-    } catch (e) {
-      console.warn('[Proxy] Não foi possível verificar IP:', e.message);
-    }
-
     await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 40000 });
 
     // Aguarda a página de login carregar completamente
@@ -440,7 +430,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     // Pressiona Enter para submeter
     await passSel.press('Enter');
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => null);
+    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => null);
 
     const url = page.url();
     const cookies = await page.cookies();
@@ -862,14 +852,14 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     let lastEmittedCount = 0;
     for (let i = 0; i < 3; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 3));
-      await delay(800);
+      await delay(500);
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
       console.log(`[Scraper] [T] Scroll ${i+1}/3 | anúncios: ${count} [${Date.now()}]`);
 
       // Emite batch após primeiro scroll com anúncios suficientes
       if (onBatch && count > lastEmittedCount) {
         // Emite batch em qualquer scroll se tiver anúncios novos
-        await delay(500);
+        await delay(300);
         try {
           const partialRaw = await page.evaluate(() => {
             const results = [];
@@ -904,7 +894,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     }
     // Volta ao topo para garantir que todos os itens estão no DOM
     await page.evaluate(() => window.scrollTo(0, 0));
-    await delay(500);
+    await delay(300);
     
     console.log(`[Scraper] [T] Coletando dados dos anúncios... [${Date.now()}]`);
     // Aguarda títulos reais carregarem (substituem "Acabou de ser anunciado")
