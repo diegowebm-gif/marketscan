@@ -153,9 +153,9 @@ header {
 .plan-badge.free { background:#f3f4f6; color:#6b7280; }
 .plan-badge.pro { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; }
 
-.upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(6px); padding:1rem; }
+.upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:300; align-items:flex-start; justify-content:center; backdrop-filter:blur(6px); padding:.5rem; overflow-y:auto; }
 .upgrade-overlay.show { display:flex; }
-.upgrade-modal { background:var(--surface); border-radius:16px; max-width:520px; width:100%; box-shadow:0 40px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(106,13,173,0.2); overflow-y:auto; max-height:92vh; }
+.upgrade-modal { background:var(--surface); border-radius:16px; max-width:520px; width:100%; box-shadow:0 40px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(106,13,173,0.2); margin:auto; }
 .upgrade-modal-hero { background:linear-gradient(135deg,#1a0533,#2d0a5e); padding:1.25rem 1.25rem 1.1rem; position:relative; overflow:hidden; }
 .upgrade-modal-hero::before { content:''; position:absolute; top:-40px; right:-40px; width:200px; height:200px; background:radial-gradient(circle,rgba(106,13,173,0.4),transparent 70%); border-radius:50%; }
 .upgrade-modal-body { padding:1.1rem 1.25rem; }
@@ -792,7 +792,7 @@ header {
   <!-- Banner de upgrade para Free -->
   <div class="upgrade-banner" id="upgrade-banner" style="display:none">
     <p>🔒 Plano Free <span>· Alertas, histórico e mais no Pro</span></p>
-    <button class="btn-upgrade-banner" onclick="handleUpgrade()">Assinar Pro</button>
+    <button class="btn-upgrade-banner" onclick="showUpgradeModal()">Assinar Pro</button>
   </div>
 
   <!-- Campo de cupom -->
