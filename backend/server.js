@@ -704,11 +704,12 @@ app.post('/api/stripe/checkout', requireAuth, async (req, res) => {
       customer_email: req.user.email,
       metadata: { userToken: req.headers['x-auth-token'] },
       locale: 'pt-BR',
-      allow_promotion_codes: false,
     };
     // Se vier um promoCode válido do Stripe, aplica direto
     if (promoCode) {
       sessionParams.discounts = [{ promotion_code: promoCode }];
+    } else {
+      sessionParams.allow_promotion_codes = true;
     }
     const session = await stripe.checkout.sessions.create(sessionParams);
     res.json({ ok: true, url: session.url });
