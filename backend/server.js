@@ -694,7 +694,8 @@ app.post('/api/push/test', requireAuth, requirePro, async (req, res) => {
 // ── Stripe Checkout ───────────────────────────────────────
 app.post('/api/stripe/checkout', requireAuth, async (req, res) => {
   try {
-    const session = await stripe.checkout.sessions.create({
+    const { promoCode } = req.body;
+    const sessionParams = {
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
@@ -703,12 +704,48 @@ app.post('/api/stripe/checkout', requireAuth, async (req, res) => {
       customer_email: req.user.email,
       metadata: { userToken: req.headers['x-auth-token'] },
       locale: 'pt-BR',
-    });
+      allow_promotion_codes: false,
+    };
+    // Se vier um promoCode válido do Stripe, aplica direto
+    if (promoCode) {
+      sessionParams.discounts = [{ promotion_code: promoCode }];
+    }
+    const session = await stripe.checkout.sessions.create(sessionParams);
     res.json({ ok: true, url: session.url });
   } catch (err) {
     console.error('[Stripe] Checkout error:', err);
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+// Valida cupom — verifica se é cupom interno (dias Pro) ou Stripe (desconto)
+app.post('/api/coupon/validate', requireAuth, async (req, res) => {
+  const { code } = req.body;
+  if (!code) return res.status(400).json({ ok: false, error: 'Código obrigatório.' });
+
+  // 1. Verifica cupom interno primeiro (dias Pro grátis)
+  const pool2 = new (require('pg').Pool)({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  try {
+    const result = await pool2.query('SELECT * FROM coupons WHERE code = $1', [code.toUpperCase()]);
+    await pool2.end();
+    if (result.rows.length && result.rows[0].uses_remaining > 0) {
+      return res.json({ ok: true, type: 'internal', days: result.rows[0].days_pro, message: `🎉 Cupom válido! ${result.rows[0].days_pro} dias de Pro grátis.` });
+    }
+  } catch (e) { await pool2.end(); }
+
+  // 2. Verifica cupom Stripe (desconto no pagamento)
+  try {
+    const promoCodes = await stripe.promotionCodes.list({ code: code.toUpperCase(), active: true, limit: 1 });
+    if (promoCodes.data.length > 0) {
+      const promo = promoCodes.data[0];
+      const coupon = promo.coupon;
+      const discountText = coupon.percent_off ? `${coupon.percent_off}% de desconto` : `R$${(coupon.amount_off/100).toFixed(2)} de desconto`;
+      const durationText = coupon.duration === 'once' ? 'no primeiro mês' : coupon.duration === 'forever' ? 'em todas as cobranças' : `por ${coupon.duration_in_months} meses`;
+      return res.json({ ok: true, type: 'stripe', promoId: promo.id, message: `🎉 Cupom válido! ${discountText} ${durationText}.` });
+    }
+  } catch (e) { console.error('[Coupon] Stripe error:', e.message); }
+
+  res.json({ ok: false, error: 'Cupom inválido ou expirado.' });
 });
 
 app.get('/success', async (req, res) => {
