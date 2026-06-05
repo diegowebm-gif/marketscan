@@ -1595,7 +1595,7 @@ async function doSearch() {
 
   closeSidebar();
   const btn = document.getElementById('btn-search');
-  btn.disabled = true; btn.textContent = 'Buscando…';
+  btn.disabled = true; btn.innerHTML = '⏳ Buscando…';
   document.getElementById('listings-grid').innerHTML = '';
   document.getElementById('stats-grid').style.display = 'none';
   document.getElementById('filters').style.display = 'none';
@@ -1653,7 +1653,7 @@ async function doSearch() {
               }
             } else if (event === 'error' && data.message === 'limit_reached') {
               hideLoading();
-              btn.disabled = false; btn.textContent = 'Buscar';
+              btn.disabled = false; btn.innerHTML = '🔍 Buscar';
               document.getElementById('listings-grid').innerHTML = `
                 <div class="empty" style="grid-column:1/-1;padding:3rem 1rem">
                   <div style="font-size:2.5rem;margin-bottom:1rem">⏰</div>
@@ -1719,7 +1719,7 @@ async function doSearch() {
       toast('Erro na busca. Tente novamente.', 'error');
     }
   } finally {
-    btn.disabled = false; btn.textContent = 'Buscar';
+    btn.disabled = false; btn.innerHTML = '🔍 Buscar';
   }
 }
 
