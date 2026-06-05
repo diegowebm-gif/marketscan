@@ -1035,7 +1035,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
 }
 
 async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}, onBatch = null) {
-  const MAX_RETRIES = 2;
+  const MAX_RETRIES = 3;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       return await scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems, options, onBatch);
@@ -1048,7 +1048,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       );
       if (isTunnelError && attempt < MAX_RETRIES) {
         console.warn(`[Scraper] Erro de proxy na tentativa ${attempt}, tentando novamente... (${err.message.slice(0, 60)})`);
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 2000 * attempt));
         continue;
       }
       throw err;

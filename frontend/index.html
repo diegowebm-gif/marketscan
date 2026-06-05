@@ -1950,10 +1950,14 @@ async function doSearch() {
               if (data.message === 'limit_reached') {
                 // já tratado acima
               } else if (allListings.length === 0) {
-                // Só mostra erro se não tiver resultados ainda
                 hideLoading();
-                toast('Erro: ' + (data.message || 'tente novamente'), 'error');
-                document.getElementById('listings-grid').innerHTML = '<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">⚠️</div><p>Erro na busca. Tente novamente.</p></div>';
+                const rawMsg = data.message || '';
+                const isProxyError = rawMsg.includes('ERR_TUNNEL') || rawMsg.includes('ERR_PROXY') || rawMsg.includes('net::ERR') || rawMsg.includes('tunnel');
+                const userMsg = isProxyError
+                  ? 'Instabilidade temporária na conexão. Tente novamente em alguns segundos.'
+                  : (rawMsg || 'Tente novamente.');
+                toast('⚠️ ' + userMsg, 'error');
+                document.getElementById('listings-grid').innerHTML = `<div class="empty"><div style="font-size:2rem;margin-bottom:.5rem">🔄</div><p>${userMsg}</p><button onclick="doSearch()" style="margin-top:12px;padding:8px 20px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer">Tentar novamente</button></div>`;
               }
               resolve();
             }
