@@ -302,6 +302,16 @@ header {
   /* Header — esconde email, mostra só indicador */
   .session-badge span#status-text { display: none; }
   .header-right { gap: 6px; }
+  .trial-badge { display: none !important; }
+  .plan-badge { font-size: 10px !important; padding: 2px 6px !important; }
+  .logo { font-size: 1.1rem !important; }
+  .btn-logout .logout-text { display: none; }
+  .btn-logout .logout-icon { display: inline !important; }
+  .btn-logout { padding: 5px 10px !important; font-size: 14px !important; }
+  #btn-darkmode { padding: 2px 5px !important; font-size: 16px !important; }
+  #btn-profile { padding: 2px 5px !important; font-size: 16px !important; }
+  .app-header { padding: 0 .75rem !important; overflow: hidden; }
+  .session-badge { gap: 4px !important; }
 
   /* Banner alertas — compacto no mobile */
   #price-alert-banner { padding: .65rem .85rem; gap: 10px; }
@@ -327,11 +337,7 @@ header {
 }
 .sidebar-overlay.show { display: block; }
 
-.btn-menu {
-  display: none; background: none; border: none;
-  color: var(--text); font-size: 22px; cursor: pointer; padding: 4px 8px;
-}
-@media (max-width: 768px) { .btn-menu { display: flex; align-items: center; } }
+.btn-menu { display: none; }
 
 /* Painel de busca inline no mobile (antes da primeira busca) */
 #mobile-search-panel {
@@ -584,7 +590,6 @@ header {
 
 <header>
   <div style="display:flex;align-items:center;gap:10px">
-    <button class="btn-menu" id="btn-menu" onclick="toggleSidebar()" aria-label="Menu">☰</button>
     <div class="logo">Market<span>Scan</span></div>
   </div>
   <div class="session-badge">
@@ -594,7 +599,7 @@ header {
     <span id="trial-badge" class="trial-badge" style="display:none" title="Seu período de teste gratuito"></span>
     <button id="btn-darkmode" onclick="toggleDarkMode()" title="Alternar modo escuro" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s;margin-right:4px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">🌙</button>
     <button id="btn-profile" onclick="showProfileModal()" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s" title="Meu perfil" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">👤</button>
-    <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
+    <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()"><span class="logout-text">Sair</span><span class="logout-icon" style="display:none">↩</span></button>
   </div>
 </header>
 
