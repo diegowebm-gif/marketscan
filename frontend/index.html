@@ -825,9 +825,26 @@ function showForgotPassword() {
       <div class="auth-error" id="forgot-error"></div>
       <div id="forgot-success" style="font-size:12px;color:var(--success);background:var(--success-dim);padding:8px 12px;border-radius:var(--radius-sm);display:none"></div>
       <button class="btn-primary" style="width:100%" onclick="doForgotPassword()">Enviar link de redefinição</button>
-      <p style="text-align:center;margin-top:4px"><button type="button" onclick="switchAuthTab('login')" style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline">← Voltar ao login</button></p>
+      <p style="text-align:center;margin-top:4px"><button type="button" onclick="restoreLoginForm()" style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline">← Voltar ao login</button></p>
     </div>
   `;
+}
+
+function restoreLoginForm() {
+  const formLogin = document.getElementById('form-login');
+  formLogin.innerHTML = `
+    <div class="auth-form">
+      <input type="email" id="login-email" placeholder="Seu e-mail" />
+      <div style="position:relative;width:100%">
+        <input type="password" id="login-password" placeholder="Sua senha" style="width:100%;padding-right:40px" />
+        <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+      </div>
+      <div class="auth-error" id="login-error"></div>
+      <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
+      <p style="text-align:center;margin-top:4px"><button type="button" onclick="showForgotPassword()" style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline">Esqueci minha senha</button></p>
+    </div>
+  `;
+  switchAuthTab('login');
 }
 
 async function doForgotPassword() {
