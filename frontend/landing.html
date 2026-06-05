@@ -641,19 +641,74 @@ footer p { font-size: 12px; color: var(--text3); }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
+  /* Nav */
+  nav { padding: 1rem; }
+  nav .nav-links { display: none; }
+
+  /* Hero */
+  .hero { padding: 4rem 1.25rem 2rem; }
+  .hero h1 { font-size: 2.2rem; }
+  .hero p { font-size: 0.95rem; }
+  .hero-ctas { flex-direction: column; align-items: stretch; }
+  .hero-ctas a { text-align: center; justify-content: center; }
+  .hero-mockup { margin-top: 2.5rem; }
+
+  /* Mockup */
   .mockup-stats { grid-template-columns: repeat(2, 1fr); }
   .mockup-cards { grid-template-columns: repeat(2, 1fr); }
   .mockup-cards .mockup-card:last-child { display: none; }
   .alert-float { display: none; }
-  .steps { grid-template-columns: 1fr; }
+
+  /* Stats bar */
+  .stats-bar { grid-template-columns: 1fr; padding: 1rem; }
+  .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding: .75rem; }
+  .stat-item:last-child { border-bottom: none; }
+  .stat-num { font-size: 1.8rem; }
+
+  /* Sections */
+  .section { padding: 3.5rem 1.25rem; }
+  .section-title { font-size: 1.7rem; }
+  .section-sub { font-size: 0.95rem; }
+
+  /* Steps */
+  .steps { grid-template-columns: 1fr; gap: 1rem; }
+
+  /* Features */
   .features-grid { grid-template-columns: 1fr; }
   .feature-card.featured { grid-column: span 1; }
+
+  /* WhatsApp section */
+  .section [style*="grid-template-columns:1fr 1fr"],
+  div[style*="grid-template-columns:1fr 1fr"] { display: flex !important; flex-direction: column !important; gap: 2rem !important; }
+
+  /* Pricing */
   .pricing-grid { grid-template-columns: 1fr; }
+
+  /* Testimonials */
   .testimonials-grid { grid-template-columns: 1fr; }
-  .stats-bar { grid-template-columns: 1fr; }
-  .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
-  .stat-item:last-child { border-bottom: none; }
-  nav .nav-links { display: none; }
+
+  /* FAQ */
+  .faq-list { padding: 0; }
+
+  /* WhatsApp grid */
+  .wa-grid { grid-template-columns: 1fr !important; gap: 2rem !important; }
+
+  /* Buttons */
+  .btn-primary, .btn-secondary { padding: 12px 24px; font-size: 14px; width: 100%; text-align: center; justify-content: center; }
+  .btn-nav { padding: 7px 14px; font-size: 12px; }
+
+  /* CTA final */
+  .cta-section { padding: 4rem 1.25rem; }
+  .cta-section h2 { font-size: 1.7rem; }
+}
+
+@media (max-width: 480px) {
+  .hero h1 { font-size: 1.8rem; }
+  .mockup-content { padding: 1rem; }
+  .mockup-stats { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .mockup-stat-val { font-size: 1rem; }
+  .step-card { padding: 1.25rem; }
+  .feature-card { padding: 1.25rem; }
 }
 </style>
 </head>
@@ -796,15 +851,15 @@ footer p { font-size: 12px; color: var(--text3); }
   <div class="steps">
     <div class="step-card">
       <div class="step-num">01 —</div>
-      <span class="step-icon">🔗</span>
-      <div class="step-title">Conecte seu Facebook</div>
-      <div class="step-desc">Faça login uma única vez. Seus dados de sessão ficam salvos — nas próximas vezes é só abrir e buscar.</div>
+      <span class="step-icon">📝</span>
+      <div class="step-title">Crie sua conta grátis</div>
+      <div class="step-desc">Cadastro em menos de 1 minuto, sem cartão de crédito. Você já ganha 7 dias do plano Pro para testar tudo sem pagar nada.</div>
     </div>
     <div class="step-card">
       <div class="step-num">02 —</div>
       <span class="step-icon">🔍</span>
       <div class="step-title">Busque qualquer produto</div>
-      <div class="step-desc">Digite o produto, selecione a cidade. O MarketScan coleta os anúncios, calcula a média de preços e destaca as oportunidades automaticamente.</div>
+      <div class="step-desc">Digite o produto e a cidade. O MarketScan acessa o Marketplace em tempo real, calcula a média de preços e destaca as melhores oportunidades automaticamente.</div>
     </div>
     <div class="step-card" style="border-color:rgba(37,211,102,0.3)">
       <div class="step-num">03 —</div>
@@ -818,7 +873,7 @@ footer p { font-size: 12px; color: var(--text3); }
 
 <!-- WhatsApp Alert Section -->
 <section style="padding: 6rem 2rem; background: linear-gradient(180deg, transparent, rgba(37,211,102,0.04), transparent); position:relative; z-index:1;">
-  <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center">
+  <div class="wa-grid" style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center">
     <div>
       <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.12em;color:#25d366;text-transform:uppercase;margin-bottom:1rem">// alerta no whatsapp</p>
       <h2 style="font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;letter-spacing:-0.02em;line-height:1.15;margin-bottom:1.25rem">Você fecha o negócio<br><span style="color:#25d366">antes de todo mundo</span></h2>
