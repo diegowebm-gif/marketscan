@@ -155,11 +155,11 @@ header {
 
 .upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(6px); padding:1rem; }
 .upgrade-overlay.show { display:flex; }
-.upgrade-modal { background:var(--surface); border-radius:16px; max-width:520px; width:100%; box-shadow:0 40px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(106,13,173,0.2); overflow:hidden; }
-.upgrade-modal-hero { background:linear-gradient(135deg,#1a0533,#2d0a5e); padding:1.75rem 1.75rem 1.5rem; position:relative; overflow:hidden; }
+.upgrade-modal { background:var(--surface); border-radius:16px; max-width:520px; width:100%; box-shadow:0 40px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(106,13,173,0.2); overflow-y:auto; max-height:92vh; }
+.upgrade-modal-hero { background:linear-gradient(135deg,#1a0533,#2d0a5e); padding:1.25rem 1.25rem 1.1rem; position:relative; overflow:hidden; }
 .upgrade-modal-hero::before { content:''; position:absolute; top:-40px; right:-40px; width:200px; height:200px; background:radial-gradient(circle,rgba(106,13,173,0.4),transparent 70%); border-radius:50%; }
-.upgrade-modal-body { padding:1.5rem 1.75rem; }
-.upgrade-feature-list { display:flex; flex-direction:column; gap:10px; margin-bottom:1.5rem; }
+.upgrade-modal-body { padding:1.1rem 1.25rem; }
+.upgrade-feature-list { display:flex; flex-direction:column; gap:7px; margin-bottom:1rem; }
 .upgrade-feature-item { display:flex; align-items:flex-start; gap:10px; }
 .upgrade-feature-check { width:20px; height:20px; border-radius:50%; background:rgba(106,13,173,0.15); border:1px solid rgba(106,13,173,0.3); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; color:var(--accent); margin-top:1px; }
 .upgrade-coupon-row { display:flex; gap:8px; margin-bottom:1rem; }
@@ -531,7 +531,7 @@ header {
     <div class="upgrade-modal-hero">
       <button onclick="closeUpgradeModal()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:18px;cursor:pointer;border-radius:6px;padding:2px 8px;z-index:1">×</button>
       <p style="font-size:10px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,0.5);text-transform:uppercase;margin:0 0 8px;position:relative">// plano pro</p>
-      <h2 style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:#fff;margin:0 0 6px;position:relative">Encontre oportunidades<br><span style="color:#c084fc">antes de todo mundo</span></h2>
+      <h2 style="font-family:'Syne',sans-serif;font-size:clamp(1.1rem,4vw,1.5rem);font-weight:800;color:#fff;margin:0 0 6px;position:relative">Encontre oportunidades<br><span style="color:#c084fc">antes de todo mundo</span></h2>
       <p style="font-size:13px;color:rgba(255,255,255,0.65);margin:0 0 1.25rem;position:relative">Monitore o Marketplace 24h e receba alertas no WhatsApp quando aparecer um produto abaixo do preço.</p>
       <div style="display:flex;align-items:baseline;gap:8px;position:relative">
         <span style="font-size:2rem;font-weight:800;color:#fff" id="upgrade-price-display">R$ 29,90</span>
@@ -1349,7 +1349,8 @@ async function handleUpgrade() {
   // Fecha o modal e vai direto para o checkout do Stripe
   closeUpgradeModal();
   toast('Redirecionando para o pagamento...', '');
-  const res = await api('POST', '/api/stripe/checkout', {});
+  const res = await api('POST', '/api/stripe/checkout', { promoCode: _stripePendingPromo || undefined });
+  _stripePendingPromo = null;
   if (res?.ok && res?.url) {
     window.location.href = res.url;
   } else {
