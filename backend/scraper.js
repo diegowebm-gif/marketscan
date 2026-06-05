@@ -396,16 +396,6 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
   // Proxy auth já nas credenciais do --proxy-server
 
   try {
-    // Verifica IP de saída antes de tentar o login
-    try {
-      await page.goto('https://api.ipify.org?format=json', { waitUntil: 'domcontentloaded', timeout: 15000 });
-      const ipData = await page.evaluate(() => document.body.innerText).catch(() => '{}');
-      const ip = JSON.parse(ipData).ip || 'desconhecido';
-      console.log('[Proxy] IP de saída:', ip);
-    } catch (e) {
-      console.warn('[Proxy] Não foi possível verificar IP:', e.message);
-    }
-
     await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 40000 });
 
     // Aguarda a página de login carregar completamente
@@ -440,7 +430,7 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     // Pressiona Enter para submeter
     await passSel.press('Enter');
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => null);
+    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => null);
 
     const url = page.url();
     const cookies = await page.cookies();
@@ -583,7 +573,7 @@ async function checkLogin(sessionId) {
 
 // ─── Scraping ─────────────────────────────────────────────
 
-async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}, onBatch = null) {
+async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems = 40, options = {}, onBatch = null) {
   // Usa sessão compartilhada se disponível, senão usa a do próprio usuário
   const sharedSessionId = await ensureSharedSession();
   const effectiveSessionId = sharedSessionId || sessionId;
@@ -784,335 +774,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     'cuiaba — centro':'cuiaba',
     'belem — nazare':'nazare-belem','belem — umarizal':'umarizal',
     'belem — marco':'marco-belem','belem — pedreira':'pedreira-belem',
-  
-    // IDs mapeados automaticamente
-    'abaetetuba':'108639015827000',
-    'acailândia':'151651644882964',
-    'acarau':'109573962402495',
-    'alagoinhas':'105575622808651',
-    'alegrete':'106530792714438',
-    'alhandra':'112908815392658',
-    'almirante tamandare':'108030519218760',
-    'alta floresta':'180706935288350',
-    'altamira':'106052312767580',
-    'amparo':'113310682017264',
-    'anchieta':'115221851825691',
-    'apiuna':'106250592740089',
-    'apodi':'110525402307152',
-    'apucarana':'107664652596260',
-    'aracruz':'108673089164054',
-    'araguaina':'106227936075145',
-    'araguari':'108653189159915',
-    'arapongas':'106505452716653',
-    'araranguá':'111941265488819',
-    'araraquara':'108259652527599',
-    'araucaria':'108050219216728',
-    'araxa':'112506905430043',
-    'araçatuba':'103121836395318',
-    'arcoverde':'104941129541687',
-    'areia branca':'108195415868706',
-    'ariquemes':'109390739086333',
-    'assis':'112745438740490',
-    'atibaia':'111108838914089',
-    'aurora':'185090504838850',
-    'avare':'103102633063518',
-    'bacabal':'108460479177820',
-    'bag':'110579472303567',
-    'bage':'110579472303567',
-    'balneario camboriu':'108416972513126',
-    'balsa nova':'109570505735843',
-    'balsas':'110381898991056',
-    'bandeirantes':'103121836395318',
-    'barbacena':'108119922549873',
-    'barcarena':'107441045958335',
-    'barra do garças':'107005122664265',
-    'barra do pirai':'106114152754104',
-    'barretos':'111734538845160',
-    'baturite':'106832866014113',
-    'bayeux':'111565675527114',
-    'belo jardim':'113388775341291',
-    'bertioga':'115121888503532',
-    'bezerros':'103116713062530',
-    'biguacu':'103127443060754',
-    'birigui':'111808582172409',
-    'boa vista':'103798122992844',
-    'bombinhas':'109303769088586',
-    'botucatu':'107534225936550',
-    'bragança paulista':'107830759246440',
-    'brodowski':'115372511810763',
-    'brumadinho':'107898525904985',
-    'brusque':'109458192405408',
-    'cabedelo':'104077609629100',
-    'cabo de santo agostinho':'150108461701384',
-    'cachoeira':'104693599569469',
-    'cacoal':'107463155950244',
-    'caetes':'112249115454035',
-    'caico':'107788405910989',
-    'cajazeiras':'107780699245016',
-    'caldas novas':'113592861989509',
-    'camaqua':'109438402408740',
-    'camaragibe':'112970645384637',
-    'camboriu':'108416972513126',
-    'camocim':'110349285657536',
-    'campo largo':'103794712992471',
-    'campo limpo paulista':'175848982426792',
-    'campo maior':'107065775990932',
-    'campo mourao':'111722322185417',
-    'campos novos':'108339329190739',
-    'cananeia':'104097596294329',
-    'candeias':'106102156088345',
-    'caninde':'103774349661926',
-    'capivari':'108130222547762',
-    'caracarai':'112208508794620',
-    'caratinga':'105995526097735',
-    'carazinho':'107018325995260',
-    'cascavel':'1595221914094128',
-    'cataguases':'111501098867508',
-    'catalao':'110026382353925',
-    'catanduva':'108373062520402',
-    'caxias':'110540862306824',
-    'caçador':'108580659166601',
-    'cerquilho':'108161639204701',
-    'chorozinho':'109062239115223',
-    'coari':'108471949182271',
-    'codó':'105370456163715',
-    'colatina':'107463059276374',
-    'colombo':'108110605890492',
-    'conde':'113245178687216',
-    'congonhas':'108527505838840',
-    'conselheiro lafaiete':'106111339419954',
-    'contenda':'112394712109103',
-    'cornelio procopio':'108449725845788',
-    'coronel fabriciano':'106065959425485',
-    'corumba':'109062165779457',
-    'crato':'114964508518222',
-    'cravinhos':'107958925898529',
-    'cruz das almas':'109216022439773',
-    'cruzeiro do sul':'135851093139473',
-    'cubatao':'111750952175364',
-    'curitibanos':'113226902024196',
-    'delmiro gouveia':'109464792413314',
-    'dom pedrito':'106061392757550',
-    'dourados':'105542109478368',
-    'dracena':'112336908778693',
-    'erechim':'109571869069371',
-    'esmeraldas':'105698479463894',
-    'estrela':'111973172161046',
-    'fazenda rio grande':'174365399260367',
-    'fernandopolis':'109493952401635',
-    'floriano':'110495088976395',
-    'formosa':'106419862726874',
-    'foz do iguacu':'107845332577217',
-    'fraiburgo':'132759726777713',
-    'frutal':'112942778716868',
-    'garanhuns':'106036499436414',
-    'gaspar':'109389479079850',
-    'goianira':'108417729181341',
-    'goioere':'171405649554447',
-    'gravataí':'109289649089579',
-    'grossos':'109340355759479',
-    'guapo':'103154179725302',
-    'guarabira':'107953015899196',
-    'guaramiranga':'109210479103791',
-    'guaraniacu':'104096126293753',
-    'guarapari':'104055882964648',
-    'guarapuava':'111775985505817',
-    'gurupi':'108144619210745',
-    'horizonte':'100308371472701',
-    'ibirite':'112856812058682',
-    'iconha':'102182376490104',
-    'iguape':'104064876297545',
-    'iguatu':'105592592808735',
-    'ijui':'112745438740490',
-    'ilha comprida':'1127876040572116',
-    'ilhota':'109352732416249',
-    'imbituba':'112601968751141',
-    'irece':'108089349211829',
-    'itabaiana':'104366186270185',
-    'itabirito':'111931355497405',
-    'itacoatiara':'109573929061931',
-    'itapema':'101884336520624',
-    'itapetininga':'112323638779218',
-    'itapipoca':'112332045445595',
-    'itatiba':'104136262955890',
-    'itu':'106273692741859',
-    'ituiutaba':'103743419664068',
-    'itumbiara':'108257105863067',
-    'iturama':'104926502876159',
-    'ivaipora':'108190595868839',
-    'jaboticabal':'107977462563610',
-    'jacobina':'106142619417143',
-    'jarinu':'103770316328472',
-    'jatai':'105542109478368',
-    'jaú':'108387972514980',
-    'jequie':'109522185733552',
-    'ji parana':'108211119206430',
-    'joao monlevade':'110481818978767',
-    'juara':'166222813409470',
-    'lagarto':'111996378817689',
-    'lages':'105590669475875',
-    'lagoa santa':'108370799188255',
-    'laguna':'109614629057602',
-    'lajeado':'107397062629205',
-    'laranjal do jari':'172997372730578',
-    'laranjal paulista':'104035012966841',
-    'leopoldina':'104121269623246',
-    'limoeiro':'103811112990589',
-    'lindoia':'104216712947605',
-    'linhares':'108598895838221',
-    'lins':'111748935511493',
-    'louveira':'105981376099075',
-    'luis eduardo magalhaes':'170562112963167',
-    'luiz alves':'109289499089349',
-    'luziania':'106684186032090',
-    'madre de deus':'108336839190035',
-    'manacapuru':'109025692448490',
-    'maracaju':'112630502084744',
-    'maragogipe':'108328065862111',
-    'maranguape':'108072382554499',
-    'mariana':'109671235725766',
-    'maringa':'111837995502320',
-    'matozinhos':'105558042811425',
-    'mendes':'108313579189484',
-    'mesquita':'114493041900495',
-    'miguel pereira':'108232345864033',
-    'mineiros':'112766178736948',
-    'miracatu':'104095792961148',
-    'mirassol':'111283858895818',
-    'mogi guacu':'177692522248459',
-    'moju':'108440489180996',
-    'mombuca':'103115166395453',
-    'mongagua':'106456742725072',
-    'morungaba':'113642911983957',
-    'mossoró':'106099089421918',
-    'muriae':'107793705916959',
-    'navegantes':'112414045436402',
-    'naviraí':'112875775393654',
-    'nova andradina':'178237202189948',
-    'nova lima':'115602175121479',
-    'oeiras':'108660982498721',
-    'olimpia':'116817128328386',
-    'ourinhos':'105758466125069',
-    'ouro preto':'114456011899884',
-    'pacajus':'113062128707004',
-    'palhoca':'104099219626468',
-    'palmas':'106042842768775',
-    'paracambi':'109378812414245',
-    'paracatu':'114752231870318',
-    'paragominas':'104134016290790',
-    'paraiso do tocantins':'107597559270020',
-    'paranagua':'111101128914166',
-    'parauapebas':'168439983195266',
-    'parintins':'105741709460482',
-    'parnaiba':'103135443060083',
-    'patos':'100308371472701',
-    'patos de minas':'104159176287701',
-    'patu':'112288942116008',
-    'paty do alferes':'175812682443534',
-    'pau dos ferros':'105525756146550',
-    'pedreira':'109375992422632',
-    'pedreiras':'108905365803996',
-    'pedro leopoldo':'104090482959785',
-    'penapolis':'107959479224270',
-    'penedo':'111653428852359',
-    'peruibe':'112019012147264',
-    'pesqueira':'109491432415350',
-    'petrolina':'112503348760834',
-    'picos':'109688562382282',
-    'pimenta bueno':'104040512965826',
-    'pinhais':'109743579045077',
-    'pirassununga':'109308775762582',
-    'piraí':'107618299267639',
-    'pitanga':'107151975982677',
-    'piuma':'103733292998745',
-    'pocos de caldas':'108182879201893',
-    'pojuca':'112418538770933',
-    'ponta grossa':'100244790017752',
-    'ponta pora':'113145558699312',
-    'pontal':'105604599474296',
-    'porto belo':'112195532130087',
-    'porto nacional':'106243039406959',
-    'porto seguro':'103114646394765',
-    'presidente prudente':'106292852734722',
-    'queimados':'109694595723037',
-    'quixada':'103132436394293',
-    'quixeramobim':'110296678989518',
-    'rafard':'112776698736628',
-    'redenção':'111542768912691',
-    'registro':'104038469633699',
-    'ribeirao das neves':'112639612080640',
-    'rio branco':'135136389876246',
-    'rio claro':'108105659222437',
-    'rio grande':'113412225339351',
-    'rio novo do sul':'115179525161253',
-    'rolim de moura':'103796956326394',
-    'santa cruz do capibaribe':'113197418696506',
-    'santa cruz do sul':'111951238821548',
-    'santa ines':'112483182101738',
-    'santa rita':'106440186055843',
-    'santa rosa':'105811186126463',
-    'santana':'110479422305767',
-    'santana do livramento':'106454862723033',
-    'santo antonio de jesus':'116192215057877',
-    'sao carlos':'112077055478039',
-    'sao cristovao':'108775482480088',
-    'sao gabriel da cachoeira':'106145076083359',
-    'sao joao del rei':'112577395421470',
-    'sao joaquim':'108344259193049',
-    'sao jose':'109342319085733',
-    'sao jose do norte':'104083952960573',
-    'sao jose do rio preto':'108568625834990',
-    'sao jose dos pinhais':'113048332042619',
-    'sao manuel':'112168952129139',
-    'sarzedo':'105610852806528',
-    'sena madureira':'107970455897242',
-    'senador canedo':'110151399004753',
-    'sertaozinho':'104755609563629',
-    'sidrolandia':'103725122999187',
-    'simoes filho':'125354274193275',
-    'sousa':'108268095867696',
-    'surubim':'111736142176345',
-    'tabatinga':'110395772312532',
-    'tailandia':'126031927460575',
-    'tanabi':'110150832341665',
-    'tangara da serra':'103113736396125',
-    'tarauaca':'103749819663523',
-    'tatuí':'112866355394783',
-    'tefé':'112297138787006',
-    'teutonia':'485432571612614',
-    'tiangua':'112684668744419',
-    'tietê':'109659935727217',
-    'tijucas':'112292485450576',
-    'timbauba':'109045975790967',
-    'timbo':'184128774934281',
-    'timoteo':'112786675401879',
-    'toledo':'798908626873690',
-    'toritama':'113249585357064',
-    'tres lagoas':'109087319108959',
-    'tres passos':'107931262568942',
-    'tres rios':'108333322524929',
-    'trindade':'135851093139473',
-    'tubarao':'108212005867000',
-    'tucurui':'105412069491557',
-    'tupã':'105558712810089',
-    'uba':'106278306076939',
-    'uberaba':'111939948825320',
-    'umuarama':'108424242515911',
-    'unai':'105708079462521',
-    'uniao dos palmares':'108164789210988',
-    'valenca':'107897182565958',
-    'valinhos':'111713975512458',
-    'varginha':'115800968430393',
-    'vassouras':'108175215877398',
-    'vertentes':'113520751998486',
-    'vespasiano':'102819016421238',
-    'viamao':'103784476326467',
-    'vicosa':'108506229173580',
-    'videira':'108085732553038',
-    'vilhena':'102184459822836',
-    'vinhedo':'105614539471753',
-    'votuporanga':'104040092965853',
-};
+  };
 
   const cityRaw = (options.city || '').split(',')[0].trim()
     .toLowerCase()
@@ -1190,14 +852,14 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     let lastEmittedCount = 0;
     for (let i = 0; i < 3; i++) {
       await page.evaluate(() => window.scrollBy(0, window.innerHeight * 3));
-      await delay(800);
+      await delay(500);
       const count = await page.$$eval('a[href*="/marketplace/item/"]', els => els.length).catch(() => 0);
       console.log(`[Scraper] [T] Scroll ${i+1}/3 | anúncios: ${count} [${Date.now()}]`);
 
       // Emite batch após primeiro scroll com anúncios suficientes
       if (onBatch && count > lastEmittedCount) {
         // Emite batch em qualquer scroll se tiver anúncios novos
-        await delay(500);
+        await delay(300);
         try {
           const partialRaw = await page.evaluate(() => {
             const results = [];
@@ -1232,7 +894,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     }
     // Volta ao topo para garantir que todos os itens estão no DOM
     await page.evaluate(() => window.scrollTo(0, 0));
-    await delay(500);
+    await delay(300);
     
     console.log(`[Scraper] [T] Coletando dados dos anúncios... [${Date.now()}]`);
     // Aguarda títulos reais carregarem (substituem "Acabou de ser anunciado")
@@ -1369,6 +1031,28 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     await browser.close().catch(() => null);
     throw err;
+  }
+}
+
+async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, options = {}, onBatch = null) {
+  const MAX_RETRIES = 2;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems, options, onBatch);
+    } catch (err) {
+      const isTunnelError = err.message && (
+        err.message.includes('ERR_TUNNEL_CONNECTION_FAILED') ||
+        err.message.includes('ERR_PROXY_CONNECTION_FAILED') ||
+        err.message.includes('net::ERR_') ||
+        err.message.includes('tunnel')
+      );
+      if (isTunnelError && attempt < MAX_RETRIES) {
+        console.warn(`[Scraper] Erro de proxy na tentativa ${attempt}, tentando novamente... (${err.message.slice(0, 60)})`);
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      throw err;
+    }
   }
 }
 
