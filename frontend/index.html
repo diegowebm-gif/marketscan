@@ -1057,10 +1057,17 @@ window.onload = async () => {
     const res = await api('GET', '/api/auth/me');
     if (res?.ok) {
       currentUser = res;
-      // Facebook não é mais necessário — vai direto pro app
       showApp();
       return;
     }
+    // Só desloga se o servidor explicitamente recusou (token inválido)
+    // Se res === null é erro de rede — mantém logado e tenta mostrar app
+    if (res === null) {
+      // Erro de rede/timeout — mantém token e mostra app mesmo assim
+      showApp();
+      return;
+    }
+    // res.ok === false com resposta do servidor — token inválido
     localStorage.removeItem('mkt_token');
     authToken = null;
   }
@@ -2247,7 +2254,7 @@ async function api(method, url, body) {
     opts.signal = controller.signal;
     const res = await (await fetch(url, opts)).json();
     clearTimeout(timeout);
-    if (res?.error?.includes('autenticado') && url !== '/api/auth/login') {
+    if (res?.error?.includes('autenticado') && url !== '/api/auth/login' && url !== '/api/auth/me') {
       localStorage.removeItem('mkt_token'); authToken = null; currentUser = null; showAuth();
     }
     return res;

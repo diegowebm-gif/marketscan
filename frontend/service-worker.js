@@ -1,8 +1,5 @@
-const CACHE_NAME = 'marketscan-v1';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-];
+const CACHE_NAME = 'marketscan-v2';
+const STATIC_ASSETS = ['/'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -21,9 +18,11 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Só cacheia GET e não cacheia chamadas de API
+  // Nunca cacheia API, auth ou index.html (para não servir versão stale)
   if (event.request.method !== 'GET') return;
   if (event.request.url.includes('/api/')) return;
+  if (event.request.url.includes('index.html')) return;
+  if (event.request.url.endsWith('/')) return;
 
   event.respondWith(
     fetch(event.request)
