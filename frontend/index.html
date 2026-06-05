@@ -507,15 +507,17 @@ header {
 #toast.error { background: #fef2f2; color: #b91c1c; box-shadow: 0 4px 16px rgba(185,28,28,0.15); }
 
 @media (max-width: 768px) {
+  .upgrade-overlay { padding: .5rem !important; align-items: center !important; }
+  .upgrade-modal { width: calc(100vw - 1rem) !important; max-width: 100% !important; margin: 0 !important; }
   .upgrade-modal-hero { padding: .9rem 1rem .8rem; }
   .upgrade-modal-hero h2 { font-size: 1.1rem !important; }
   .upgrade-modal-hero p { font-size: 11px; margin-bottom: .75rem; }
-  .upgrade-modal-hero > div[style*="2rem"] { font-size: 1.5rem !important; }
   .upgrade-modal-body { padding: .9rem 1rem; }
   .upgrade-feature-list { gap: 5px; margin-bottom: .75rem; }
   .upgrade-feature-item p:first-child { font-size: 12px !important; }
   .upgrade-feature-item p:last-child { font-size: 10px !important; }
   .upgrade-feature-check { width: 18px; height: 18px; font-size: 10px; }
+  .upgrade-coupon-row { gap: 6px; }
   .upgrade-coupon-row input { padding: 7px 10px; font-size: 11px; }
   .upgrade-coupon-row button { padding: 7px 10px; font-size: 11px; }
   #btn-assinar-pro { padding: 11px; font-size: 13px; }
