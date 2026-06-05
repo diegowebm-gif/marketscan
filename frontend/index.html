@@ -153,9 +153,20 @@ header {
 .plan-badge.free { background:#f3f4f6; color:#6b7280; }
 .plan-badge.pro { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; }
 
-.upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
+.upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(6px); padding:1rem; }
 .upgrade-overlay.show { display:flex; }
-.upgrade-modal { background:var(--surface); border-radius:var(--radius); padding:2rem; max-width:480px; width:90%; box-shadow:var(--shadow-md); }
+.upgrade-modal { background:var(--surface); border-radius:16px; max-width:520px; width:100%; box-shadow:0 40px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(106,13,173,0.2); overflow:hidden; }
+.upgrade-modal-hero { background:linear-gradient(135deg,#1a0533,#2d0a5e); padding:1.75rem 1.75rem 1.5rem; position:relative; overflow:hidden; }
+.upgrade-modal-hero::before { content:''; position:absolute; top:-40px; right:-40px; width:200px; height:200px; background:radial-gradient(circle,rgba(106,13,173,0.4),transparent 70%); border-radius:50%; }
+.upgrade-modal-body { padding:1.5rem 1.75rem; }
+.upgrade-feature-list { display:flex; flex-direction:column; gap:10px; margin-bottom:1.5rem; }
+.upgrade-feature-item { display:flex; align-items:flex-start; gap:10px; }
+.upgrade-feature-check { width:20px; height:20px; border-radius:50%; background:rgba(106,13,173,0.15); border:1px solid rgba(106,13,173,0.3); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:11px; color:var(--accent); margin-top:1px; }
+.upgrade-coupon-row { display:flex; gap:8px; margin-bottom:1rem; }
+.upgrade-coupon-row input { flex:1; padding:9px 12px; border-radius:var(--radius-sm); border:1.5px solid var(--border2); background:var(--surface2); color:var(--text); font-family:'Inter',sans-serif; font-size:12px; outline:none; transition:border-color .2s; text-transform:uppercase; }
+.upgrade-coupon-row input:focus { border-color:var(--accent); }
+.upgrade-coupon-row button { padding:9px 14px; border-radius:var(--radius-sm); border:1.5px solid var(--accent); background:transparent; color:var(--accent); font-size:12px; font-weight:600; font-family:'Inter',sans-serif; cursor:pointer; white-space:nowrap; transition:all .2s; }
+.upgrade-coupon-row button:hover { background:var(--accent); color:#fff; }
 .upgrade-modal h2 { font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; margin-bottom:.5rem; }
 .upgrade-modal p { font-size:13px; color:var(--text2); margin-bottom:1.25rem; }
 .plans-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:1.25rem; }
@@ -514,48 +525,53 @@ header {
   </div>
 </header>
 
-<div class="upgrade-overlay" id="upgrade-overlay">
-  <div class="upgrade-modal" style="max-width:480px;width:92%;padding:1.5rem">
-    <div style="text-align:center;margin-bottom:1.25rem">
-      <p style="font-family:'Syne',sans-serif;font-size:1.25rem;font-weight:800;color:var(--text);margin:0 0 4px">Escolha seu plano</p>
-      <p style="font-size:13px;color:var(--text2);margin:0">Encontre as melhores oportunidades do Marketplace</p>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:1rem">
-      <!-- Free -->
-      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:.9rem">
-        <p style="font-size:14px;font-weight:600;color:var(--text);margin:0 0 4px">Free</p>
-        <p style="font-size:20px;font-weight:700;color:var(--text);margin:0 0 2px">R$ 0 <span style="font-size:11px;font-weight:400;color:var(--text2)">/mês</span></p>
-        <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.4">Para começar</p>
-        <ul style="list-style:none;padding:0;margin:0 0 14px;display:flex;flex-direction:column;gap:6px">
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> 20 anúncios/busca</li>
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> Score de oportunidade</li>
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> Filtro de preço</li>
-          <li style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px"><span style="font-size:13px">✕</span> Alertas de preço</li>
-          <li style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px"><span style="font-size:13px">✕</span> Histórico de preços</li>
-          <li style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px"><span style="font-size:13px">✕</span> Calculadora de lucro</li>
-          <li style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px"><span style="font-size:13px">✕</span> Palavras bloqueadas</li>
-        </ul>
-        <button onclick="closeUpgradeModal()" style="width:100%;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer">Continuar free</button>
+<div class="upgrade-overlay" id="upgrade-overlay" onclick="if(event.target===this)closeUpgradeModal()">
+  <div class="upgrade-modal">
+    <!-- Hero -->
+    <div class="upgrade-modal-hero">
+      <button onclick="closeUpgradeModal()" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:18px;cursor:pointer;border-radius:6px;padding:2px 8px;z-index:1">×</button>
+      <p style="font-size:10px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,0.5);text-transform:uppercase;margin:0 0 8px;position:relative">// plano pro</p>
+      <h2 style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:#fff;margin:0 0 6px;position:relative">Encontre oportunidades<br><span style="color:#c084fc">antes de todo mundo</span></h2>
+      <p style="font-size:13px;color:rgba(255,255,255,0.65);margin:0 0 1.25rem;position:relative">Monitore o Marketplace 24h e receba alertas no WhatsApp quando aparecer um produto abaixo do preço.</p>
+      <div style="display:flex;align-items:baseline;gap:8px;position:relative">
+        <span style="font-size:2rem;font-weight:800;color:#fff" id="upgrade-price-display">R$ 29,90</span>
+        <span style="font-size:13px;color:rgba(255,255,255,0.5)">/mês</span>
+        <span id="upgrade-original-price" style="display:none;font-size:13px;color:rgba(255,255,255,0.4);text-decoration:line-through">R$ 29,90</span>
       </div>
-      <!-- Pro -->
-      <div style="background:var(--surface);border:2px solid var(--accent);border-radius:var(--radius);padding:.9rem;position:relative">
-        <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;white-space:nowrap">Mais popular</div>
-        <p style="font-size:14px;font-weight:600;color:var(--accent);margin:0 0 4px">Pro</p>
-        <p style="font-size:20px;font-weight:700;color:var(--accent);margin:0 0 2px">R$ 29,90 <span style="font-size:11px;font-weight:400;color:var(--text2)">/mês</span></p>
-        <p style="font-size:11px;color:var(--text2);margin:0 0 12px;line-height:1.4">Para revendedores</p>
-        <ul style="list-style:none;padding:0;margin:0 0 14px;display:flex;flex-direction:column;gap:6px">
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> 100 anúncios/busca</li>
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> Score de oportunidade</li>
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> Filtro de preço</li>
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> Alertas de preço</li>
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> Histórico de preços</li>
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> Calculadora de lucro</li>
-          <li style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px"><span style="color:#16a34a;font-size:13px">✓</span> Palavras bloqueadas</li>
-        </ul>
-        <button onclick="handleUpgrade()" style="width:100%;padding:8px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer">Assinar Pro</button>
-      </div>
+      <p style="font-size:11px;color:rgba(255,255,255,0.4);margin:4px 0 0;position:relative">Cancele quando quiser · Sem fidelidade</p>
     </div>
-    <p style="text-align:center;font-size:11px;color:var(--text3);margin:0">Cancele quando quiser · Pagamento seguro via Stripe</p>
+    <!-- Body -->
+    <div class="upgrade-modal-body">
+      <!-- Features -->
+      <div class="upgrade-feature-list">
+        <div class="upgrade-feature-item">
+          <div class="upgrade-feature-check">✓</div>
+          <div><p style="font-size:13px;font-weight:600;color:var(--text);margin:0 0 1px">100 anúncios por busca</p><p style="font-size:11px;color:var(--text2);margin:0">5x mais resultados que o plano Free</p></div>
+        </div>
+        <div class="upgrade-feature-item">
+          <div class="upgrade-feature-check" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);color:#25d366">✓</div>
+          <div><p style="font-size:13px;font-weight:600;color:var(--text);margin:0 0 1px">Alertas no WhatsApp 📲</p><p style="font-size:11px;color:var(--text2);margin:0">Seja avisado na hora sem abrir o app</p></div>
+        </div>
+        <div class="upgrade-feature-item">
+          <div class="upgrade-feature-check">✓</div>
+          <div><p style="font-size:13px;font-weight:600;color:var(--text);margin:0 0 1px">Histórico de preços</p><p style="font-size:11px;color:var(--text2);margin:0">Veja a tendência de preços dos últimos meses</p></div>
+        </div>
+        <div class="upgrade-feature-item">
+          <div class="upgrade-feature-check">✓</div>
+          <div><p style="font-size:13px;font-weight:600;color:var(--text);margin:0 0 1px">Calculadora de lucro + Palavras bloqueadas</p><p style="font-size:11px;color:var(--text2);margin:0">Calcule margem e filtre anúncios irrelevantes</p></div>
+        </div>
+      </div>
+      <!-- Cupom -->
+      <p style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:0 0 6px">🎟️ Tem um cupom?</p>
+      <div class="upgrade-coupon-row">
+        <input type="text" id="upgrade-coupon-input" placeholder="CÓDIGO DO CUPOM" oninput="this.value=this.value.toUpperCase()" />
+        <button onclick="applyUpgradeCoupon()">Aplicar</button>
+      </div>
+      <p id="upgrade-coupon-msg" style="font-size:11px;min-height:16px;margin:0 0 1rem;color:var(--success)"></p>
+      <!-- CTA -->
+      <button onclick="handleUpgrade()" id="btn-assinar-pro" style="width:100%;padding:13px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:700;font-size:14px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(106,13,173,0.35)">Assinar Pro — R$ 29,90/mês</button>
+      <button onclick="closeUpgradeModal()" style="width:100%;padding:8px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--text3);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;margin-top:6px">Continuar no plano Free</button>
+    </div>
   </div>
 </div>
 
@@ -1274,8 +1290,61 @@ async function doTwoFactor() {
   setAuthStatus('Erro: ' + (res.error || 'Código inválido.'));
 }
 
-function showUpgradeModal() { document.getElementById('upgrade-overlay').classList.add('show'); }
-function closeUpgradeModal() { document.getElementById('upgrade-overlay').classList.remove('show'); }
+function showUpgradeModal() {
+  // Reset estado do cupom ao abrir
+  _stripePendingPromo = null;
+  const msgEl = document.getElementById('upgrade-coupon-msg');
+  if (msgEl) msgEl.textContent = '';
+  const input = document.getElementById('upgrade-coupon-input');
+  if (input) input.value = '';
+  const priceDisplay = document.getElementById('upgrade-price-display');
+  if (priceDisplay) priceDisplay.textContent = 'R$ 29,90';
+  const origPrice = document.getElementById('upgrade-original-price');
+  if (origPrice) origPrice.style.display = 'none';
+  const btn = document.getElementById('btn-assinar-pro');
+  if (btn) btn.textContent = 'Assinar Pro — R$ 29,90/mês';
+  document.getElementById('upgrade-overlay').classList.add('show');
+}
+function closeUpgradeModal() {
+  document.getElementById('upgrade-overlay').classList.remove('show');
+}
+
+async function applyUpgradeCoupon() {
+  const code = document.getElementById('upgrade-coupon-input').value.trim();
+  if (!code) return;
+  const msgEl = document.getElementById('upgrade-coupon-msg');
+  msgEl.style.color = 'var(--text2)';
+  msgEl.textContent = 'Validando...';
+
+  const validation = await api('POST', '/api/coupon/validate', { code });
+  if (!validation?.ok) {
+    msgEl.style.color = 'var(--danger)';
+    msgEl.textContent = validation?.error || 'Cupom inválido.';
+    return;
+  }
+
+  msgEl.style.color = 'var(--success)';
+  msgEl.textContent = '✅ ' + validation.message.replace('🎉 Cupom válido! ', '');
+
+  if (validation.type === 'stripe') {
+    _stripePendingPromo = validation.promoId;
+    // Atualiza preço visual para R$19,90
+    const priceDisplay = document.getElementById('upgrade-price-display');
+    const origPrice = document.getElementById('upgrade-original-price');
+    const btn = document.getElementById('btn-assinar-pro');
+    if (priceDisplay) priceDisplay.textContent = 'R$ 19,90';
+    if (origPrice) { origPrice.style.display = 'inline'; }
+    if (btn) btn.textContent = 'Assinar Pro — R$ 19,90 no 1º mês';
+  } else if (validation.type === 'internal') {
+    // Cupom de dias grátis — aplica direto e fecha modal
+    const res = await api('POST', '/api/coupon/apply', { code });
+    if (res?.ok) {
+      toast(res.message || `✅ ${validation.days} dias Pro ativados!`, 'success');
+      closeUpgradeModal();
+      setTimeout(() => location.reload(), 1500);
+    }
+  }
+}
 async function handleUpgrade() {
   // Fecha o modal e vai direto para o checkout do Stripe
   closeUpgradeModal();
