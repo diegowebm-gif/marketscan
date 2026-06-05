@@ -160,7 +160,7 @@ header {
 .plan-badge.free { background:#f3f4f6; color:#6b7280; }
 .plan-badge.pro { background:linear-gradient(135deg,#7c3aed,#4f46e5); color:#fff; }
 
-.upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:300; align-items:flex-start; justify-content:center; backdrop-filter:blur(6px); padding:.5rem; overflow-y:auto; }
+.upgrade-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:300; align-items:center; justify-content:center; backdrop-filter:blur(6px); padding:1rem; overflow-y:auto; }
 .upgrade-overlay.show { display:flex; }
 .upgrade-modal { background:var(--surface); border-radius:16px; max-width:520px; width:100%; box-shadow:0 40px 80px rgba(0,0,0,0.5),0 0 0 1px rgba(106,13,173,0.2); margin:auto; }
 .upgrade-modal-hero { background:linear-gradient(135deg,#1a0533,#2d0a5e); padding:1.25rem 1.25rem 1.1rem; position:relative; overflow:hidden; }
@@ -216,7 +216,7 @@ header {
 .app-footer a:hover { color: var(--accent); }
 .app-footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
 @media (max-width: 768px) { .app-footer { flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: .75rem 1rem; } .app-footer-links { justify-content: center; gap: 12px; } }
-.app-layout { display: flex; min-height: calc(100vh - 56px); }
+.app-layout { display: flex; min-height: calc(100vh - 56px); max-width: 1400px; margin: 0 auto; width: 100%; }
 
 .sidebar {
   width: 300px; min-width: 300px; background: var(--surface);
@@ -235,8 +235,8 @@ header {
     width: 85vw; max-width: 320px;
   }
   .sidebar.open { transform: translateX(0); }
-  .main-content { padding: .75rem; }
-  .app-layout { display: block; }
+  .main-content { padding: .75rem; width: 100%; box-sizing: border-box; }
+  .app-layout { display: block; width: 100%; }
   
   /* Stats — 2 colunas compactas */
   .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: .75rem; }
@@ -647,7 +647,7 @@ header {
   </div>
 </div>
 
-<div id="screen-app">
+<div id="screen-app" style="width:100%;overflow-x:hidden">
   <div class="app-layout">
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
