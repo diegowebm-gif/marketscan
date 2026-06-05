@@ -216,9 +216,56 @@ header {
 .app-footer a:hover { color: var(--accent); }
 .app-footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
 @media (max-width: 768px) { .app-footer { flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: .75rem 1rem; } .app-footer-links { justify-content: center; gap: 12px; } }
-.app-layout { display: flex; min-height: calc(100vh - 56px); width: 100%; }
+.app-layout { display: block; min-height: calc(100vh - 56px); width: 100%; }
 
-.sidebar {
+/* Novo painel de busca fixo no topo */
+.search-panel {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: .75rem 1.5rem;
+  box-shadow: var(--shadow);
+}
+.search-panel-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.search-panel-inner label { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 3px; }
+.search-panel-inner input,
+.search-panel-inner select { padding: 8px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border2); background: var(--surface2); color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px; outline: none; transition: border-color .2s; width: 100%; }
+.search-panel-inner input:focus,
+.search-panel-inner select:focus { border-color: var(--accent); }
+.search-field { display: flex; flex-direction: column; }
+.search-field-keyword { flex: 2; min-width: 160px; }
+.search-field-state { flex: 1.2; min-width: 130px; }
+.search-field-city { flex: 1.5; min-width: 150px; }
+.search-field-qty { width: 80px; flex-shrink: 0; }
+.btn-search-main { padding: 9px 22px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0; height: 38px; }
+.btn-search-main:hover { opacity: .9; }
+.filters-bar { max-width: 1100px; margin: .5rem auto 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn-toggle-filters { padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border2); background: transparent; color: var(--text2); font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+.btn-toggle-filters.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+.filters-expanded { display: none; width: 100%; padding: .5rem 0 0; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filters-expanded.show { display: flex; }
+.main-content-inner { max-width: 1100px; margin: 0 auto; }
+
+@media (max-width: 768px) {
+  .search-panel { padding: .6rem .75rem; }
+  .search-panel-inner { gap: 6px; }
+  .search-field-keyword { flex: 100%; }
+  .search-field-state { flex: 1; min-width: 0; }
+  .search-field-city { flex: 1; min-width: 0; }
+  .search-field-qty { width: 65px; }
+  .btn-search-main { flex: 1; }
+}
+
+
+
+.sidebar { display: none; }
+.sidebar-hidden {
   width: 300px; min-width: 300px; background: var(--surface);
   border-right: 1px solid var(--border); padding: 1.5rem 1.25rem;
   display: flex; flex-direction: column; gap: 1.25rem;
@@ -228,7 +275,8 @@ header {
 }
 
 @media (max-width: 768px) {
-  .sidebar {
+  .sidebar { display: none; }
+.sidebar-hidden {
     position: fixed; top: 56px; left: 0; z-index: 200;
     height: calc(100vh - 56px); transform: translateX(-100%);
     box-shadow: 4px 0 24px rgba(0,0,0,0.4);
@@ -651,48 +699,56 @@ header {
   <div class="app-layout">
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
-    <aside class="sidebar" id="sidebar">
-      <div>
-        <p class="sidebar-section-title">Busca</p>
-        <label>Produto</label>
-        <input type="text" id="input-keyword" placeholder="ex: iPhone 13, PS5…" />
-        <label>Estado <span style="color:var(--danger)">*</span></label>
-        <select id="input-state" onchange="onStateChange()">
-          <option value="">Selecione o estado</option>
-        </select>
-        <label>Cidade <span style="color:var(--danger)">*</span></label>
-        <select id="input-city" style="opacity:.4;pointer-events:none">
-          <option value="">Selecione o estado primeiro</option>
-        </select>
-        <label>Qtd. máxima</label>
-        <input type="number" id="input-max" value="40" min="10" max="100" />
-        <button class="btn-search-sidebar" id="btn-search" onclick="doSearch()">Buscar</button>
-      </div>
-
-      <hr class="sidebar-divider">
-
-      <div>
-        <p class="sidebar-section-title">Filtros</p>
-        <button class="toggle-check on" id="tog-noprice" onclick="toggleFilter(this)" style="margin-bottom:12px">
-          <span class="dot-toggle">✕</span> Ocultar sem preço
-        </button>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <label style="font-size:11px;color:var(--text2)">Palavras bloqueadas no título</label>
-          <button onclick="clearBlockedWords()" style="background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;padding:0;transition:color .2s" onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text3)'">Limpar tudo</button>
+    <!-- Search Panel fixo -->
+    <div class="search-panel" id="search-panel">
+      <div class="search-panel-inner">
+        <div class="search-field search-field-keyword">
+          <label>Produto</label>
+          <input type="text" id="input-keyword" placeholder="ex: iPhone 13, PS5…" onkeydown="if(event.key==='Enter')doSearch()" />
         </div>
-        <div class="blocked-words" id="blocked-words"></div>
-        <div class="word-input-row">
-          <input type="text" id="word-input" placeholder="ex: caixa, defeito…" onkeydown="if(event.key==='Enter')addBlockedWord()" />
-          <button class="btn-add-word" onclick="addBlockedWord()">+ Add</button>
+        <div class="search-field search-field-state">
+          <label>Estado <span style="color:var(--danger)">*</span></label>
+          <select id="input-state" onchange="onStateChange()">
+            <option value="">Selecione</option>
+          </select>
+        </div>
+        <div class="search-field search-field-city">
+          <label>Cidade <span style="color:var(--danger)">*</span></label>
+          <select id="input-city" style="opacity:.4;pointer-events:none">
+            <option value="">Selecione o estado</option>
+          </select>
+        </div>
+        <div class="search-field search-field-qty">
+          <label>Qtd.</label>
+          <input type="number" id="input-max" value="40" min="10" max="100" />
+        </div>
+        <button class="btn-search-main" id="btn-search" onclick="doSearch()">🔍 Buscar</button>
+      </div>
+      <!-- Filtros colapsáveis -->
+      <div class="filters-bar">
+        <button class="btn-toggle-filters" id="btn-toggle-filters" onclick="toggleFiltersExpanded()">⚙️ Filtros</button>
+        <div class="filters-expanded" id="filters-expanded">
+          <button class="toggle-check on" id="tog-noprice" onclick="toggleFilter(this)">
+            <span class="dot-toggle">✕</span> Ocultar sem preço
+          </button>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <label style="font-size:11px;color:var(--text2)">Palavras bloqueadas:</label>
+            <div class="blocked-words" id="blocked-words" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+            <div class="word-input-row" style="display:flex;gap:4px">
+              <input type="text" id="word-input" placeholder="ex: caixa, defeito…" onkeydown="if(event.key==='Enter')addBlockedWord()" style="width:130px" />
+              <button class="btn-add-word" onclick="addBlockedWord()">+ Add</button>
+            </div>
+            <button onclick="clearBlockedWords()" style="background:none;border:none;font-size:10px;color:var(--text3);cursor:pointer;font-family:'Inter',sans-serif;padding:0">Limpar</button>
+          </div>
         </div>
       </div>
-
-    </aside>
+    </div>
 
     <main class="main-content">
+      <div class="main-content-inner">
 
-      <!-- Painel de busca inline mobile (some após primeira busca) -->
-      <div id="mobile-search-panel">
+      <!-- Painel de busca inline mobile LEGADO - oculto -->
+      <div id="mobile-search-panel" style="display:none!important">
         <p style="font-size:15px;font-weight:700;color:var(--text);margin:0 0 14px">🔍 O que você quer buscar?</p>
         <label>Produto</label>
         <input type="text" id="mob-keyword" placeholder="ex: iPhone 11, PS5..." />
@@ -1974,6 +2030,13 @@ async function testWhatsApp() {
   if (res?.ok) toast('✅ Mensagem enviada! Verifique seu WhatsApp.', 'success');
   else toast('Erro: ' + (res?.error || 'Falha ao enviar'), 'error');
 }
+function toggleFiltersExpanded() {
+  const expanded = document.getElementById('filters-expanded');
+  const btn = document.getElementById('btn-toggle-filters');
+  expanded.classList.toggle('show');
+  btn.classList.toggle('active');
+}
+
 function prefillWhatsapp() {
   const field = document.getElementById('mon-whatsapp');
   if (field && currentUser?.whatsappPhone && !field.value) {
