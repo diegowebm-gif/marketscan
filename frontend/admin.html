@@ -372,7 +372,7 @@ function renderUsers(users) {
   }
 
   tbody.innerHTML = users.map(u => {
-    const createdAt = u.created_at ? new Date(parseInt(u.created_at) * 1000).toLocaleDateString('pt-BR') : '—';
+    const createdAt = u.created_at ? new Date(parseInt(u.created_at)).toLocaleDateString('pt-BR') : '—';
     const expiresAt = u.plan_expires_at ? new Date(parseInt(u.plan_expires_at)).toLocaleDateString('pt-BR') : '—';
     const isPro = u.plan === 'pro';
     const onTrial = isOnTrial(u);
