@@ -274,9 +274,8 @@ header {
   max-width: 1100px;
   margin: 0 auto;
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
 }
 .search-panel-inner label { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; display: block; margin-bottom: 3px; }
 .search-panel-inner input,
@@ -752,20 +751,23 @@ header {
     <!-- Search Panel fixo -->
     <div class="search-panel" id="search-panel">
       <div class="search-panel-inner">
-        <!-- Linha 1: Produto -->
-        <div class="search-field" style="flex:1;min-width:200px;width:100%">
-          <label>Produto</label>
-          <input type="text" id="input-keyword" placeholder="ex: iPhone 13, PS5…" onkeydown="if(event.key==='Enter')doSearch()" />
+        <!-- Linha 1: Produto + Buscar -->
+        <div style="display:flex;gap:8px;align-items:flex-end;width:100%">
+          <div class="search-field" style="flex:1">
+            <label>Produto</label>
+            <input type="text" id="input-keyword" placeholder="ex: iPhone 13, PS5…" onkeydown="if(event.key==='Enter')doSearch()" />
+          </div>
+          <button class="btn-search-main" id="btn-search" onclick="doSearch()">🔍 Buscar</button>
         </div>
-        <!-- Linha 2: Estado + Cidade + Qtd + Buscar -->
-        <div style="display:flex;gap:8px;align-items:flex-end;flex:1;width:100%;flex-wrap:wrap">
-          <div class="search-field" style="flex:1;min-width:100px">
+        <!-- Linha 2: Estado + Cidade + Qtd -->
+        <div style="display:flex;gap:8px;align-items:flex-end;width:100%">
+          <div class="search-field" style="flex:1">
             <label>Estado <span style="color:var(--danger)">*</span></label>
             <select id="input-state" onchange="onStateChange()">
               <option value="">Selecione</option>
             </select>
           </div>
-          <div class="search-field" style="flex:1.5;min-width:130px">
+          <div class="search-field" style="flex:1.5">
             <label>Cidade <span style="color:var(--danger)">*</span></label>
             <select id="input-city" style="opacity:.4;pointer-events:none">
               <option value="">Selecione o estado</option>
@@ -775,7 +777,6 @@ header {
             <label>Qtd.</label>
             <input type="number" id="input-max" value="40" min="10" max="100" />
           </div>
-          <button class="btn-search-main" id="btn-search" onclick="doSearch()" style="flex:1;min-width:100px">🔍 Buscar</button>
         </div>
       </div>
       <!-- Filtros colapsáveis -->
