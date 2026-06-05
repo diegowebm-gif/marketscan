@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const { register, login, getUserByToken, upgradeToPro, getLimits, createPasswordResetToken, resetPassword } = require('./auth');
+const { register, login, getUserByToken, upgradeToPro, getLimits, createPasswordResetToken, resetPassword, updateWhatsappPhone } = require('./auth');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, hasSavedCookiesAsync, saveCookies, loginWithCredentials, submitTwoFactor, launchBrowser } = require('./scraper');
@@ -187,7 +187,8 @@ app.post('/api/auth/register', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ ok: false, error: 'E-mail e senha obrigatórios.' });
   if (password.length < 6) return res.status(400).json({ ok: false, error: 'Senha mínima de 6 caracteres.' });
-  const result = await register(email, password);
+  const { whatsappPhone } = req.body;
+  const result = await register(email, password, whatsappPhone || null);
   if (result.ok) emailBoasVindas(email).catch(() => {});
   res.json(result);
 });
@@ -200,12 +201,18 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.get('/api/auth/me', requireAuth, (req, res) => {
-  res.json({ ok: true, email: req.user.email, plan: req.user.plan, limits: req.limits, planExpiresAt: req.user.planExpiresAt });
+  res.json({ ok: true, email: req.user.email, plan: req.user.plan, limits: req.limits, planExpiresAt: req.user.planExpiresAt, whatsappPhone: req.user.whatsappPhone || null });
 });
 
 app.post('/api/auth/upgrade', requireAuth, async (req, res) => {
   const { months = 1 } = req.body;
   const result = await upgradeToPro(req.headers['x-auth-token'] || req.body?.authToken, months);
+  res.json(result);
+});
+
+app.post('/api/auth/update-whatsapp', requireAuth, async (req, res) => {
+  const { phone } = req.body;
+  const result = await updateWhatsappPhone(req.headers['x-auth-token'], phone || '');
   res.json(result);
 });
 

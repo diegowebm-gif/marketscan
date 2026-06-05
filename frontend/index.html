@@ -505,6 +505,10 @@ header {
           <input type="password" id="reg-password2" placeholder="Confirmar senha" style="width:100%;padding-right:40px" />
           <button type="button" onclick="togglePass('reg-password2',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
         </div>
+        <div style="position:relative;width:100%">
+          <input type="tel" id="reg-whatsapp" placeholder="WhatsApp (opcional) — ex: 48991846246" style="width:100%;padding-left:36px" />
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:14px">📲</span>
+        </div>
         <div class="auth-error" id="reg-error"></div>
         <button class="btn-primary" style="width:100%" onclick="doRegister()">Criar conta grátis</button>
         <p style="font-size:11px;color:var(--text2);text-align:center">Ao criar conta você concorda com os termos de uso.</p>
@@ -950,7 +954,8 @@ async function doRegister() {
   if (!email || !password) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.add('show'); return; }
   if (password !== password2) { errEl.textContent = 'Senhas não conferem.'; errEl.classList.add('show'); return; }
   if (password.length < 6) { errEl.textContent = 'Senha mínima de 6 caracteres.'; errEl.classList.add('show'); return; }
-  const res = await api('POST', '/api/auth/register', { email, password });
+  const whatsappPhone = document.getElementById('reg-whatsapp').value.replace(/\D/g, '') || null;
+  const res = await api('POST', '/api/auth/register', { email, password, whatsappPhone });
   if (!res?.ok) { errEl.textContent = res?.error || 'Erro ao cadastrar.'; errEl.classList.add('show'); return; }
   authToken = res.token;
   currentUser = { email: res.email, plan: res.plan };
@@ -1731,6 +1736,7 @@ function showMonitorPanel() {
   loadMonitors();
 }
 function toggleMonitorForm() {
+  setTimeout(prefillWhatsapp, 50);
   const panel = document.getElementById('alert-monitor-panel');
   const form = document.getElementById('monitor-form');
   if (panel) {
@@ -1783,6 +1789,13 @@ async function testWhatsApp() {
   if (res?.ok) toast('✅ Mensagem enviada! Verifique seu WhatsApp.', 'success');
   else toast('Erro: ' + (res?.error || 'Falha ao enviar'), 'error');
 }
+function prefillWhatsapp() {
+  const field = document.getElementById('mon-whatsapp');
+  if (field && currentUser?.whatsappPhone && !field.value) {
+    field.value = currentUser.whatsappPhone;
+  }
+}
+
 async function loadMonitors() {
   if (!sessionId) return;
   const res = await api('GET', `/api/monitor/${sessionId}`);

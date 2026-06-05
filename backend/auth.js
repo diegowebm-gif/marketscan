@@ -17,7 +17,8 @@ async function initDB() {
       plan TEXT DEFAULT 'free',
       token TEXT UNIQUE,
       created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000,
-      plan_expires_at BIGINT DEFAULT NULL
+      plan_expires_at BIGINT DEFAULT NULL,
+      whatsapp_phone TEXT DEFAULT NULL
     )
   `);
   console.log('[DB] Tabela users pronta');
@@ -32,15 +33,15 @@ function generateToken() {
   return crypto.randomBytes(32).toString('hex');
 }
 
-async function register(email, password) {
+async function register(email, password, whatsappPhone = null) {
   email = email.toLowerCase().trim();
   const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
   if (existing.rows.length > 0) {
     return { ok: false, error: 'E-mail já cadastrado.' };
   }
-  // 7 dias grátis como Pro para todos os novos cadastros
   const trialDays = 7;
   const planExpiresAt = Date.now() + trialDays * 24 * 60 * 60 * 1000;
+  const phone = whatsappPhone ? whatsappPhone.replace(/\D/g, '') : null;
   const user = {
     id: crypto.randomUUID(),
     email,
@@ -48,10 +49,11 @@ async function register(email, password) {
     plan: 'pro',
     token: generateToken(),
     plan_expires_at: planExpiresAt,
+    whatsapp_phone: phone,
   };
   await pool.query(
-    'INSERT INTO users (id, email, password, plan, token, plan_expires_at) VALUES ($1, $2, $3, $4, $5, $6)',
-    [user.id, user.email, user.password, user.plan, user.token, user.plan_expires_at]
+    'INSERT INTO users (id, email, password, plan, token, plan_expires_at, whatsapp_phone) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+    [user.id, user.email, user.password, user.plan, user.token, user.plan_expires_at, user.whatsapp_phone]
   );
   return { ok: true, token: user.token, plan: user.plan, email: user.email, trial: true, trialDays };
 }
@@ -84,6 +86,7 @@ async function getUserByToken(token) {
     plan: user.plan,
     token: user.token,
     planExpiresAt: user.plan_expires_at ? parseInt(user.plan_expires_at) : null,
+    whatsappPhone: user.whatsapp_phone || null,
   };
 }
 
@@ -157,10 +160,17 @@ async function resetPassword(resetToken, newPassword) {
   return { ok: true };
 }
 
+async function updateWhatsappPhone(token, phone) {
+  const clean = phone ? phone.replace(/\D/g, '') : null;
+  await pool.query('UPDATE users SET whatsapp_phone = $1 WHERE token = $2', [clean, token]);
+  return { ok: true };
+}
+
 // Garante que colunas de reset existam na tabela
 pool.query(`
   ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_phone TEXT;
 `).catch(() => {});
 
-module.exports = { register, login, getUserByToken, upgradeToPro, getLimits, createPasswordResetToken, resetPassword };
+module.exports = { register, login, getUserByToken, upgradeToPro, getLimits, createPasswordResetToken, resetPassword, updateWhatsappPhone };
