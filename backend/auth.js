@@ -123,4 +123,44 @@ function getLimits(plan) {
   return PLAN_LIMITS[plan] || PLAN_LIMITS.free;
 }
 
-module.exports = { register, login, getUserByToken, upgradeToPro, getLimits };
+async function createPasswordResetToken(email) {
+  email = email.toLowerCase().trim();
+  const result = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+  if (!result.rows.length) {
+    // Não revela se o email existe ou não
+    return { ok: true };
+  }
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + 60 * 60 * 1000; // 1 hora
+  await pool.query(
+    'UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE email = $3',
+    [resetToken, expiresAt, email]
+  );
+  return { ok: true, resetToken, email };
+}
+
+async function resetPassword(resetToken, newPassword) {
+  if (!resetToken) return { ok: false, error: 'Token inválido.' };
+  const result = await pool.query(
+    'SELECT * FROM users WHERE reset_token = $1',
+    [resetToken]
+  );
+  const user = result.rows[0];
+  if (!user) return { ok: false, error: 'Link inválido ou expirado.' };
+  if (Date.now() > parseInt(user.reset_token_expires)) {
+    return { ok: false, error: 'Link expirado. Solicite um novo.' };
+  }
+  await pool.query(
+    'UPDATE users SET password = $1, reset_token = NULL, reset_token_expires = NULL WHERE reset_token = $2',
+    [hashPassword(newPassword), resetToken]
+  );
+  return { ok: true };
+}
+
+// Garante que colunas de reset existam na tabela
+pool.query(`
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT;
+`).catch(() => {});
+
+module.exports = { register, login, getUserByToken, upgradeToPro, getLimits, createPasswordResetToken, resetPassword };

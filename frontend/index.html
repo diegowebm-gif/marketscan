@@ -488,6 +488,7 @@ header {
         </div>
         <div class="auth-error" id="login-error"></div>
         <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
+        <p style="text-align:center;margin-top:4px"><button type="button" onclick="showForgotPassword()" style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline">Esqueci minha senha</button></p>
       </div>
     </div>
 
@@ -782,6 +783,7 @@ let currentStats = null;
 let checkInterval = null;
 
 window.onload = async () => {
+  await checkResetToken();
   const params = new URLSearchParams(window.location.search);
   if (params.get('upgraded') === 'true') {
     toast('🎉 Plano Pro ativado com sucesso!', 'success');
@@ -812,6 +814,89 @@ function switchAuthTab(tab) {
   document.getElementById('tab-register').classList.toggle('active', tab === 'register');
   document.getElementById('form-login').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
+}
+
+function showForgotPassword() {
+  const formLogin = document.getElementById('form-login');
+  formLogin.innerHTML = `
+    <div class="auth-form">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:4px">Digite seu e-mail e enviaremos um link para redefinir sua senha.</p>
+      <input type="email" id="forgot-email" placeholder="Seu e-mail" />
+      <div class="auth-error" id="forgot-error"></div>
+      <div id="forgot-success" style="font-size:12px;color:var(--success);background:var(--success-dim);padding:8px 12px;border-radius:var(--radius-sm);display:none"></div>
+      <button class="btn-primary" style="width:100%" onclick="doForgotPassword()">Enviar link de redefinição</button>
+      <p style="text-align:center;margin-top:4px"><button type="button" onclick="switchAuthTab('login')" style="background:none;border:none;font-size:12px;color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;text-decoration:underline">← Voltar ao login</button></p>
+    </div>
+  `;
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-error');
+  const successEl = document.getElementById('forgot-success');
+  errEl.classList.remove('show');
+  successEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Digite seu e-mail.'; errEl.classList.add('show'); return; }
+  const res = await api('POST', '/api/auth/forgot-password', { email });
+  if (res?.ok) {
+    successEl.textContent = '✅ Link enviado! Verifique sua caixa de entrada.';
+    successEl.style.display = 'block';
+  } else {
+    errEl.textContent = res?.error || 'Erro ao enviar. Tente novamente.';
+    errEl.classList.add('show');
+  }
+}
+
+async function doResetPassword() {
+  const password = document.getElementById('reset-password').value;
+  const password2 = document.getElementById('reset-password2').value;
+  const errEl = document.getElementById('reset-error');
+  const successEl = document.getElementById('reset-success');
+  errEl.classList.remove('show');
+  successEl.style.display = 'none';
+  if (!password || !password2) { errEl.textContent = 'Preencha todos os campos.'; errEl.classList.add('show'); return; }
+  if (password !== password2) { errEl.textContent = 'Senhas não conferem.'; errEl.classList.add('show'); return; }
+  if (password.length < 6) { errEl.textContent = 'Senha mínima de 6 caracteres.'; errEl.classList.add('show'); return; }
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('reset_token');
+  const res = await api('POST', '/api/auth/reset-password', { token, password });
+  if (res?.ok) {
+    successEl.textContent = '✅ Senha redefinida! Redirecionando...';
+    successEl.style.display = 'block';
+    setTimeout(() => { window.location.href = '/'; }, 2000);
+  } else {
+    errEl.textContent = res?.error || 'Erro ao redefinir. Tente novamente.';
+    errEl.classList.add('show');
+  }
+}
+
+async function checkResetToken() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('reset_token');
+  if (!token) return;
+  // Mostra tela de redefinição de senha
+  document.getElementById('screen-auth').style.display = 'flex';
+  document.getElementById('screen-app').style.display = 'none';
+  document.querySelector('.auth-tabs').style.display = 'none';
+  document.querySelector('.auth-icon').textContent = '🔑';
+  document.querySelector('.auth-title').textContent = 'Nova senha';
+  document.querySelector('.auth-sub').textContent = 'Digite sua nova senha abaixo.';
+  document.getElementById('form-login').innerHTML = `
+    <div class="auth-form">
+      <div style="position:relative;width:100%">
+        <input type="password" id="reset-password" placeholder="Nova senha (mín. 6 caracteres)" style="width:100%;padding-right:40px" />
+        <button type="button" onclick="togglePass('reset-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+      </div>
+      <div style="position:relative;width:100%">
+        <input type="password" id="reset-password2" placeholder="Confirmar nova senha" style="width:100%;padding-right:40px" />
+        <button type="button" onclick="togglePass('reset-password2',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+      </div>
+      <div class="auth-error" id="reset-error"></div>
+      <div id="reset-success" style="font-size:12px;color:var(--success);background:var(--success-dim);padding:8px 12px;border-radius:var(--radius-sm);display:none"></div>
+      <button class="btn-primary" style="width:100%" onclick="doResetPassword()">Redefinir senha</button>
+    </div>
+  `;
+  document.getElementById('form-register').style.display = 'none';
 }
 
 async function doLogin() {

@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const { register, login, getUserByToken, upgradeToPro, getLimits } = require('./auth');
+const { register, login, getUserByToken, upgradeToPro, getLimits, createPasswordResetToken, resetPassword } = require('./auth');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, hasSavedCookiesAsync, saveCookies, loginWithCredentials, submitTwoFactor, launchBrowser } = require('./scraper');
@@ -21,7 +21,7 @@ async function sendEmail(to, subject, html) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'MarketScan <onboarding@resend.dev>',
+        from: 'MarketScan <noreply@marketscan.site>',
         to,
         subject,
         html,
@@ -206,6 +206,34 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 app.post('/api/auth/upgrade', requireAuth, async (req, res) => {
   const { months = 1 } = req.body;
   const result = await upgradeToPro(req.headers['x-auth-token'] || req.body?.authToken, months);
+  res.json(result);
+});
+
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ ok: false, error: 'E-mail obrigatório.' });
+  const result = await createPasswordResetToken(email);
+  if (result.ok && result.resetToken) {
+    const resetUrl = `${BASE_URL}/?reset_token=${result.resetToken}`;
+    await sendEmail(result.email, '🔑 Redefinir senha — MarketScan', `
+      <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:2rem;background:#f4f5f7">
+        <div style="background:#fff;border-radius:12px;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+          <h1 style="font-size:1.3rem;color:#1a1a2e;margin-bottom:.5rem">🔑 Redefinir sua senha</h1>
+          <p style="color:#6b7280;font-size:14px;margin-bottom:1.5rem">Recebemos uma solicitação para redefinir a senha da sua conta MarketScan. Clique no botão abaixo para criar uma nova senha.</p>
+          <a href="${resetUrl}" style="display:inline-block;background:#6a0dad;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Redefinir minha senha →</a>
+          <p style="color:#9ca3af;font-size:11px;margin-top:1.5rem">Este link expira em 1 hora. Se você não solicitou isso, ignore este e-mail.</p>
+        </div>
+      </div>
+    `).catch(() => {});
+  }
+  res.json({ ok: true }); // Sempre retorna ok para não revelar se email existe
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ ok: false, error: 'Dados obrigatórios.' });
+  if (password.length < 6) return res.status(400).json({ ok: false, error: 'Senha mínima de 6 caracteres.' });
+  const result = await resetPassword(token, password);
   res.json(result);
 });
 
