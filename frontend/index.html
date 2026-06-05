@@ -83,6 +83,37 @@ async function saveProfileWhatsapp() {
   } else profileMsg('msg-whatsapp', res?.error || 'Erro ao salvar.', 'err');
 }
 
+
+// Hide/show search panel on scroll
+(function() {
+  let lastScrollY = 0;
+  let ticking = false;
+  const THRESHOLD = 60; // pixels antes de esconder
+
+  function onScroll() {
+    const currentY = window.scrollY;
+    const panel = document.getElementById('search-panel');
+    if (!panel) return;
+
+    if (currentY > lastScrollY && currentY > THRESHOLD) {
+      // Rolando para baixo — esconde
+      panel.classList.add('hidden');
+    } else {
+      // Rolando para cima — mostra
+      panel.classList.remove('hidden');
+    }
+    lastScrollY = currentY <= 0 ? 0 : currentY;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(onScroll);
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+
 </script>
 <style>
 :root {
@@ -220,6 +251,15 @@ header {
 
 /* Novo painel de busca fixo no topo */
 .search-panel {
+  transition: transform .3s ease, opacity .3s ease;
+  will-change: transform;
+}
+.search-panel.hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.search-panel {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   padding: .75rem 1.5rem;
@@ -253,7 +293,16 @@ header {
 .main-content-inner { max-width: 1100px; margin: 0 auto; }
 
 @media (max-width: 768px) {
-  .search-panel { padding: .6rem .75rem; }
+  .search-panel {
+  transition: transform .3s ease, opacity .3s ease;
+  will-change: transform;
+}
+.search-panel.hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.search-panel { padding: .6rem .75rem; }
   .search-panel-inner { gap: 6px; }
   .search-field-keyword { flex: 100%; }
   .search-field-state { flex: 1; min-width: 0; }
@@ -2381,6 +2430,37 @@ async function saveProfileWhatsapp() {
   } else profileMsg('msg-whatsapp', res?.error || 'Erro ao salvar.', 'err');
 }
 
+
+// Hide/show search panel on scroll
+(function() {
+  let lastScrollY = 0;
+  let ticking = false;
+  const THRESHOLD = 60; // pixels antes de esconder
+
+  function onScroll() {
+    const currentY = window.scrollY;
+    const panel = document.getElementById('search-panel');
+    if (!panel) return;
+
+    if (currentY > lastScrollY && currentY > THRESHOLD) {
+      // Rolando para baixo — esconde
+      panel.classList.add('hidden');
+    } else {
+      // Rolando para cima — mostra
+      panel.classList.remove('hidden');
+    }
+    lastScrollY = currentY <= 0 ? 0 : currentY;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(onScroll);
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+
 </script>
 
 <!-- Modal Perfil -->
@@ -2453,6 +2533,37 @@ if ('serviceWorker' in navigator) {
       .catch(err => console.warn('[PWA] Service Worker falhou:', err));
   });
 }
+
+// Hide/show search panel on scroll
+(function() {
+  let lastScrollY = 0;
+  let ticking = false;
+  const THRESHOLD = 60; // pixels antes de esconder
+
+  function onScroll() {
+    const currentY = window.scrollY;
+    const panel = document.getElementById('search-panel');
+    if (!panel) return;
+
+    if (currentY > lastScrollY && currentY > THRESHOLD) {
+      // Rolando para baixo — esconde
+      panel.classList.add('hidden');
+    } else {
+      // Rolando para cima — mostra
+      panel.classList.remove('hidden');
+    }
+    lastScrollY = currentY <= 0 ? 0 : currentY;
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      requestAnimationFrame(onScroll);
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+
 </script>
 </body>
 </html>
