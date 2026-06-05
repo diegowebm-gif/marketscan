@@ -84,37 +84,7 @@ async function saveProfileWhatsapp() {
 }
 
 
-// Hide/show search panel on scroll
-(function() {
-  let lastScrollY = window.scrollY;
-  let ticking = false;
-  const THRESHOLD = 80;
-
-  function onScroll() {
-    const currentY = window.scrollY;
-    const panel = document.getElementById('search-panel');
-    if (!panel) return;
-
-    if (currentY > lastScrollY && currentY > THRESHOLD) {
-      panel.style.transform = 'translateY(-200px)';
-      panel.style.opacity = '0';
-      panel.style.pointerEvents = 'none';
-    } else {
-      panel.style.transform = 'translateY(0)';
-      panel.style.opacity = '1';
-      panel.style.pointerEvents = '';
-    }
-    lastScrollY = currentY <= 0 ? 0 : currentY;
-    ticking = false;
-  }
-
-  window.addEventListener('scroll', () => {
-    if (!ticking) {
-      requestAnimationFrame(onScroll);
-      ticking = true;
-    }
-  }, { passive: true });
-})();
+// search panel scroll: removido para melhor UX
 
 </script>
 <style>
@@ -257,19 +227,7 @@ header {
   border-bottom: 1px solid var(--border);
   padding: .75rem 1.5rem;
   box-shadow: var(--shadow);
-  position: sticky;
-  top: 56px;
-  z-index: 99;
-  transition: transform .3s ease;
-  will-change: transform;
 }
-.search-panel.hidden {
-  transform: translateY(-200%);
-  position: fixed;
-  top: -200px;
-}
-.search-panel-spacer { height: 0; transition: height .3s ease; }
-.search-panel-spacer.active { height: var(--panel-height, 120px); }
 .search-panel-inner {
   max-width: 1100px;
   margin: 0 auto;
@@ -2432,37 +2390,7 @@ async function saveProfileWhatsapp() {
 }
 
 
-// Hide/show search panel on scroll
-(function() {
-  let lastScrollY = window.scrollY;
-  let ticking = false;
-  const THRESHOLD = 80;
-
-  function onScroll() {
-    const currentY = window.scrollY;
-    const panel = document.getElementById('search-panel');
-    if (!panel) return;
-
-    if (currentY > lastScrollY && currentY > THRESHOLD) {
-      panel.style.transform = 'translateY(-200px)';
-      panel.style.opacity = '0';
-      panel.style.pointerEvents = 'none';
-    } else {
-      panel.style.transform = 'translateY(0)';
-      panel.style.opacity = '1';
-      panel.style.pointerEvents = '';
-    }
-    lastScrollY = currentY <= 0 ? 0 : currentY;
-    ticking = false;
-  }
-
-  window.addEventListener('scroll', () => {
-    if (!ticking) {
-      requestAnimationFrame(onScroll);
-      ticking = true;
-    }
-  }, { passive: true });
-})();
+// search panel scroll: removido para melhor UX
 
 </script>
 
@@ -2537,37 +2465,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Hide/show search panel on scroll
-(function() {
-  let lastScrollY = window.scrollY;
-  let ticking = false;
-  const THRESHOLD = 80;
-
-  function onScroll() {
-    const currentY = window.scrollY;
-    const panel = document.getElementById('search-panel');
-    if (!panel) return;
-
-    if (currentY > lastScrollY && currentY > THRESHOLD) {
-      panel.style.transform = 'translateY(-200px)';
-      panel.style.opacity = '0';
-      panel.style.pointerEvents = 'none';
-    } else {
-      panel.style.transform = 'translateY(0)';
-      panel.style.opacity = '1';
-      panel.style.pointerEvents = '';
-    }
-    lastScrollY = currentY <= 0 ? 0 : currentY;
-    ticking = false;
-  }
-
-  window.addEventListener('scroll', () => {
-    if (!ticking) {
-      requestAnimationFrame(onScroll);
-      ticking = true;
-    }
-  }, { passive: true });
-})();
+// search panel scroll: removido para melhor UX
 
 </script>
 </body>
