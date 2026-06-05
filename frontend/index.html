@@ -158,6 +158,91 @@ async function openStripePortal() {
   }
 }
 
+
+// Anúncios salvos
+let savedListings = JSON.parse(localStorage.getItem('mkt_saved') || '[]');
+
+function updateSavedBadge() {
+  const badge = document.getElementById('saved-count');
+  if (!badge) return;
+  if (savedListings.length > 0) {
+    badge.textContent = savedListings.length > 9 ? '9+' : savedListings.length;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+}
+
+function toggleCardMenu(btn, event) {
+  event.stopPropagation();
+  document.querySelectorAll('.card-menu-dropdown.show').forEach(d => { if (d !== btn.nextElementSibling) d.classList.remove('show'); });
+  btn.nextElementSibling.classList.toggle('show');
+  setTimeout(() => document.addEventListener('click', () => document.querySelectorAll('.card-menu-dropdown.show').forEach(d => d.classList.remove('show')), { once: true }), 0);
+}
+
+function saveListingFromMenu(btn, url, title, price, img) {
+  const dropdown = btn.closest('.card-menu-dropdown');
+  const already = savedListings.find(s => s.url === url);
+  if (already) {
+    savedListings = savedListings.filter(s => s.url !== url);
+    btn.innerHTML = btn.innerHTML.replace('Remover dos salvos', 'Salvar anúncio');
+    toast('Anúncio removido dos salvos.', '');
+  } else {
+    savedListings.unshift({ url, title, price, img, savedAt: Date.now() });
+    btn.innerHTML = btn.innerHTML.replace('Salvar anúncio', 'Remover dos salvos');
+    toast('✅ Anúncio salvo!', 'success');
+  }
+  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
+  updateSavedBadge();
+  if (dropdown) dropdown.classList.remove('show');
+}
+
+function reportListing(btn) {
+  const dropdown = btn.closest('.card-menu-dropdown');
+  if (dropdown) dropdown.classList.remove('show');
+  toast('Obrigado pelo feedback! Anúncio reportado.', 'success');
+}
+
+function showSavedPanel() {
+  renderSavedList();
+  document.getElementById('saved-overlay').classList.add('show');
+}
+
+function closeSavedPanel() {
+  document.getElementById('saved-overlay').classList.remove('show');
+}
+
+function renderSavedList() {
+  const list = document.getElementById('saved-list');
+  if (!savedListings.length) {
+    list.innerHTML = '<div class="saved-empty">Nenhum anúncio salvo ainda.<br>Clique em ⋮ em qualquer card para salvar.</div>';
+    return;
+  }
+  list.innerHTML = savedListings.map((s, i) => `
+    <div class="saved-item">
+      ${s.img ? `<img class="saved-item-img" src="${esc(s.img)}" loading="lazy" onerror="this.style.display='none'">` : '<div class="saved-item-img"></div>'}
+      <div class="saved-item-info">
+        <p class="saved-item-title">${esc(s.title)}</p>
+        <p class="saved-item-price">${s.price ? 'R$ ' + fmt(s.price) : 'Sem preço'}</p>
+      </div>
+      <div class="saved-item-actions">
+        <a href="${esc(s.url)}" target="_blank" rel="noopener" title="Ver anúncio" style="color:var(--accent);font-size:16px;text-decoration:none">↗</a>
+        <button onclick="removeSaved(${i})" title="Remover" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeSaved(i) {
+  savedListings.splice(i, 1);
+  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
+  updateSavedBadge();
+  renderSavedList();
+}
+
+// Inicializa badge ao carregar
+document.addEventListener('DOMContentLoaded', updateSavedBadge);
+
 </script>
 <style>
 :root {
@@ -700,6 +785,40 @@ header {
 .sub-stat-value { font-size:13px; font-weight:600; color:var(--text); }
 .sub-progress { height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; margin-top:4px; }
 .sub-progress-bar { height:100%; border-radius:3px; background:var(--accent); transition:width .5s ease; }
+
+/* Menu 3 pontinhos */
+.card-menu-btn { position:absolute; top:8px; right:8px; width:28px; height:28px; border-radius:6px; background:rgba(0,0,0,0.45); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:2px; flex-direction:column; z-index:5; transition:background .2s; }
+.card-menu-btn:hover { background:rgba(0,0,0,0.65); }
+.card-menu-dot { width:3px; height:3px; border-radius:50%; background:#fff; }
+.card-menu-dropdown { position:absolute; top:40px; right:8px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); box-shadow:var(--shadow-md); z-index:50; min-width:160px; overflow:hidden; display:none; }
+.card-menu-dropdown.show { display:block; }
+.card-menu-item { display:flex; align-items:center; gap:8px; padding:9px 12px; font-size:12px; color:var(--text); cursor:pointer; border:none; background:none; width:100%; text-align:left; font-family:'Inter',sans-serif; transition:background .15s; }
+.card-menu-item:hover { background:var(--surface2); }
+.card-menu-item svg { width:14px; height:14px; flex-shrink:0; }
+
+/* Badge salvos no header */
+.btn-saved-badge { position:relative; background:none; border:none; font-size:18px; cursor:pointer; padding:4px 8px; border-radius:8px; color:var(--text2); transition:all .2s; }
+.btn-saved-badge:hover { background:var(--surface2); }
+.saved-count { position:absolute; top:0; right:2px; background:#e24b4a; color:#fff; font-size:9px; font-weight:700; border-radius:50%; width:14px; height:14px; display:none; align-items:center; justify-content:center; }
+.saved-count.show { display:flex; }
+
+/* Painel de salvos */
+.saved-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:flex-start; justify-content:flex-end; }
+.saved-overlay.show { display:flex; }
+.saved-panel { background:var(--surface); width:100%; max-width:360px; height:100vh; box-shadow:-4px 0 24px rgba(0,0,0,0.3); display:flex; flex-direction:column; animation:slideInRight .25s ease; }
+@keyframes slideInRight { from { transform:translateX(100%); } to { transform:translateX(0); } }
+.saved-panel-header { padding:1rem 1.25rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.saved-panel-header h3 { font-size:14px; font-weight:700; color:var(--text); margin:0; }
+.saved-panel-close { background:none; border:none; font-size:20px; cursor:pointer; color:var(--text3); padding:2px 6px; border-radius:6px; }
+.saved-panel-close:hover { background:var(--surface2); }
+.saved-list { flex:1; overflow-y:auto; padding:.5rem; }
+.saved-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:6px; background:var(--surface); }
+.saved-item-img { width:44px; height:44px; border-radius:6px; object-fit:cover; background:var(--surface2); flex-shrink:0; }
+.saved-item-info { flex:1; min-width:0; }
+.saved-item-title { font-size:12px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 0 2px; }
+.saved-item-price { font-size:12px; color:var(--accent); margin:0; }
+.saved-item-actions { display:flex; gap:6px; flex-shrink:0; }
+.saved-empty { text-align:center; padding:3rem 1rem; color:var(--text3); font-size:13px; }
 </style>
 </head>
 <body>
@@ -714,6 +833,7 @@ header {
     <span id="plan-badge" class="plan-badge" style="display:none;cursor:pointer" onclick="showSubscriptionModal()" title="Gerenciar assinatura"></span>
     <span id="trial-badge" class="trial-badge" style="display:none" title="Seu período de teste gratuito"></span>
     <button id="btn-darkmode" onclick="toggleDarkMode()" title="Alternar modo escuro" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s;margin-right:4px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">🌙</button>
+    <button class="btn-saved-badge" id="btn-saved" onclick="showSavedPanel()" title="Anúncios salvos" style="display:none">🔖<span class="saved-count" id="saved-count"></span></button>
     <button id="btn-profile" onclick="showProfileModal()" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s" title="Meu perfil" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">👤</button>
     <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()"><span class="logout-text">Sair</span><span class="logout-icon" style="display:none">↩</span></button>
   </div>
@@ -1923,7 +2043,13 @@ function renderListings() {
         : `Score ${l.score}/100 — oportunidade regular.<br>Preço próximo ou acima da média.`;
       return `<div class="score-badge ${cls}">${icon} ${l.score}<span class="score-tip">${tipText}</span></div><div class="score-bar-wrap"><div class="score-bar" style="width:${l.score}%;background:${barColor}"></div></div>`;
     })() : '';
-    return `<div class="listing-card ${l.is_opportunity ? 'opportunity' : ''}">${l.is_opportunity ? '<div class="opp-badge">🔥 OPORTUNIDADE</div>' : ''}${imgHtml}${ph}${scoreHtml}<div class="listing-body"><div class="listing-title">${esc(l.title)}</div>${priceHtml}${pctHtml}<div class="listing-meta">${esc(l.location || '')}</div><a class="btn-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver anúncio →</a><a class="btn-whatsapp" href="https://wa.me/?text=${encodeURIComponent('📦 ' + l.title + (l.price ? ' · R$ ' + fmt(l.price) : '') + (l.location ? ' · ' + l.location : '') + '\n👉 ' + l.listing_url + '\n\n🔍 Achei no MarketScan!')}" target="_blank" rel="noopener">📲 WhatsApp</a>
+    return `<div class="listing-card ${l.is_opportunity ? 'opportunity' : ''}">${l.is_opportunity ? '<div class="opp-badge">🔥 OPORTUNIDADE</div>' : ''}${imgHtml}${ph}${scoreHtml}<div class="listing-body"><div class="listing-title">${esc(l.title)}</div>${priceHtml}${pctHtml}<div class="listing-meta">${esc(l.location || '')}</div><a class="btn-link" href="${esc(l.listing_url)}" target="_blank" rel="noopener">Ver anúncio →</a>
+      <button class="card-menu-btn" onclick="toggleCardMenu(this, event)" aria-label="Mais opções"><span class="card-menu-dot"></span><span class="card-menu-dot"></span><span class="card-menu-dot"></span></button>
+      <div class="card-menu-dropdown">
+        <button class="card-menu-item" onclick="saveListingFromMenu(this, '${esc(l.listing_url)}', '${esc(l.title).replace(/'/g,"\'")}', ${l.price || 0}, '${esc(l.img_url || '')}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Salvar anúncio</button>
+        <a class="card-menu-item" href="https://wa.me/?text=${encodeURIComponent('📦 ' + l.title + (l.price ? ' · R$ ' + fmt(l.price) : '') + (l.location ? ' · ' + l.location : '') + '\n👉 ' + l.listing_url + '\n\n🔍 Achei no MarketScan!')}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Compartilhar</a>
+        <button class="card-menu-item" onclick="reportListing(this)" style="color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Reportar anúncio</button>
+      </div>
       ${l.price ? `
       <button class="calc-btn" onclick="toggleCalc(this, ${l.price}, ${currentStats?.avg || 0})">Calcular lucro</button>
       <div class="calc-panel">
@@ -2205,6 +2331,7 @@ function showAuth() {
   document.getElementById('status-text').textContent = 'Desconectado';
   document.getElementById('btn-logout').style.display = 'none';
   document.getElementById('btn-profile').style.display = 'none';
+  document.getElementById('btn-saved').style.display = 'none';
   setAuthStatus('');
 }
 
@@ -2224,6 +2351,7 @@ async function showApp() {
   document.getElementById('status-text').textContent = currentUser?.email || 'Conectado';
   document.getElementById('btn-logout').style.display = 'inline-block';
   document.getElementById('btn-profile').style.display = 'inline-block';
+  document.getElementById('btn-saved').style.display = 'inline-block';
   const badge = document.getElementById('plan-badge');
   if (badge) {
     badge.style.display = 'inline-block';
@@ -2585,6 +2713,91 @@ async function openStripePortal() {
   }
 }
 
+
+// Anúncios salvos
+let savedListings = JSON.parse(localStorage.getItem('mkt_saved') || '[]');
+
+function updateSavedBadge() {
+  const badge = document.getElementById('saved-count');
+  if (!badge) return;
+  if (savedListings.length > 0) {
+    badge.textContent = savedListings.length > 9 ? '9+' : savedListings.length;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+}
+
+function toggleCardMenu(btn, event) {
+  event.stopPropagation();
+  document.querySelectorAll('.card-menu-dropdown.show').forEach(d => { if (d !== btn.nextElementSibling) d.classList.remove('show'); });
+  btn.nextElementSibling.classList.toggle('show');
+  setTimeout(() => document.addEventListener('click', () => document.querySelectorAll('.card-menu-dropdown.show').forEach(d => d.classList.remove('show')), { once: true }), 0);
+}
+
+function saveListingFromMenu(btn, url, title, price, img) {
+  const dropdown = btn.closest('.card-menu-dropdown');
+  const already = savedListings.find(s => s.url === url);
+  if (already) {
+    savedListings = savedListings.filter(s => s.url !== url);
+    btn.innerHTML = btn.innerHTML.replace('Remover dos salvos', 'Salvar anúncio');
+    toast('Anúncio removido dos salvos.', '');
+  } else {
+    savedListings.unshift({ url, title, price, img, savedAt: Date.now() });
+    btn.innerHTML = btn.innerHTML.replace('Salvar anúncio', 'Remover dos salvos');
+    toast('✅ Anúncio salvo!', 'success');
+  }
+  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
+  updateSavedBadge();
+  if (dropdown) dropdown.classList.remove('show');
+}
+
+function reportListing(btn) {
+  const dropdown = btn.closest('.card-menu-dropdown');
+  if (dropdown) dropdown.classList.remove('show');
+  toast('Obrigado pelo feedback! Anúncio reportado.', 'success');
+}
+
+function showSavedPanel() {
+  renderSavedList();
+  document.getElementById('saved-overlay').classList.add('show');
+}
+
+function closeSavedPanel() {
+  document.getElementById('saved-overlay').classList.remove('show');
+}
+
+function renderSavedList() {
+  const list = document.getElementById('saved-list');
+  if (!savedListings.length) {
+    list.innerHTML = '<div class="saved-empty">Nenhum anúncio salvo ainda.<br>Clique em ⋮ em qualquer card para salvar.</div>';
+    return;
+  }
+  list.innerHTML = savedListings.map((s, i) => `
+    <div class="saved-item">
+      ${s.img ? `<img class="saved-item-img" src="${esc(s.img)}" loading="lazy" onerror="this.style.display='none'">` : '<div class="saved-item-img"></div>'}
+      <div class="saved-item-info">
+        <p class="saved-item-title">${esc(s.title)}</p>
+        <p class="saved-item-price">${s.price ? 'R$ ' + fmt(s.price) : 'Sem preço'}</p>
+      </div>
+      <div class="saved-item-actions">
+        <a href="${esc(s.url)}" target="_blank" rel="noopener" title="Ver anúncio" style="color:var(--accent);font-size:16px;text-decoration:none">↗</a>
+        <button onclick="removeSaved(${i})" title="Remover" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeSaved(i) {
+  savedListings.splice(i, 1);
+  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
+  updateSavedBadge();
+  renderSavedList();
+}
+
+// Inicializa badge ao carregar
+document.addEventListener('DOMContentLoaded', updateSavedBadge);
+
 </script>
 
 <!-- Modal Perfil -->
@@ -2732,6 +2945,91 @@ async function openStripePortal() {
   }
 }
 
+
+// Anúncios salvos
+let savedListings = JSON.parse(localStorage.getItem('mkt_saved') || '[]');
+
+function updateSavedBadge() {
+  const badge = document.getElementById('saved-count');
+  if (!badge) return;
+  if (savedListings.length > 0) {
+    badge.textContent = savedListings.length > 9 ? '9+' : savedListings.length;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+}
+
+function toggleCardMenu(btn, event) {
+  event.stopPropagation();
+  document.querySelectorAll('.card-menu-dropdown.show').forEach(d => { if (d !== btn.nextElementSibling) d.classList.remove('show'); });
+  btn.nextElementSibling.classList.toggle('show');
+  setTimeout(() => document.addEventListener('click', () => document.querySelectorAll('.card-menu-dropdown.show').forEach(d => d.classList.remove('show')), { once: true }), 0);
+}
+
+function saveListingFromMenu(btn, url, title, price, img) {
+  const dropdown = btn.closest('.card-menu-dropdown');
+  const already = savedListings.find(s => s.url === url);
+  if (already) {
+    savedListings = savedListings.filter(s => s.url !== url);
+    btn.innerHTML = btn.innerHTML.replace('Remover dos salvos', 'Salvar anúncio');
+    toast('Anúncio removido dos salvos.', '');
+  } else {
+    savedListings.unshift({ url, title, price, img, savedAt: Date.now() });
+    btn.innerHTML = btn.innerHTML.replace('Salvar anúncio', 'Remover dos salvos');
+    toast('✅ Anúncio salvo!', 'success');
+  }
+  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
+  updateSavedBadge();
+  if (dropdown) dropdown.classList.remove('show');
+}
+
+function reportListing(btn) {
+  const dropdown = btn.closest('.card-menu-dropdown');
+  if (dropdown) dropdown.classList.remove('show');
+  toast('Obrigado pelo feedback! Anúncio reportado.', 'success');
+}
+
+function showSavedPanel() {
+  renderSavedList();
+  document.getElementById('saved-overlay').classList.add('show');
+}
+
+function closeSavedPanel() {
+  document.getElementById('saved-overlay').classList.remove('show');
+}
+
+function renderSavedList() {
+  const list = document.getElementById('saved-list');
+  if (!savedListings.length) {
+    list.innerHTML = '<div class="saved-empty">Nenhum anúncio salvo ainda.<br>Clique em ⋮ em qualquer card para salvar.</div>';
+    return;
+  }
+  list.innerHTML = savedListings.map((s, i) => `
+    <div class="saved-item">
+      ${s.img ? `<img class="saved-item-img" src="${esc(s.img)}" loading="lazy" onerror="this.style.display='none'">` : '<div class="saved-item-img"></div>'}
+      <div class="saved-item-info">
+        <p class="saved-item-title">${esc(s.title)}</p>
+        <p class="saved-item-price">${s.price ? 'R$ ' + fmt(s.price) : 'Sem preço'}</p>
+      </div>
+      <div class="saved-item-actions">
+        <a href="${esc(s.url)}" target="_blank" rel="noopener" title="Ver anúncio" style="color:var(--accent);font-size:16px;text-decoration:none">↗</a>
+        <button onclick="removeSaved(${i})" title="Remover" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeSaved(i) {
+  savedListings.splice(i, 1);
+  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
+  updateSavedBadge();
+  renderSavedList();
+}
+
+// Inicializa badge ao carregar
+document.addEventListener('DOMContentLoaded', updateSavedBadge);
+
 </script>
 
 <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo">↑</button>
@@ -2783,6 +3081,19 @@ async function openStripePortal() {
         <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Você está no plano Free.<br>Assine o Pro para desbloquear todos os recursos.</p>
         <button onclick="closeSubscriptionModal();showUpgradeModal()" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:700;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer">Ver plano Pro →</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Painel de anúncios salvos -->
+<div class="saved-overlay" id="saved-overlay" onclick="if(event.target===this)closeSavedPanel()">
+  <div class="saved-panel">
+    <div class="saved-panel-header">
+      <h3>🔖 Anúncios salvos</h3>
+      <button class="saved-panel-close" onclick="closeSavedPanel()">×</button>
+    </div>
+    <div class="saved-list" id="saved-list">
+      <div class="saved-empty">Nenhum anúncio salvo ainda.<br>Clique em ⋮ em qualquer card para salvar.</div>
     </div>
   </div>
 </div>
