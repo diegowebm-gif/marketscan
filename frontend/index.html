@@ -104,6 +104,7 @@ async function showSubscriptionModal() {
   document.getElementById('sub-loading').style.display = 'block';
   document.getElementById('sub-content').style.display = 'none';
   document.getElementById('sub-free-content').style.display = 'none';
+  document.getElementById('sub-trial-content').style.display = 'none';
 
   if (!currentUser || currentUser.plan === 'free') {
     document.getElementById('sub-loading').style.display = 'none';
@@ -118,25 +119,33 @@ async function showSubscriptionModal() {
   document.getElementById('sub-loading').style.display = 'none';
 
   const daysLeft = currentUser.planExpiresAt ? Math.ceil((currentUser.planExpiresAt - Date.now()) / (1000*60*60*24)) : null;
-  const isTrial = daysLeft !== null && daysLeft <= 7 && !res?.renewal;
+  const isTrial = !res?.hasStripe && !res?.renewal;
 
-  document.getElementById('sub-plan-name').textContent = isTrial ? 'Trial Pro' : 'Plano Pro';
-  document.getElementById('sub-plan-icon').textContent = isTrial ? '⏳' : '⭐';
+  if (isTrial) {
+    // Trial gratuito — sem assinatura Stripe
+    document.getElementById('sub-plan-name').textContent = 'Trial Pro';
+    document.getElementById('sub-plan-icon').textContent = '⏳';
+    document.getElementById('sub-plan-status').textContent = `${daysLeft > 0 ? daysLeft + ' dias restantes' : 'Expirando'}`;
+    document.getElementById('sub-trial-expires').textContent = currentUser.planExpiresAt ? new Date(currentUser.planExpiresAt).toLocaleDateString('pt-BR') : '—';
+    document.getElementById('sub-trial-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : 'Último dia';
+    const pct = daysLeft ? Math.min(100, (daysLeft/7)*100) : 0;
+    document.getElementById('sub-trial-bar').style.width = pct + '%';
+    document.getElementById('sub-trial-content').style.display = 'block';
+    return;
+  }
+
+  // Pro pago via Stripe
+  document.getElementById('sub-plan-name').textContent = 'Plano Pro';
+  document.getElementById('sub-plan-icon').textContent = '⭐';
   document.getElementById('sub-plan-status').textContent = res?.cancelAtPeriodEnd ? 'Cancelamento agendado' : 'Ativo';
-
-  document.getElementById('sub-renewal').textContent = res?.renewal || (currentUser.planExpiresAt ? new Date(currentUser.planExpiresAt).toLocaleDateString('pt-BR') : '—');
-  document.getElementById('sub-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : 'Expirado';
-
-  const pct = daysLeft ? Math.min(100, Math.max(0, isTrial ? (daysLeft/7)*100 : (daysLeft/30)*100)) : 0;
+  document.getElementById('sub-renewal').textContent = res?.renewal || '—';
+  document.getElementById('sub-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : '—';
+  const pct = daysLeft ? Math.min(100, Math.max(0, (daysLeft/30)*100)) : 100;
   document.getElementById('sub-progress-bar').style.width = pct + '%';
-  document.getElementById('sub-progress-bar').style.background = daysLeft <= 3 ? '#f59e0b' : 'var(--accent)';
-
-  // Alertas ativos
+  document.getElementById('sub-progress-bar').style.background = daysLeft <= 5 ? '#f59e0b' : 'var(--accent)';
   const monitorsRes = await api('GET', '/api/monitors');
   document.getElementById('sub-alerts-count').textContent = monitorsRes?.monitors?.length ? `${monitorsRes.monitors.length} de 5` : '0 de 5';
-
   document.getElementById('sub-cancel-warning').style.display = res?.cancelAtPeriodEnd ? 'block' : 'none';
-  document.getElementById('sub-btn-portal').style.display = res?.renewal ? 'block' : 'none';
   document.getElementById('sub-content').style.display = 'block';
 }
 
@@ -2659,6 +2668,7 @@ async function showSubscriptionModal() {
   document.getElementById('sub-loading').style.display = 'block';
   document.getElementById('sub-content').style.display = 'none';
   document.getElementById('sub-free-content').style.display = 'none';
+  document.getElementById('sub-trial-content').style.display = 'none';
 
   if (!currentUser || currentUser.plan === 'free') {
     document.getElementById('sub-loading').style.display = 'none';
@@ -2673,25 +2683,33 @@ async function showSubscriptionModal() {
   document.getElementById('sub-loading').style.display = 'none';
 
   const daysLeft = currentUser.planExpiresAt ? Math.ceil((currentUser.planExpiresAt - Date.now()) / (1000*60*60*24)) : null;
-  const isTrial = daysLeft !== null && daysLeft <= 7 && !res?.renewal;
+  const isTrial = !res?.hasStripe && !res?.renewal;
 
-  document.getElementById('sub-plan-name').textContent = isTrial ? 'Trial Pro' : 'Plano Pro';
-  document.getElementById('sub-plan-icon').textContent = isTrial ? '⏳' : '⭐';
+  if (isTrial) {
+    // Trial gratuito — sem assinatura Stripe
+    document.getElementById('sub-plan-name').textContent = 'Trial Pro';
+    document.getElementById('sub-plan-icon').textContent = '⏳';
+    document.getElementById('sub-plan-status').textContent = `${daysLeft > 0 ? daysLeft + ' dias restantes' : 'Expirando'}`;
+    document.getElementById('sub-trial-expires').textContent = currentUser.planExpiresAt ? new Date(currentUser.planExpiresAt).toLocaleDateString('pt-BR') : '—';
+    document.getElementById('sub-trial-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : 'Último dia';
+    const pct = daysLeft ? Math.min(100, (daysLeft/7)*100) : 0;
+    document.getElementById('sub-trial-bar').style.width = pct + '%';
+    document.getElementById('sub-trial-content').style.display = 'block';
+    return;
+  }
+
+  // Pro pago via Stripe
+  document.getElementById('sub-plan-name').textContent = 'Plano Pro';
+  document.getElementById('sub-plan-icon').textContent = '⭐';
   document.getElementById('sub-plan-status').textContent = res?.cancelAtPeriodEnd ? 'Cancelamento agendado' : 'Ativo';
-
-  document.getElementById('sub-renewal').textContent = res?.renewal || (currentUser.planExpiresAt ? new Date(currentUser.planExpiresAt).toLocaleDateString('pt-BR') : '—');
-  document.getElementById('sub-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : 'Expirado';
-
-  const pct = daysLeft ? Math.min(100, Math.max(0, isTrial ? (daysLeft/7)*100 : (daysLeft/30)*100)) : 0;
+  document.getElementById('sub-renewal').textContent = res?.renewal || '—';
+  document.getElementById('sub-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : '—';
+  const pct = daysLeft ? Math.min(100, Math.max(0, (daysLeft/30)*100)) : 100;
   document.getElementById('sub-progress-bar').style.width = pct + '%';
-  document.getElementById('sub-progress-bar').style.background = daysLeft <= 3 ? '#f59e0b' : 'var(--accent)';
-
-  // Alertas ativos
+  document.getElementById('sub-progress-bar').style.background = daysLeft <= 5 ? '#f59e0b' : 'var(--accent)';
   const monitorsRes = await api('GET', '/api/monitors');
   document.getElementById('sub-alerts-count').textContent = monitorsRes?.monitors?.length ? `${monitorsRes.monitors.length} de 5` : '0 de 5';
-
   document.getElementById('sub-cancel-warning').style.display = res?.cancelAtPeriodEnd ? 'block' : 'none';
-  document.getElementById('sub-btn-portal').style.display = res?.renewal ? 'block' : 'none';
   document.getElementById('sub-content').style.display = 'block';
 }
 
@@ -2891,6 +2909,7 @@ async function showSubscriptionModal() {
   document.getElementById('sub-loading').style.display = 'block';
   document.getElementById('sub-content').style.display = 'none';
   document.getElementById('sub-free-content').style.display = 'none';
+  document.getElementById('sub-trial-content').style.display = 'none';
 
   if (!currentUser || currentUser.plan === 'free') {
     document.getElementById('sub-loading').style.display = 'none';
@@ -2905,25 +2924,33 @@ async function showSubscriptionModal() {
   document.getElementById('sub-loading').style.display = 'none';
 
   const daysLeft = currentUser.planExpiresAt ? Math.ceil((currentUser.planExpiresAt - Date.now()) / (1000*60*60*24)) : null;
-  const isTrial = daysLeft !== null && daysLeft <= 7 && !res?.renewal;
+  const isTrial = !res?.hasStripe && !res?.renewal;
 
-  document.getElementById('sub-plan-name').textContent = isTrial ? 'Trial Pro' : 'Plano Pro';
-  document.getElementById('sub-plan-icon').textContent = isTrial ? '⏳' : '⭐';
+  if (isTrial) {
+    // Trial gratuito — sem assinatura Stripe
+    document.getElementById('sub-plan-name').textContent = 'Trial Pro';
+    document.getElementById('sub-plan-icon').textContent = '⏳';
+    document.getElementById('sub-plan-status').textContent = `${daysLeft > 0 ? daysLeft + ' dias restantes' : 'Expirando'}`;
+    document.getElementById('sub-trial-expires').textContent = currentUser.planExpiresAt ? new Date(currentUser.planExpiresAt).toLocaleDateString('pt-BR') : '—';
+    document.getElementById('sub-trial-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : 'Último dia';
+    const pct = daysLeft ? Math.min(100, (daysLeft/7)*100) : 0;
+    document.getElementById('sub-trial-bar').style.width = pct + '%';
+    document.getElementById('sub-trial-content').style.display = 'block';
+    return;
+  }
+
+  // Pro pago via Stripe
+  document.getElementById('sub-plan-name').textContent = 'Plano Pro';
+  document.getElementById('sub-plan-icon').textContent = '⭐';
   document.getElementById('sub-plan-status').textContent = res?.cancelAtPeriodEnd ? 'Cancelamento agendado' : 'Ativo';
-
-  document.getElementById('sub-renewal').textContent = res?.renewal || (currentUser.planExpiresAt ? new Date(currentUser.planExpiresAt).toLocaleDateString('pt-BR') : '—');
-  document.getElementById('sub-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : 'Expirado';
-
-  const pct = daysLeft ? Math.min(100, Math.max(0, isTrial ? (daysLeft/7)*100 : (daysLeft/30)*100)) : 0;
+  document.getElementById('sub-renewal').textContent = res?.renewal || '—';
+  document.getElementById('sub-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : '—';
+  const pct = daysLeft ? Math.min(100, Math.max(0, (daysLeft/30)*100)) : 100;
   document.getElementById('sub-progress-bar').style.width = pct + '%';
-  document.getElementById('sub-progress-bar').style.background = daysLeft <= 3 ? '#f59e0b' : 'var(--accent)';
-
-  // Alertas ativos
+  document.getElementById('sub-progress-bar').style.background = daysLeft <= 5 ? '#f59e0b' : 'var(--accent)';
   const monitorsRes = await api('GET', '/api/monitors');
   document.getElementById('sub-alerts-count').textContent = monitorsRes?.monitors?.length ? `${monitorsRes.monitors.length} de 5` : '0 de 5';
-
   document.getElementById('sub-cancel-warning').style.display = res?.cancelAtPeriodEnd ? 'block' : 'none';
-  document.getElementById('sub-btn-portal').style.display = res?.renewal ? 'block' : 'none';
   document.getElementById('sub-content').style.display = 'block';
 }
 
@@ -3072,14 +3099,41 @@ document.addEventListener('DOMContentLoaded', updateSavedBadge);
           ⚠️ Sua assinatura será cancelada ao fim do período atual.
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;margin-top:1rem">
-          <button id="sub-btn-portal" onclick="openStripePortal()" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:700;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s">Gerenciar assinatura →</button>
+          <button id="sub-btn-portal" onclick="openStripePortal()" style="width:100%;padding:11px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:700;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s">⚙️ Gerenciar assinatura</button>
+          <p style="font-size:11px;color:var(--text3);text-align:center;margin:0">Cancele, troque o cartão ou veja faturas no portal seguro do Stripe</p>
           <button onclick="closeSubscriptionModal()" style="width:100%;padding:8px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--text3);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer">Fechar</button>
         </div>
       </div>
-      <!-- Free/Trial -->
+      <!-- Trial sem Stripe -->
+      <div id="sub-trial-content" style="display:none">
+        <div class="sub-stat">
+          <span class="sub-stat-label">Tipo</span>
+          <span class="sub-stat-value">Trial gratuito</span>
+        </div>
+        <div class="sub-stat">
+          <span class="sub-stat-label">Expira em</span>
+          <span class="sub-stat-value" id="sub-trial-expires">—</span>
+        </div>
+        <div class="sub-stat">
+          <span class="sub-stat-label">Dias restantes</span>
+          <div style="text-align:right">
+            <span class="sub-stat-value" id="sub-trial-days">—</span>
+            <div class="sub-progress" style="width:120px;margin-top:4px">
+              <div class="sub-progress-bar" id="sub-trial-bar" style="width:0%;background:#f59e0b"></div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:1rem">
+          <button onclick="closeSubscriptionModal();showUpgradeModal()" style="width:100%;padding:11px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:700;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer">⭐ Assinar Pro — R$ 29,90/mês</button>
+          <p style="font-size:11px;color:var(--text3);text-align:center;margin:0">Não perca o acesso após o trial expirar</p>
+          <button onclick="closeSubscriptionModal()" style="width:100%;padding:8px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--text3);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer">Fechar</button>
+        </div>
+      </div>
+      <!-- Free -->
       <div id="sub-free-content" style="display:none;text-align:center;padding:.5rem 0">
         <p style="font-size:13px;color:var(--text2);margin-bottom:1rem">Você está no plano Free.<br>Assine o Pro para desbloquear todos os recursos.</p>
         <button onclick="closeSubscriptionModal();showUpgradeModal()" style="width:100%;padding:10px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:700;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer">Ver plano Pro →</button>
+        <button onclick="closeSubscriptionModal()" style="width:100%;padding:8px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--text3);font-size:12px;font-family:'Inter',sans-serif;cursor:pointer;margin-top:6px">Fechar</button>
       </div>
     </div>
   </div>

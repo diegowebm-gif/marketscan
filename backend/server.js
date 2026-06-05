@@ -703,13 +703,26 @@ app.post('/api/push/test', requireAuth, requirePro, async (req, res) => {
 // Portal de gerenciamento do Stripe
 app.post('/api/stripe/portal', requireAuth, async (req, res) => {
   try {
-    // Busca customer ID do banco
     const { Pool } = require('pg');
     const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
     const result = await pool.query('SELECT stripe_customer_id FROM users WHERE token = $1', [req.headers['x-auth-token']]);
     await pool.end();
-    const customerId = result.rows[0]?.stripe_customer_id;
-    if (!customerId) return res.json({ ok: false, error: 'Assinatura não encontrada. Você assinou pelo Stripe?' });
+    let customerId = result.rows[0]?.stripe_customer_id;
+
+    // Fallback: busca pelo email no Stripe se não tiver ID salvo
+    if (!customerId) {
+      const customers = await stripe.customers.list({ email: req.user.email, limit: 1 });
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+        // Salva para próximas vezes
+        const pool2 = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+        await pool2.query('UPDATE users SET stripe_customer_id = $1 WHERE token = $2', [customerId, req.headers['x-auth-token']]).catch(() => {});
+        await pool2.end();
+      }
+    }
+
+    if (!customerId) return res.json({ ok: false, error: 'Assinatura Stripe não encontrada para este e-mail.' });
+
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${BASE_URL}/`,
@@ -732,15 +745,23 @@ app.get('/api/stripe/subscription', requireAuth, async (req, res) => {
     if (!user) return res.json({ ok: false });
     let renewal = null;
     let cancelAtPeriodEnd = false;
-    if (user.stripe_customer_id) {
-      const subs = await stripe.subscriptions.list({ customer: user.stripe_customer_id, limit: 1, status: 'active' });
+    let customerId = user.stripe_customer_id;
+
+    // Fallback: busca pelo email
+    if (!customerId) {
+      const customers = await stripe.customers.list({ email: req.user.email, limit: 1 });
+      if (customers.data.length > 0) customerId = customers.data[0].id;
+    }
+
+    if (customerId) {
+      const subs = await stripe.subscriptions.list({ customer: customerId, limit: 1, status: 'active' });
       if (subs.data.length > 0) {
         const sub = subs.data[0];
         renewal = new Date(sub.current_period_end * 1000).toLocaleDateString('pt-BR');
         cancelAtPeriodEnd = sub.cancel_at_period_end;
       }
     }
-    res.json({ ok: true, plan: user.plan, planExpiresAt: user.plan_expires_at, renewal, cancelAtPeriodEnd });
+    res.json({ ok: true, plan: user.plan, planExpiresAt: user.plan_expires_at, renewal, cancelAtPeriodEnd, hasStripe: !!customerId });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
