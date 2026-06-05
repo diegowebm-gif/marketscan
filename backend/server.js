@@ -129,6 +129,13 @@ async function handleStripeWebhook(req, res) {
     const token = session.metadata?.userToken;
     if (token) {
       await upgradeToPro(token, 1);
+      // Salva o customer ID do Stripe para o portal
+      if (session.customer) {
+        const { Pool } = require('pg');
+        const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+        await p.query('UPDATE users SET stripe_customer_id = $1 WHERE token = $2', [session.customer, token]).catch(() => {});
+        await p.end();
+      }
       console.log(`[Stripe] Pro ativado via checkout para token: ${token.slice(0, 8)}...`);
     }
   }
@@ -692,6 +699,53 @@ app.post('/api/push/test', requireAuth, requirePro, async (req, res) => {
 });
 
 // ── Stripe Checkout ───────────────────────────────────────
+
+// Portal de gerenciamento do Stripe
+app.post('/api/stripe/portal', requireAuth, async (req, res) => {
+  try {
+    // Busca customer ID do banco
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    const result = await pool.query('SELECT stripe_customer_id FROM users WHERE token = $1', [req.headers['x-auth-token']]);
+    await pool.end();
+    const customerId = result.rows[0]?.stripe_customer_id;
+    if (!customerId) return res.json({ ok: false, error: 'Assinatura não encontrada. Você assinou pelo Stripe?' });
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: `${BASE_URL}/`,
+    });
+    res.json({ ok: true, url: session.url });
+  } catch (err) {
+    console.error('[Stripe] Portal error:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Info da assinatura
+app.get('/api/stripe/subscription', requireAuth, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    const result = await pool.query('SELECT stripe_customer_id, plan, plan_expires_at FROM users WHERE token = $1', [req.headers['x-auth-token']]);
+    await pool.end();
+    const user = result.rows[0];
+    if (!user) return res.json({ ok: false });
+    let renewal = null;
+    let cancelAtPeriodEnd = false;
+    if (user.stripe_customer_id) {
+      const subs = await stripe.subscriptions.list({ customer: user.stripe_customer_id, limit: 1, status: 'active' });
+      if (subs.data.length > 0) {
+        const sub = subs.data[0];
+        renewal = new Date(sub.current_period_end * 1000).toLocaleDateString('pt-BR');
+        cancelAtPeriodEnd = sub.cancel_at_period_end;
+      }
+    }
+    res.json({ ok: true, plan: user.plan, planExpiresAt: user.plan_expires_at, renewal, cancelAtPeriodEnd });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.post('/api/stripe/checkout', requireAuth, async (req, res) => {
   try {
     const { promoCode } = req.body;

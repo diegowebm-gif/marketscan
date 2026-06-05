@@ -171,6 +171,7 @@ pool.query(`
   ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token TEXT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires BIGINT;
   ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_phone TEXT;
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 `).catch(() => {});
 
 module.exports = { register, login, getUserByToken, upgradeToPro, getLimits, createPasswordResetToken, resetPassword, updateWhatsappPhone };
