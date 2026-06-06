@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -99,6 +101,38 @@ function emailTrialExpirado(email) {
 }
 
 const app = express();
+
+// ── Segurança HTTP headers ─────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false, // desabilitado para não quebrar o frontend
+  crossOriginEmbedderPolicy: false,
+}));
+app.disable('x-powered-by');
+
+// ── Rate limiting ──────────────────────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 20, // máx 20 tentativas de login/cadastro por IP
+  message: { ok: false, error: 'Muitas tentativas. Aguarde 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const searchLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 10, // máx 10 buscas por minuto por IP
+  message: { ok: false, error: 'Muitas requisições. Aguarde um momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60, // máx 60 req/min por IP para outras rotas
+  message: { ok: false, error: 'Muitas requisições. Aguarde um momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
@@ -170,6 +204,13 @@ app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handl
 app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+app.use('/api', apiLimiter);
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 // ── Middleware de autenticação ─────────────────────────────
@@ -190,7 +231,7 @@ function requirePro(req, res, next) {
 }
 
 // ── Auth ──────────────────────────────────────────────────
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ ok: false, error: 'E-mail e senha obrigatórios.' });
   if (password.length < 6) return res.status(400).json({ ok: false, error: 'Senha mínima de 6 caracteres.' });
@@ -200,7 +241,7 @@ app.post('/api/auth/register', async (req, res) => {
   res.json(result);
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ ok: false, error: 'E-mail e senha obrigatórios.' });
   const result = await login(email, password);
@@ -264,7 +305,7 @@ app.post('/api/auth/update-password', requireAuth, async (req, res) => {
   } catch (err) { await pool.end(); res.status(500).json({ ok: false, error: err.message }); }
 });
 
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ ok: false, error: 'E-mail obrigatório.' });
   const result = await createPasswordResetToken(email);
@@ -552,7 +593,7 @@ async function checkSearchLimit(userId, isPro) {
 }
 
 // ── Busca com streaming (SSE) ────────────────────────────────
-app.get('/api/search/stream', requireAuth, async (req, res) => {
+app.get('/api/search/stream', searchLimiter, requireAuth, async (req, res) => {
   const { keyword, city = '', state = '', maxItems = 40, removeNoPrice = 'false', blockedWords = '' } = req.query;
   if (!keyword) return res.status(400).json({ ok: false, error: 'keyword obrigatório.' });
 
