@@ -206,10 +206,11 @@ function saveListingFromMenu(btn, url, title, price, img) {
   if (dropdown) dropdown.classList.remove('show');
 }
 
-function reportListing(btn) {
+async function reportListing(btn, url, title) {
   const dropdown = btn.closest('.card-menu-dropdown');
   if (dropdown) dropdown.classList.remove('show');
-  toast('Obrigado pelo feedback! Anúncio reportado.', 'success');
+  await api('POST', '/api/report', { url, title, userEmail: currentUser?.email || 'anônimo' });
+  toast('✅ Anúncio reportado! Obrigado pelo feedback.', 'success');
 }
 
 function showSavedPanel() {
@@ -2061,7 +2062,7 @@ function renderListings() {
       <div class="card-menu-dropdown">
         <button class="card-menu-item" onclick="saveListingFromMenu(this, '${esc(l.listing_url)}', '${esc(l.title).replace(/'/g,"\'")}', ${l.price || 0}, '${esc(l.image_url || '')}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Salvar anúncio</button>
         <a class="card-menu-item" href="https://wa.me/?text=${encodeURIComponent('📦 ' + l.title + (l.price ? ' · R$ ' + fmt(l.price) : '') + (l.location ? ' · ' + l.location : '') + '\n👉 ' + l.listing_url + '\n\n🔍 Achei no MarketScan!')}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Compartilhar</a>
-        <button class="card-menu-item" onclick="reportListing(this)" style="color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Reportar anúncio</button>
+        <button class="card-menu-item" onclick="reportListing(this, '${esc(l.listing_url)}', '${esc(l.title).replace(/'/g,\"\\'\")}'  )" style="color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Reportar anúncio</button>
       </div>
       ${l.price ? `
       <button class="calc-btn" onclick="toggleCalc(this, ${l.price}, ${currentStats?.avg || 0})">Calcular lucro</button>
@@ -2775,10 +2776,11 @@ function saveListingFromMenu(btn, url, title, price, img) {
   if (dropdown) dropdown.classList.remove('show');
 }
 
-function reportListing(btn) {
+async function reportListing(btn, url, title) {
   const dropdown = btn.closest('.card-menu-dropdown');
   if (dropdown) dropdown.classList.remove('show');
-  toast('Obrigado pelo feedback! Anúncio reportado.', 'success');
+  await api('POST', '/api/report', { url, title, userEmail: currentUser?.email || 'anônimo' });
+  toast('✅ Anúncio reportado! Obrigado pelo feedback.', 'success');
 }
 
 function showSavedPanel() {
@@ -3016,10 +3018,11 @@ function saveListingFromMenu(btn, url, title, price, img) {
   if (dropdown) dropdown.classList.remove('show');
 }
 
-function reportListing(btn) {
+async function reportListing(btn, url, title) {
   const dropdown = btn.closest('.card-menu-dropdown');
   if (dropdown) dropdown.classList.remove('show');
-  toast('Obrigado pelo feedback! Anúncio reportado.', 'success');
+  await api('POST', '/api/report', { url, title, userEmail: currentUser?.email || 'anônimo' });
+  toast('✅ Anúncio reportado! Obrigado pelo feedback.', 'success');
 }
 
 function showSavedPanel() {

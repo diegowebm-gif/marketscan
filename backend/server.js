@@ -306,6 +306,57 @@ app.post('/api/auth/update-password', requireAuth, async (req, res) => {
   } catch (err) { await pool.end(); res.status(500).json({ ok: false, error: err.message }); }
 });
 
+
+// ── Reports de anúncios ──────────────────────────────────────
+async function initReportsTable() {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  await pool.query(`CREATE TABLE IF NOT EXISTS reports (
+    id SERIAL PRIMARY KEY,
+    url TEXT NOT NULL,
+    title TEXT,
+    user_email TEXT,
+    created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000,
+    reviewed BOOLEAN DEFAULT FALSE
+  )`);
+  await pool.end();
+}
+initReportsTable().catch(() => {});
+
+app.post('/api/report', requireAuth, async (req, res) => {
+  const { url, title, userEmail } = req.body;
+  if (!url) return res.status(400).json({ ok: false });
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  await pool.query('INSERT INTO reports (url, title, user_email) VALUES ($1, $2, $3)', [url, title || '', userEmail || '']);
+  await pool.end();
+  res.json({ ok: true });
+});
+
+app.get('/api/admin/reports', requireAdmin, async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  const result = await pool.query('SELECT * FROM reports ORDER BY created_at DESC LIMIT 100');
+  await pool.end();
+  res.json({ ok: true, reports: result.rows });
+});
+
+app.post('/api/admin/reports/:id/review', requireAdmin, async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  await pool.query('UPDATE reports SET reviewed = TRUE WHERE id = $1', [req.params.id]);
+  await pool.end();
+  res.json({ ok: true });
+});
+
+app.delete('/api/admin/reports/:id', requireAdmin, async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  await pool.query('DELETE FROM reports WHERE id = $1', [req.params.id]);
+  await pool.end();
+  res.json({ ok: true });
+});
+
 app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ ok: false, error: 'E-mail obrigatório.' });
