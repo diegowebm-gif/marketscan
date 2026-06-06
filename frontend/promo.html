@@ -49,6 +49,9 @@
     .email-input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; margin-bottom: 10px; transition: border-color .2s; }
     .email-input:focus { border-color: var(--accent); }
     .email-input::placeholder { color: rgba(255,255,255,0.35); }
+    .email-input:-webkit-autofill,
+    .email-input:-webkit-autofill:hover,
+    .email-input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0px 1000px #1a0a35 inset !important; -webkit-text-fill-color: var(--text) !important; border-color: var(--accent) !important; }
 
     /* CTA */
     .btn-cta { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, #6a0dad, #7c3aed); color: #fff; font-weight: 700; font-size: 16px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; box-shadow: 0 8px 24px rgba(106,13,173,0.4); }
