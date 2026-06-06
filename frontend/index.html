@@ -2164,6 +2164,7 @@ function renderHistoryChart(history) {
 }
 
 function toggleCalc(btn, buyPrice, avgPrice) {
+  if (!checkProFeature('calc')) return;
   const panel = btn.nextElementSibling;
   const isOpen = panel.classList.contains('open');
   document.querySelectorAll('.calc-panel.open').forEach(p => p.classList.remove('open'));
