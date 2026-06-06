@@ -111,7 +111,11 @@
     <input type="email" class="email-input" id="promo-email" placeholder="Seu e-mail *" required />
     <div style="position:relative">
       <input type="password" class="email-input" id="promo-password" placeholder="Crie sua senha * (mín. 6 caracteres)" required style="padding-right:44px" />
-      <button type="button" onclick="togglePass()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);font-size:16px">👁</button>
+      <button type="button" onclick="togglePass('promo-password')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);font-size:16px">👁</button>
+    </div>
+    <div style="position:relative">
+      <input type="password" class="email-input" id="promo-password2" placeholder="Confirme sua senha *" required style="padding-right:44px" />
+      <button type="button" onclick="togglePass('promo-password2')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);font-size:16px">👁</button>
     </div>
     <button class="btn-cta" id="btn-checkout" onclick="startCheckout()">
       Assinar Pro por R$ 19,90 →
@@ -169,8 +173,8 @@
   const promoCode = window.location.pathname.split('/promo/')[1]?.toUpperCase() || 'PROMO20';
   document.getElementById('coupon-display').textContent = promoCode;
 
-  function togglePass() {
-    const input = document.getElementById('promo-password');
+  function togglePass(id) {
+    const input = document.getElementById(id);
     input.type = input.type === 'password' ? 'text' : 'password';
   }
 
@@ -183,8 +187,10 @@
 
     if (!email) { errEl.textContent = 'Digite seu e-mail.'; return; }
     if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { errEl.textContent = 'E-mail inválido.'; return; }
+    const password2 = document.getElementById('promo-password2').value;
     if (!password) { errEl.textContent = 'Crie uma senha.'; return; }
     if (password.length < 6) { errEl.textContent = 'Senha mínima de 6 caracteres.'; return; }
+    if (password !== password2) { errEl.textContent = 'As senhas não conferem.'; return; }
 
     btn.disabled = true;
     btn.textContent = 'Aguarde...';
@@ -211,6 +217,7 @@
   }
 
   document.getElementById('promo-email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('promo-password').focus(); });
+  document.getElementById('promo-password').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('promo-password2').focus(); });
   document.getElementById('promo-password').addEventListener('keydown', e => { if (e.key === 'Enter') startCheckout(); });
 </script>
 
