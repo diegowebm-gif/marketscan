@@ -175,34 +175,34 @@ async function handleStripeWebhook(req, res) {
       }
       console.log(`[Stripe] Pro ativado via checkout para token: ${token.slice(0, 8)}...`);
     } else if (promoCode && session.customer_email) {
-      // Checkout via página de promo — cria conta automaticamente
+      // Checkout via página de promo — cria conta com senha já definida
       const email = session.customer_email;
-      const tempPassword = require('crypto').randomBytes(8).toString('hex');
-      const regResult = await register(email, tempPassword);
-      if (regResult.ok) {
-        // Atualiza para Pro pago (sem trial)
-        await upgradeToPro(regResult.token, 1);
-        if (session.customer) {
-          const { Pool } = require('pg');
-          const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-          await p.query('UPDATE users SET stripe_customer_id = $1 WHERE token = $2', [session.customer, regResult.token]).catch(() => {});
-          await p.end();
-        }
-        // Envia email com senha temporária
-        await sendEmail(email, '🎉 Bem-vindo ao MarketScan Pro!', `
-          <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:2rem;background:#f4f5f7">
-            <div style="background:#fff;border-radius:12px;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
-              <h1 style="font-size:1.3rem;color:#1a1a2e;margin-bottom:.5rem">🎉 Sua conta Pro está ativa!</h1>
-              <p style="color:#6b7280;font-size:14px;margin-bottom:1rem">Sua assinatura foi confirmada. Acesse o MarketScan com suas credenciais:</p>
-              <p style="font-size:14px;margin-bottom:4px"><strong>E-mail:</strong> ${email}</p>
-              <p style="font-size:14px;margin-bottom:1.5rem"><strong>Senha temporária:</strong> ${tempPassword}</p>
-              <p style="color:#f59e0b;font-size:13px;margin-bottom:1.5rem">⚠️ Altere sua senha após o primeiro acesso em Perfil → Senha.</p>
-              <a href="${BASE_URL}" style="display:inline-block;background:#6a0dad;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Acessar MarketScan →</a>
-            </div>
+      const passwordHash = session.metadata?.userPassword;
+
+      // Cria usuário diretamente com o hash de senha já calculado
+      const crypto = require('crypto');
+      const { Pool } = require('pg');
+      const p2 = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+      const token = crypto.randomBytes(32).toString('hex');
+      const userId = crypto.randomUUID();
+      const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
+
+      await p2.query(
+        'INSERT INTO users (id, email, password, plan, token, plan_expires_at, stripe_customer_id) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (email) DO NOTHING',
+        [userId, email.toLowerCase().trim(), passwordHash || crypto.createHash('sha256').update(crypto.randomBytes(8).toString('hex') + 'marketscan_salt').digest('hex'), 'pro', token, expiresAt, session.customer || null]
+      ).catch(() => {});
+      await p2.end();
+
+      await sendEmail(email, '🎉 Bem-vindo ao MarketScan Pro!', `
+        <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:2rem;background:#f4f5f7">
+          <div style="background:#fff;border-radius:12px;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+            <h1 style="font-size:1.3rem;color:#1a1a2e;margin-bottom:.5rem">🎉 Sua conta Pro está ativa!</h1>
+            <p style="color:#6b7280;font-size:14px;margin-bottom:1.5rem">Assinatura confirmada! Acesse com seu e-mail e a senha que você criou.</p>
+            <a href="${BASE_URL}" style="display:inline-block;background:#6a0dad;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Acessar MarketScan →</a>
           </div>
-        `).catch(() => {});
-        console.log(`[Stripe] Conta Pro criada via promo para: ${email}`);
-      }
+        </div>
+      `).catch(() => {});
+      console.log(`[Stripe] Conta Pro criada via promo para: ${email}`);
     }
   }
 
@@ -898,8 +898,17 @@ app.get('/api/stripe/subscription', requireAuth, async (req, res) => {
 // ── Checkout de promo sem login (para links de influenciadores) ──
 app.post('/api/stripe/checkout-promo', async (req, res) => {
   try {
-    const { promoCode, email } = req.body;
+    const { promoCode, email, password } = req.body;
     if (!promoCode) return res.status(400).json({ ok: false, error: 'Código obrigatório.' });
+    if (!email) return res.status(400).json({ ok: false, error: 'E-mail obrigatório.' });
+    if (!password || password.length < 6) return res.status(400).json({ ok: false, error: 'Senha mínima de 6 caracteres.' });
+
+    // Verificar se email já cadastrado
+    const { Pool } = require('pg');
+    const poolCheck = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    const existing = await poolCheck.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase().trim()]);
+    await poolCheck.end();
+    if (existing.rows.length > 0) return res.json({ ok: false, error: 'E-mail já cadastrado. Faça login e use o cupom na tela de upgrade.' });
 
     // Valida o promoCode no Stripe
     const promoCodes = await stripe.promotionCodes.list({ code: promoCode.toUpperCase(), active: true, limit: 1 });
@@ -914,7 +923,7 @@ app.post('/api/stripe/checkout-promo', async (req, res) => {
       cancel_url: `${BASE_URL}/promo/${promoCode}`,
       locale: 'pt-BR',
       discounts: [{ promotion_code: promo.id }],
-      metadata: { promoCode: promoCode.toUpperCase() },
+      metadata: { promoCode: promoCode.toUpperCase(), userEmail: email, userPassword: require('crypto').createHash('sha256').update(password + 'marketscan_salt').digest('hex') },
     };
 
     // Se vier email, pré-preenche no checkout

@@ -108,7 +108,11 @@
     </div>
 
     <p id="error-msg" class="error-msg"></p>
-    <input type="email" class="email-input" id="promo-email" placeholder="Seu e-mail (opcional)" />
+    <input type="email" class="email-input" id="promo-email" placeholder="Seu e-mail *" required />
+    <div style="position:relative">
+      <input type="password" class="email-input" id="promo-password" placeholder="Crie sua senha * (mín. 6 caracteres)" required style="padding-right:44px" />
+      <button type="button" onclick="togglePass()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.4);font-size:16px">👁</button>
+    </div>
     <button class="btn-cta" id="btn-checkout" onclick="startCheckout()">
       Assinar Pro por R$ 19,90 →
     </button>
@@ -165,11 +169,22 @@
   const promoCode = window.location.pathname.split('/promo/')[1]?.toUpperCase() || 'PROMO20';
   document.getElementById('coupon-display').textContent = promoCode;
 
+  function togglePass() {
+    const input = document.getElementById('promo-password');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+
   async function startCheckout() {
     const btn = document.getElementById('btn-checkout');
     const email = document.getElementById('promo-email').value.trim();
+    const password = document.getElementById('promo-password').value;
     const errEl = document.getElementById('error-msg');
     errEl.textContent = '';
+
+    if (!email) { errEl.textContent = 'Digite seu e-mail.'; return; }
+    if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) { errEl.textContent = 'E-mail inválido.'; return; }
+    if (!password) { errEl.textContent = 'Crie uma senha.'; return; }
+    if (password.length < 6) { errEl.textContent = 'Senha mínima de 6 caracteres.'; return; }
 
     btn.disabled = true;
     btn.textContent = 'Aguarde...';
@@ -178,7 +193,7 @@
       const res = await fetch('/api/stripe/checkout-promo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promoCode, email: email || undefined }),
+        body: JSON.stringify({ promoCode, email, password }),
       });
       const data = await res.json();
       if (data.ok && data.url) {
@@ -195,10 +210,8 @@
     }
   }
 
-  // Enter no email também submete
-  document.getElementById('promo-email').addEventListener('keydown', e => {
-    if (e.key === 'Enter') startCheckout();
-  });
+  document.getElementById('promo-email').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('promo-password').focus(); });
+  document.getElementById('promo-password').addEventListener('keydown', e => { if (e.key === 'Enter') startCheckout(); });
 </script>
 
 </body>
