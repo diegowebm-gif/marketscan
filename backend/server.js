@@ -600,7 +600,9 @@ app.get('/api/search/stream', searchLimiter, requireAuth, async (req, res) => {
 
   const sessionId = req.headers['x-session-id'] || 'shared';
   const location = state || 'Brasil';
-  const max = Math.min(parseInt(maxItems) || 40, req.limits.maxItems);
+  const requestedMax = parseInt(maxItems) || 40;
+  const max = Math.min(requestedMax, req.limits.maxItems);
+  console.log(`[Search] maxItems solicitado: ${requestedMax}, limite do plano: ${req.limits.maxItems}, aplicado: ${max}`);
   const blocked = blockedWords ? blockedWords.split(',').map(w => w.trim()).filter(Boolean) : [];
 
   res.setHeader('Content-Type', 'text/event-stream');
@@ -671,7 +673,8 @@ app.post('/api/search', requireAuth, async (req, res) => {
   const { sessionId, keyword, location = 'Brasil', city = '', blockedWords = [] } = req.body;
   const { maxItems: limitMax, canBlockWords } = req.limits;
   if (!sessionId || !keyword) return res.status(400).json({ ok: false, error: 'Dados obrigatórios.' });
-  const maxItems = Math.min(parseInt(req.body.maxItems) || 40, limitMax);
+  const requestedMax2 = parseInt(req.body.maxItems) || 40;
+  const maxItems = Math.min(requestedMax2, limitMax);
   const finalBlockedWords = canBlockWords ? blockedWords : [];
   try {
     await touchSession(sessionId);
