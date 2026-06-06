@@ -517,7 +517,7 @@ app.delete('/api/session/:id', requireAuth, async (req, res) => {
 // ── Cache de buscas ──────────────────────────────────────────
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutos
 
-async function getCachedSearch(keyword, city) {
+async function getCachedSearch(keyword, city, maxItems = 40) {
   try {
     const { Pool } = require('pg');
     const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
@@ -526,7 +526,7 @@ async function getCachedSearch(keyword, city) {
       result JSONB,
       created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
     )`);
-    const key = `${keyword.toLowerCase().trim()}|${city.toLowerCase().trim()}`;
+    const key = `${keyword.toLowerCase().trim()}|${city.toLowerCase().trim()}|${maxItems}`;
     const result = await pool.query('SELECT result, created_at FROM search_cache WHERE cache_key = $1', [key]);
     await pool.end();
     if (!result.rows.length) return null;
@@ -540,11 +540,11 @@ async function getCachedSearch(keyword, city) {
   }
 }
 
-async function setCachedSearch(keyword, city, result) {
+async function setCachedSearch(keyword, city, result, maxItems = 40) {
   try {
     const { Pool } = require('pg');
     const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-    const key = `${keyword.toLowerCase().trim()}|${city.toLowerCase().trim()}`;
+    const key = `${keyword.toLowerCase().trim()}|${city.toLowerCase().trim()}|${maxItems}`;
     await pool.query(`INSERT INTO search_cache (cache_key, result, created_at) VALUES ($1, $2, $3)
       ON CONFLICT (cache_key) DO UPDATE SET result = $2, created_at = $3`,
       [key, JSON.stringify(result), Date.now()]);
@@ -630,7 +630,7 @@ data: ${JSON.stringify(data)}
   }
 
   // Verifica cache primeiro
-  const cached = await getCachedSearch(keyword, city);
+  const cached = await getCachedSearch(keyword, city, max);
   if (cached) {
     send('status', { message: 'Carregando resultados...' });
     send('done', { ...cached, fromCache: true, plan: req.user.plan, limits: req.limits });
