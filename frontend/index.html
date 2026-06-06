@@ -2043,7 +2043,7 @@ function renderListings() {
   grid.innerHTML = list.map(l => {
     const priceHtml = l.price ? `<div class="listing-price">R$ ${fmt(l.price)}</div>` : `<div class="listing-price no-price">${l.price_raw || 'Sem preço'}</div>`;
     const pctHtml = l.pct_below_avg !== null ? `<div class="pct-badge ${l.pct_below_avg < 0 ? 'above' : ''}">${l.pct_below_avg >= 0 ? `${l.pct_below_avg}% abaixo da média` : `${Math.abs(l.pct_below_avg)}% acima da média`}</div>` : '';
-    const imgHtml = l.image_url ? `<img class="listing-img" src="${esc(l.image_url)}" alt="${esc(l.title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : '';
+    const imgHtml = l.image_url ? `<a href="${esc(l.listing_url)}" target="_blank" rel="noopener" style="display:block;line-height:0"><img class="listing-img" src="${esc(l.image_url)}" alt="${esc(l.title)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"></a>` : '';
     const ph = `<div class="listing-img-placeholder" ${l.image_url ? 'style="display:none"' : ''}>🖼️</div>`;
     const scoreHtml = l.score !== null && l.score !== undefined ? (() => {
       const cls = l.score >= 85 ? 'score-hot' : l.score >= 70 ? 'score-good' : 'score-ok';
