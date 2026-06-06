@@ -101,6 +101,7 @@ function emailTrialExpirado(email) {
 }
 
 const app = express();
+app.set('trust proxy', 1); // Railway usa proxy reverso
 
 // ── Segurança HTTP headers ─────────────────────────────────
 app.use(helmet({
