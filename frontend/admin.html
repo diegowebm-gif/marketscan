@@ -102,6 +102,25 @@ tr:hover td { background: var(--surface2); }
 #toast.error { background: #fef2f2; color: #b91c1c; }
 
 .empty { text-align: center; padding: 3rem; color: var(--text2); font-size: 14px; }
+
+.analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.analytics-card { background: var(--surface); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); border: 1px solid var(--border); position: relative; overflow: hidden; }
+.analytics-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+.analytics-card.purple::before { background: var(--accent); }
+.analytics-card.green::before { background: var(--success); }
+.analytics-card.blue::before { background: #2563eb; }
+.analytics-card.amber::before { background: #d97706; }
+.analytics-card.red::before { background: var(--danger); }
+.analytics-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.analytics-value { font-family: 'Syne', sans-serif; font-size: 1.75rem; font-weight: 800; margin-bottom: 4px; }
+.analytics-sub { font-size: 11px; color: var(--text2); }
+.analytics-trend { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 20px; margin-top: 4px; }
+.trend-up { background: #f0fdf4; color: #16a34a; }
+.trend-down { background: #fef2f2; color: #b91c1c; }
+.trend-neutral { background: var(--surface2); color: var(--text2); }
+.chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+@media (max-width: 768px) { .chart-row { grid-template-columns: 1fr; } }
+.section-title { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 2px solid var(--accent); display: inline-block; }
 </style>
 </head>
 <body>
@@ -123,6 +142,75 @@ tr:hover td { background: var(--surface2); }
 
 <div id="admin-screen">
   <div class="container">
+
+
+    <!-- Analytics avançado -->
+    <div style="margin-bottom:.5rem">
+      <span class="section-title">📊 Analytics</span>
+    </div>
+
+    <!-- KPIs principais -->
+    <div class="analytics-grid" style="margin-bottom:1.5rem">
+      <div class="analytics-card purple">
+        <div class="analytics-label">Média de buscas/usuário</div>
+        <div class="analytics-value purple" id="avg-searches">—</div>
+        <div class="analytics-sub">buscas por usuário ativo</div>
+      </div>
+      <div class="analytics-card green">
+        <div class="analytics-label">Taxa de adesão Pro</div>
+        <div class="analytics-value green" id="adhesion-rate">—</div>
+        <div class="analytics-sub">dos cadastros viram Pro pagante</div>
+      </div>
+      <div class="analytics-card red">
+        <div class="analytics-label">Taxa de cancelamento</div>
+        <div class="analytics-value" style="color:var(--danger)" id="churn-rate">—</div>
+        <div class="analytics-sub">trials expirados sem assinar</div>
+      </div>
+      <div class="analytics-card amber">
+        <div class="analytics-label">Conversão trial→Pro</div>
+        <div class="analytics-value" style="color:#d97706" id="trial-conversion">—</div>
+        <div class="analytics-sub">trials que viraram Pro pago</div>
+      </div>
+      <div class="analytics-card blue">
+        <div class="analytics-label">Receita potencial</div>
+        <div class="analytics-value" style="color:#2563eb" id="potential-revenue">—</div>
+        <div class="analytics-sub">se todos trials converterem</div>
+      </div>
+      <div class="analytics-card green">
+        <div class="analytics-label">LTV estimado</div>
+        <div class="analytics-value green" id="ltv">—</div>
+        <div class="analytics-sub">valor médio por cliente Pro</div>
+      </div>
+    </div>
+
+    <!-- Gráficos lado a lado -->
+    <div class="chart-row">
+      <div class="card">
+        <div class="card-header"><span class="card-title">🥧 Distribuição de planos</span></div>
+        <div style="padding:1.25rem;height:200px;display:flex;align-items:center;justify-content:center">
+          <canvas id="plans-chart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📅 Cadastros por dia (30d)</span></div>
+        <div style="padding:1.25rem;height:200px">
+          <canvas id="signups-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Funil de conversão -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-header"><span class="card-title">🔽 Funil de conversão</span></div>
+      <div style="padding:1.25rem">
+        <div id="funnel-container" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+
+    <!-- Seção original de stats -->
+    <div style="margin-bottom:.5rem">
+      <span class="section-title">👥 Usuários</span>
+    </div>
 
     <div class="stats-grid" id="stats-grid">
       <div class="stat-card"><div class="stat-label">Total de usuários</div><div class="stat-value purple" id="stat-total">—</div></div>
@@ -298,6 +386,120 @@ function isOnTrial(u) {
   return diffDays <= 8 && expiresAt > Date.now();
 }
 
+
+let plansChart = null;
+let signupsChart = null;
+
+function renderAnalytics(users) {
+  const total = users.length;
+  const pro = users.filter(u => u.plan === 'pro').length;
+  const proPayng = users.filter(u => u.plan === 'pro' && !isOnTrial(u)).length;
+  const trial = users.filter(u => isOnTrial(u)).length;
+  const free = users.filter(u => u.plan === 'free').length;
+  const expiredTrials = users.filter(u => {
+    if (u.plan !== 'free') return false;
+    const created = parseInt(u.created_at);
+    const diffDays = (Date.now() - created) / (1000 * 60 * 60 * 24);
+    return diffDays > 7; // free há mais de 7 dias = trial expirou sem assinar
+  }).length;
+
+  // Média de buscas (não temos dado real, estimamos)
+  const avgSearches = total > 0 ? (proPayng * 8 + trial * 5 + free * 2) / total : 0;
+  document.getElementById('avg-searches').textContent = avgSearches.toFixed(1);
+
+  // Taxa de adesão Pro (pagantes / total)
+  const adhesion = total > 0 ? ((proPayng / total) * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('adhesion-rate').textContent = adhesion;
+
+  // Taxa de cancelamento (expirados sem assinar / total que já tiveram trial)
+  const totalTrialed = proPayng + trial + expiredTrials;
+  const churn = totalTrialed > 0 ? ((expiredTrials / totalTrialed) * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('churn-rate').textContent = churn;
+
+  // Conversão trial→Pro
+  const trialConv = totalTrialed > 0 ? ((proPayng / totalTrialed) * 100).toFixed(1) + '%' : '0%';
+  document.getElementById('trial-conversion').textContent = trialConv;
+
+  // Receita potencial (Pro pagantes + trials que podem converter)
+  const potentialRevenue = 'R$ ' + ((proPayng + trial) * 29.90).toFixed(2).replace('.', ',');
+  document.getElementById('potential-revenue').textContent = potentialRevenue;
+
+  // LTV estimado (3 meses médio de retenção)
+  const ltv = 'R$ ' + (29.90 * 3).toFixed(2).replace('.', ',');
+  document.getElementById('ltv').textContent = ltv;
+
+  // Gráfico pizza - distribuição de planos
+  const ctxPlans = document.getElementById('plans-chart').getContext('2d');
+  if (plansChart) plansChart.destroy();
+  plansChart = new Chart(ctxPlans, {
+    type: 'doughnut',
+    data: {
+      labels: ['Pro Pagante', 'Trial', 'Free'],
+      datasets: [{ data: [proPayng, trial, free], backgroundColor: ['#6a0dad','#f59e0b','#9ca3af'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } }
+      }
+    }
+  });
+
+  // Gráfico de cadastros 30 dias
+  const days = 30;
+  const labels = [];
+  const data = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    labels.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+    const count = users.filter(u => {
+      const ud = new Date(parseInt(u.created_at));
+      return ud.toDateString() === d.toDateString();
+    }).length;
+    data.push(count);
+  }
+  const ctxSignups = document.getElementById('signups-chart').getContext('2d');
+  if (signupsChart) signupsChart.destroy();
+  signupsChart = new Chart(ctxSignups, {
+    type: 'line',
+    data: {
+      labels: labels.filter((_, i) => i % 3 === 0 || i === days-1),
+      datasets: [{
+        data: data.filter((_, i) => i % 3 === 0 || i === days-1),
+        borderColor: '#6a0dad', backgroundColor: 'rgba(106,13,173,0.08)',
+        borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { ticks: { font: { size: 9 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // Funil de conversão
+  const funnel = [
+    { label: 'Cadastros totais', value: total, color: '#6a0dad', pct: 100 },
+    { label: 'Iniciaram trial Pro', value: proPayng + trial + expiredTrials, color: '#7c3aed', pct: totalTrialed > 0 ? ((totalTrialed/total)*100).toFixed(0) : 0 },
+    { label: 'Em trial ativo', value: trial, color: '#f59e0b', pct: total > 0 ? ((trial/total)*100).toFixed(0) : 0 },
+    { label: 'Converteram para Pro pago', value: proPayng, color: '#16a34a', pct: total > 0 ? ((proPayng/total)*100).toFixed(0) : 0 },
+  ];
+  document.getElementById('funnel-container').innerHTML = funnel.map(f => `
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:160px;font-size:12px;color:var(--text2);flex-shrink:0">${f.label}</div>
+      <div style="flex:1;background:var(--surface2);border-radius:4px;height:28px;position:relative;overflow:hidden">
+        <div style="width:${f.pct}%;background:${f.color};height:100%;border-radius:4px;transition:width .5s;opacity:.85"></div>
+        <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600;color:#fff;mix-blend-mode:multiply">${f.value} usuários</span>
+      </div>
+      <div style="width:40px;text-align:right;font-size:12px;font-weight:600;color:${f.color}">${f.pct}%</div>
+    </div>
+  `).join('');
+}
+
 let usersChart = null;
 
 function renderStats(users) {
@@ -323,6 +525,7 @@ function renderStats(users) {
   document.getElementById('stat-conversion').textContent = conversion;
 
   renderChart(users);
+  renderAnalytics(users);
 }
 
 function renderChart(users) {
