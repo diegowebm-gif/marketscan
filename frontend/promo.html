@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarketScan Pro — Oferta Especial</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #6a0dad;
+      --accent-dim: rgba(106,13,173,0.1);
+      --success: #4ade80;
+      --bg: #0f0520;
+      --surface: #1a0a35;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0ff;
+      --text2: rgba(255,255,255,0.65);
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+    /* Header */
+    .header { padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 800; }
+    .logo span { color: #a78bfa; }
+
+    /* Hero */
+    .hero { max-width: 560px; margin: 0 auto; padding: 2.5rem 1.5rem; text-align: center; }
+    .promo-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(37,211,102,0.1); border: 1px solid rgba(37,211,102,0.3); color: #4ade80; font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: 20px; margin-bottom: 1.25rem; letter-spacing: .05em; text-transform: uppercase; }
+    .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 800; line-height: 1.15; margin-bottom: 1rem; }
+    .hero h1 span { color: #a78bfa; }
+    .hero p { font-size: 1rem; color: var(--text2); line-height: 1.7; margin-bottom: 2rem; }
+
+    /* Card de oferta */
+    .offer-card { background: var(--surface); border: 1px solid rgba(106,13,173,0.4); border-radius: 20px; padding: 2rem; max-width: 420px; margin: 0 auto 2rem; box-shadow: 0 0 40px rgba(106,13,173,0.2); }
+    .price-row { display: flex; align-items: baseline; justify-content: center; gap: 10px; margin-bottom: .5rem; }
+    .price-new { font-family: 'Syne', sans-serif; font-size: 3rem; font-weight: 800; color: #a78bfa; }
+    .price-period { font-size: 14px; color: var(--text2); }
+    .price-old { font-size: 14px; color: var(--text2); text-decoration: line-through; margin-bottom: 1.25rem; text-align: center; }
+    .coupon-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(106,13,173,0.2); border: 1px dashed rgba(106,13,173,0.5); color: #c084fc; font-size: 13px; font-weight: 700; padding: 6px 16px; border-radius: 8px; margin-bottom: 1.5rem; letter-spacing: .08em; }
+
+    /* Features */
+    .features { text-align: left; margin-bottom: 1.75rem; display: flex; flex-direction: column; gap: 10px; }
+    .feature-item { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text2); }
+    .feature-check { width: 22px; height: 22px; border-radius: 50%; background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); display: flex; align-items: center; justify-content: center; font-size: 11px; color: #4ade80; flex-shrink: 0; }
+
+    /* Email input */
+    .email-input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; outline: none; margin-bottom: 10px; transition: border-color .2s; }
+    .email-input:focus { border-color: var(--accent); }
+    .email-input::placeholder { color: rgba(255,255,255,0.35); }
+
+    /* CTA */
+    .btn-cta { width: 100%; padding: 15px; border-radius: 12px; border: none; background: linear-gradient(135deg, #6a0dad, #7c3aed); color: #fff; font-weight: 700; font-size: 16px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; box-shadow: 0 8px 24px rgba(106,13,173,0.4); }
+    .btn-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(106,13,173,0.5); }
+    .btn-cta:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+    .secure-note { font-size: 11px; color: rgba(255,255,255,0.35); text-align: center; margin-top: 10px; }
+
+    /* Depoimentos */
+    .testimonials { max-width: 560px; margin: 0 auto 2.5rem; padding: 0 1.5rem; }
+    .testimonials h3 { font-size: 14px; color: var(--text2); text-align: center; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .08em; }
+    .testimonial-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .testimonial { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; font-size: 12px; color: var(--text2); line-height: 1.6; }
+    .testimonial strong { display: block; color: var(--text); margin-bottom: 4px; font-size: 11px; }
+
+    /* FAQ */
+    .faq { max-width: 560px; margin: 0 auto 3rem; padding: 0 1.5rem; }
+    .faq h3 { font-size: 14px; color: var(--text2); text-align: center; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: .08em; }
+    .faq-item { border-bottom: 1px solid var(--border); padding: .75rem 0; font-size: 13px; }
+    .faq-q { color: var(--text); font-weight: 600; margin-bottom: 4px; }
+    .faq-a { color: var(--text2); line-height: 1.6; }
+
+    .error-msg { color: #f87171; font-size: 12px; margin-bottom: 8px; text-align: center; min-height: 18px; }
+
+    @media (max-width: 480px) {
+      .testimonial-grid { grid-template-columns: 1fr; }
+      .offer-card { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">Market<span>Scan</span></div>
+</div>
+
+<div class="hero">
+  <div class="promo-badge">🎉 Oferta exclusiva</div>
+  <h1>Encontre oportunidades<br><span>antes de todo mundo</span></h1>
+  <p>Monitore o Facebook Marketplace em tempo real, receba alertas no WhatsApp e lucre revendendo produtos abaixo do preço de mercado.</p>
+
+  <div class="offer-card">
+    <div class="price-row">
+      <span class="price-new" id="price-display">R$ 19,90</span>
+      <span class="price-period">/mês</span>
+    </div>
+    <p class="price-old">De R$ 29,90 — <strong style="color:#4ade80">34% OFF</strong> no primeiro mês</p>
+    <div style="text-align:center;margin-bottom:1.25rem">
+      <span class="coupon-badge">🎟️ CUPOM: <span id="coupon-display">PROMO20</span></span>
+    </div>
+
+    <div class="features">
+      <div class="feature-item"><div class="feature-check">✓</div>100 anúncios por busca</div>
+      <div class="feature-item"><div class="feature-check" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3)">✓</div><span>Alertas no <strong style="color:#4ade80">WhatsApp</strong> em tempo real</span></div>
+      <div class="feature-item"><div class="feature-check">✓</div>Score de oportunidade em cada anúncio</div>
+      <div class="feature-item"><div class="feature-check">✓</div>Histórico de preços e calculadora de lucro</div>
+      <div class="feature-item"><div class="feature-check">✓</div>Cancele quando quiser</div>
+    </div>
+
+    <p id="error-msg" class="error-msg"></p>
+    <input type="email" class="email-input" id="promo-email" placeholder="Seu e-mail (opcional)" />
+    <button class="btn-cta" id="btn-checkout" onclick="startCheckout()">
+      Assinar Pro por R$ 19,90 →
+    </button>
+    <p class="secure-note">🔒 Pagamento seguro via Stripe · Cancele quando quiser</p>
+  </div>
+</div>
+
+<!-- Depoimentos -->
+<div class="testimonials">
+  <h3>O que dizem nossos usuários</h3>
+  <div class="testimonial-grid">
+    <div class="testimonial">
+      <strong>Carlos S. ⭐⭐⭐⭐⭐</strong>
+      "Comprei um PS5 por R$ 2.600 e revendi por R$ 3.100 na mesma semana. O alerta no WhatsApp foi essencial."
+    </div>
+    <div class="testimonial">
+      <strong>Ana R. ⭐⭐⭐⭐⭐</strong>
+      "Economizei R$ 800 no iPhone que comprei. A análise de preços é muito precisa."
+    </div>
+    <div class="testimonial">
+      <strong>Pedro M. ⭐⭐⭐⭐⭐</strong>
+      "Uso todo dia para garimpar eletrônicos. Já paguei o plano várias vezes só nesse mês."
+    </div>
+    <div class="testimonial">
+      <strong>Julia F. ⭐⭐⭐⭐⭐</strong>
+      "Fácil de usar e muito útil. Recebi 3 alertas na primeira semana, todos com ótimo desconto."
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="faq">
+  <h3>Dúvidas frequentes</h3>
+  <div class="faq-item">
+    <div class="faq-q">Preciso criar conta antes de pagar?</div>
+    <div class="faq-a">Não! Você paga diretamente e a conta é criada automaticamente com seu e-mail após o pagamento.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">O desconto é aplicado automaticamente?</div>
+    <div class="faq-a">Sim! O cupom já está aplicado — você paga R$ 19,90 no primeiro mês e R$ 29,90 nos seguintes.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Posso cancelar quando quiser?</div>
+    <div class="faq-a">Sim, sem multa e sem burocracia. Cancele pelo próprio portal do Stripe em qualquer momento.</div>
+  </div>
+  <div class="faq-item">
+    <div class="faq-q">Como funcionam os alertas no WhatsApp?</div>
+    <div class="faq-a">Você configura um produto e preço máximo. Quando aparecer um anúncio abaixo do valor, você recebe uma mensagem no WhatsApp com o link direto.</div>
+  </div>
+</div>
+
+<script>
+  // Pega o código da URL
+  const promoCode = window.location.pathname.split('/promo/')[1]?.toUpperCase() || 'PROMO20';
+  document.getElementById('coupon-display').textContent = promoCode;
+
+  async function startCheckout() {
+    const btn = document.getElementById('btn-checkout');
+    const email = document.getElementById('promo-email').value.trim();
+    const errEl = document.getElementById('error-msg');
+    errEl.textContent = '';
+
+    btn.disabled = true;
+    btn.textContent = 'Aguarde...';
+
+    try {
+      const res = await fetch('/api/stripe/checkout-promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promoCode, email: email || undefined }),
+      });
+      const data = await res.json();
+      if (data.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        errEl.textContent = data.error || 'Erro ao processar. Tente novamente.';
+        btn.disabled = false;
+        btn.textContent = 'Assinar Pro por R$ 19,90 →';
+      }
+    } catch (e) {
+      errEl.textContent = 'Erro de conexão. Tente novamente.';
+      btn.disabled = false;
+      btn.textContent = 'Assinar Pro por R$ 19,90 →';
+    }
+  }
+
+  // Enter no email também submete
+  document.getElementById('promo-email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startCheckout();
+  });
+</script>
+
+</body>
+</html>

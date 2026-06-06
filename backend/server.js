@@ -162,9 +162,11 @@ async function handleStripeWebhook(req, res) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const token = session.metadata?.userToken;
+    const promoCode = session.metadata?.promoCode;
+
     if (token) {
+      // Checkout normal com usuário logado
       await upgradeToPro(token, 1);
-      // Salva o customer ID do Stripe para o portal
       if (session.customer) {
         const { Pool } = require('pg');
         const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
@@ -172,6 +174,35 @@ async function handleStripeWebhook(req, res) {
         await p.end();
       }
       console.log(`[Stripe] Pro ativado via checkout para token: ${token.slice(0, 8)}...`);
+    } else if (promoCode && session.customer_email) {
+      // Checkout via página de promo — cria conta automaticamente
+      const email = session.customer_email;
+      const tempPassword = require('crypto').randomBytes(8).toString('hex');
+      const regResult = await register(email, tempPassword);
+      if (regResult.ok) {
+        // Atualiza para Pro pago (sem trial)
+        await upgradeToPro(regResult.token, 1);
+        if (session.customer) {
+          const { Pool } = require('pg');
+          const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+          await p.query('UPDATE users SET stripe_customer_id = $1 WHERE token = $2', [session.customer, regResult.token]).catch(() => {});
+          await p.end();
+        }
+        // Envia email com senha temporária
+        await sendEmail(email, '🎉 Bem-vindo ao MarketScan Pro!', `
+          <div style="font-family:Inter,sans-serif;max-width:560px;margin:0 auto;padding:2rem;background:#f4f5f7">
+            <div style="background:#fff;border-radius:12px;padding:2rem;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
+              <h1 style="font-size:1.3rem;color:#1a1a2e;margin-bottom:.5rem">🎉 Sua conta Pro está ativa!</h1>
+              <p style="color:#6b7280;font-size:14px;margin-bottom:1rem">Sua assinatura foi confirmada. Acesse o MarketScan com suas credenciais:</p>
+              <p style="font-size:14px;margin-bottom:4px"><strong>E-mail:</strong> ${email}</p>
+              <p style="font-size:14px;margin-bottom:1.5rem"><strong>Senha temporária:</strong> ${tempPassword}</p>
+              <p style="color:#f59e0b;font-size:13px;margin-bottom:1.5rem">⚠️ Altere sua senha após o primeiro acesso em Perfil → Senha.</p>
+              <a href="${BASE_URL}" style="display:inline-block;background:#6a0dad;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Acessar MarketScan →</a>
+            </div>
+          </div>
+        `).catch(() => {});
+        console.log(`[Stripe] Conta Pro criada via promo para: ${email}`);
+      }
     }
   }
 
@@ -861,6 +892,45 @@ app.get('/api/stripe/subscription', requireAuth, async (req, res) => {
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+
+// ── Checkout de promo sem login (para links de influenciadores) ──
+app.post('/api/stripe/checkout-promo', async (req, res) => {
+  try {
+    const { promoCode, email } = req.body;
+    if (!promoCode) return res.status(400).json({ ok: false, error: 'Código obrigatório.' });
+
+    // Valida o promoCode no Stripe
+    const promoCodes = await stripe.promotionCodes.list({ code: promoCode.toUpperCase(), active: true, limit: 1 });
+    if (!promoCodes.data.length) return res.json({ ok: false, error: 'Cupom inválido ou expirado.' });
+    const promo = promoCodes.data[0];
+
+    const sessionParams = {
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+      success_url: `${BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}&promo=1`,
+      cancel_url: `${BASE_URL}/promo/${promoCode}`,
+      locale: 'pt-BR',
+      discounts: [{ promotion_code: promo.id }],
+      metadata: { promoCode: promoCode.toUpperCase() },
+    };
+
+    // Se vier email, pré-preenche no checkout
+    if (email) sessionParams.customer_email = email;
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    res.json({ ok: true, url: session.url });
+  } catch (err) {
+    console.error('[Stripe] Promo checkout error:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Rota da página de promo
+app.get('/promo/:code', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/promo.html'));
 });
 
 app.post('/api/stripe/checkout', requireAuth, async (req, res) => {
