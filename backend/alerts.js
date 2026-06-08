@@ -113,22 +113,19 @@ async function sendPush(sessionId, payload) {
   }
 }
 
-// Chave única para evitar notificar o mesmo anúncio duas vezes
-function firedKey(monitorId, listingId) {
-  return `${monitorId}_${listingId}`;
+async function alreadyFired(monitorId, listingId) {
+  const res = await pool.query(
+    'SELECT id FROM fired_alerts WHERE monitor_id = $1 AND listing_url = $2',
+    [monitorId, listingId]
+  ).catch(() => ({ rows: [] }));
+  return res.rows.length > 0;
 }
 
-function alreadyFired(monitorId, listingId) {
-  return db.get('fired').includes(firedKey(monitorId, listingId)).value();
-}
-
-function markFired(monitorId, listingId) {
-  db.get('fired').push(firedKey(monitorId, listingId)).write();
-  // Limpa registros antigos (mantém só os últimos 500)
-  const fired = db.get('fired').value();
-  if (fired.length > 500) {
-    db.set('fired', fired.slice(-500)).write();
-  }
+async function markFired(monitorId, listingId) {
+  await pool.query(
+    'INSERT INTO fired_alerts (id, monitor_id, listing_url, fired_at) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+    [`${monitorId}_${listingId}_${Date.now()}`, monitorId, listingId, Date.now()]
+  ).catch(() => {});
 }
 
 // ─── Z-API WhatsApp ───────────────────────────────────────
@@ -182,13 +179,25 @@ function startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies) {
 
         const { listings: analyzed } = analyzeListings(listings);
 
-        // Filtra apenas os que estão abaixo do preço alvo
-        const hits = analyzed.filter(l =>
+        // Filtra apenas os que estão abaixo do preço alvo E na cidade correta
+        const cityFilter = monitor.city?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        const hitsRaw = analyzed.filter(l =>
           l.price !== null &&
           l.price <= monitor.maxPrice &&
-          l.external_id &&
-          !alreadyFired(monitor.id, l.external_id)
+          l.external_id
         );
+
+        // Filtro de cidade — se definida, verifica se o anúncio é da cidade
+        const cityFiltered = cityFilter ? hitsRaw.filter(l => {
+          if (!l.location) return false;
+          const loc = l.location.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return loc.includes(cityFilter);
+        }) : hitsRaw;
+
+        const hits = [];
+        for (const l of cityFiltered) {
+          if (!await alreadyFired(monitor.id, l.external_id)) hits.push(l);
+        }
 
         for (const hit of hits) {
           const priceFormatted = hit.price.toLocaleString('pt-BR', { minimumFractionDigits: 0 });
@@ -218,16 +227,16 @@ _Alerta configurado para: ${monitor.keyword} abaixo de R$ ${monitor.maxPrice}_`;
           }
 
           if (pushSent || waSent) {
-            markFired(monitor.id, hit.external_id);
+            await markFired(monitor.id, hit.external_id);
             console.log(`[Monitor] Alerta enviado: ${hit.title} — R$ ${hit.price} | push:${pushSent} wa:${waSent}`);
           }
         }
 
         // Agenda próxima verificação
-        db.get('monitors').find({ id: monitor.id }).assign({
-          lastChecked: now,
-          nextCheck: now + monitor.intervalHours * 60 * 60 * 1000,
-        }).write();
+        await pool.query(
+          'UPDATE monitors SET last_checked = $1, next_check = $2 WHERE id = $3',
+          [now, now + monitor.intervalHours * 60 * 60 * 1000, monitor.id]
+        ).catch(() => {});
 
       } catch (err) {
         console.error(`[Monitor] Erro ao verificar "${monitor.keyword}":`, err.message);
