@@ -1144,7 +1144,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'teixeira de freitas':'171268569567981',
     'eunapolis':'102835029789326',
     'itamaraju':'112285505449432',
-    'sarandi':'sarandi-pr',
+    'sarandi':'106275636069985',
     'paracambi':'109378812414245',
     'vassouras':'108175215877398',
     'tres rios':'108333322524929',
