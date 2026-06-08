@@ -5,129 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — MarketScan</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
-async function loadReports() {
-  const token = localStorage.getItem('admin_token');
-  const res = await fetch('/api/admin/reports', { headers: { 'x-auth-token': token } });
-  const data = await res.json();
-  const list = document.getElementById('reports-list');
-  if (!data.reports?.length) {
-    list.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:1rem">Nenhum anúncio reportado ainda.</p>';
-    return;
-  }
-  list.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead>
-        <tr style="border-bottom:1px solid var(--border)">
-          <th style="text-align:left;padding:8px 6px;color:var(--text2);font-weight:600">Título</th>
-          <th style="text-align:left;padding:8px 6px;color:var(--text2);font-weight:600">Usuário</th>
-          <th style="text-align:left;padding:8px 6px;color:var(--text2);font-weight:600">Data</th>
-          <th style="text-align:left;padding:8px 6px;color:var(--text2);font-weight:600">Status</th>
-          <th style="padding:8px 6px"></th>
-        </tr>
-      </thead>
-      <tbody>
-        ${data.reports.map(r => `
-          <tr style="border-bottom:1px solid var(--border);${r.reviewed ? 'opacity:.5' : ''}">
-            <td style="padding:8px 6px">
-              <a href="${r.url}" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:500">${r.title || 'Sem título'} ↗</a>
-            </td>
-            <td style="padding:8px 6px;color:var(--text2)">${r.user_email}</td>
-            <td style="padding:8px 6px;color:var(--text2)">${new Date(parseInt(r.created_at)).toLocaleDateString('pt-BR')}</td>
-            <td style="padding:8px 6px">
-              <span style="background:${r.reviewed ? 'rgba(74,222,128,0.1)' : 'rgba(245,158,11,0.1)'};color:${r.reviewed ? '#4ade80' : '#f59e0b'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">
-                ${r.reviewed ? 'Revisado' : 'Pendente'}
-              </span>
-            </td>
-            <td style="padding:8px 6px;display:flex;gap:6px">
-              ${!r.reviewed ? `<button onclick="reviewReport(${r.id})" style="padding:3px 8px;border-radius:4px;border:1px solid #4ade80;background:transparent;color:#4ade80;font-size:10px;cursor:pointer;font-family:'Inter',sans-serif">✓ Revisar</button>` : ''}
-              <button onclick="deleteReport(${r.id})" style="padding:3px 8px;border-radius:4px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:10px;cursor:pointer;font-family:'Inter',sans-serif">× Excluir</button>
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 
-async function reviewReport(id) {
-  const token = localStorage.getItem('admin_token');
-  await fetch(`/api/admin/reports/${id}/review`, { method: 'POST', headers: { 'x-auth-token': token } });
-  loadReports();
-}
-
-async function deleteReport(id) {
-  if (!confirm('Excluir este report?')) return;
-  const token = localStorage.getItem('admin_token');
-  await fetch(`/api/admin/reports/${id}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
-  loadReports();
-}
-
-
-function toggleDarkAdmin() {
-  const isDark = document.documentElement.classList.toggle('dark');
-  document.body.classList.toggle('dark', isDark);
-  localStorage.setItem('admin_dark', isDark ? '1' : '0');
-  document.getElementById('btn-darkmode-admin').textContent = isDark ? '☀️' : '🌙';
-}
-
-// Inicializar botão dark mode
-document.addEventListener('DOMContentLoaded', () => {
-  const btn = document.getElementById('btn-darkmode-admin');
-  if (btn && localStorage.getItem('admin_dark') === '1') {
-    document.body.classList.add('dark');
-    btn.textContent = '☀️';
-  }
-});
-
-
-async function loadAdminMonitors() {
-  const token = localStorage.getItem('admin_token');
-  const list = document.getElementById('admin-monitors-list');
-  list.innerHTML = '<p style="color:var(--text2);font-size:13px">Carregando...</p>';
-  
-  // Busca todos os usuários e conta monitores
-  const res = await fetch('/api/admin/users', { headers: { 'x-auth-token': token } });
-  const data = await res.json();
-  if (!data.users) { list.innerHTML = '<p style="color:var(--text2);font-size:13px">Erro ao carregar.</p>'; return; }
-  
-  // Busca monitores diretamente
-  const resM = await fetch('/api/admin/monitors-count', { headers: { 'x-auth-token': token } });
-  const dataM = await resM.json();
-  
-  const total = dataM?.total || 0;
-  if (!total) {
-    list.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:1rem">Nenhum monitor ativo no banco.</p>';
-    return;
-  }
-  list.innerHTML = `
-    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Total: <strong style="color:var(--text)">${total}</strong> monitores ativos</p>
-    <p style="font-size:12px;color:var(--text3)">Use "Limpar todos" para remover todos os monitores do banco.</p>
-  `;
-}
-
-async function clearAllMonitors() {
-  if (!confirm('Limpar TODOS os monitores de todos os usuários? Esta ação não pode ser desfeita.')) return;
-  const token = localStorage.getItem('admin_token');
-  const res = await fetch('/api/admin/monitors/clear-all', { method: 'DELETE', headers: { 'x-auth-token': token } });
-  const data = await res.json();
-  if (data.ok) {
-    alert(`✅ ${data.deleted} monitores removidos com sucesso!`);
-    loadAdminMonitors();
-  } else {
-    alert('Erro ao limpar monitores.');
-  }
-}
-
-</script>
-<script>
-// Dark mode — aplicar antes do CSS para evitar flash
-(function() {
-  if (localStorage.getItem('admin_dark') === '1') {
-    document.documentElement.classList.add('dark');
-  }
-})();
-</script>
 <style>
 :root {
   --bg: #f4f5f7; --surface: #ffffff; --surface2: #f0f2f5;
@@ -471,9 +350,138 @@ body.dark .card { background: var(--surface); }
 <div id="toast"></div>
 
 <script>
+async function loadReports() {
+  const token = localStorage.getItem('admin_token');
+  const res = await fetch('/api/admin/reports', { headers: { 'x-auth-token': token } });
+  const data = await res.json();
+  const list = document.getElementById('reports-list');
+  if (!data.reports?.length) {
+    list.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:1rem">Nenhum anúncio reportado ainda.</p>';
+    return;
+  }
+  list.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:8px 6px;color:var(--text2);font-weight:600">Título</th>
+          <th style="text-align:left;padding:8px 6px;color:var(--text2);font-weight:600">Usuário</th>
+          <th style="text-align:left;padding:8px 6px;color:var(--text2);font-weight:600">Data</th>
+          <th style="text-align:left;padding:8px 6px;color:var(--text2);font-weight:600">Status</th>
+          <th style="padding:8px 6px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.reports.map(r => `
+          <tr style="border-bottom:1px solid var(--border);${r.reviewed ? 'opacity:.5' : ''}">
+            <td style="padding:8px 6px">
+              <a href="${r.url}" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:500">${r.title || 'Sem título'} ↗</a>
+            </td>
+            <td style="padding:8px 6px;color:var(--text2)">${r.user_email}</td>
+            <td style="padding:8px 6px;color:var(--text2)">${new Date(parseInt(r.created_at)).toLocaleDateString('pt-BR')}</td>
+            <td style="padding:8px 6px">
+              <span style="background:${r.reviewed ? 'rgba(74,222,128,0.1)' : 'rgba(245,158,11,0.1)'};color:${r.reviewed ? '#4ade80' : '#f59e0b'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700">
+                ${r.reviewed ? 'Revisado' : 'Pendente'}
+              </span>
+            </td>
+            <td style="padding:8px 6px;display:flex;gap:6px">
+              ${!r.reviewed ? `<button onclick="reviewReport(${r.id})" style="padding:3px 8px;border-radius:4px;border:1px solid #4ade80;background:transparent;color:#4ade80;font-size:10px;cursor:pointer;font-family:'Inter',sans-serif">✓ Revisar</button>` : ''}
+              <button onclick="deleteReport(${r.id})" style="padding:3px 8px;border-radius:4px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:10px;cursor:pointer;font-family:'Inter',sans-serif">× Excluir</button>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+async function reviewReport(id) {
+  const token = localStorage.getItem('admin_token');
+  await fetch(`/api/admin/reports/${id}/review`, { method: 'POST', headers: { 'x-auth-token': token } });
+  loadReports();
+}
+
+async function deleteReport(id) {
+  if (!confirm('Excluir este report?')) return;
+  const token = localStorage.getItem('admin_token');
+  await fetch(`/api/admin/reports/${id}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
+  loadReports();
+}
+
+
+function toggleDarkAdmin() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  document.body.classList.toggle('dark', isDark);
+  localStorage.setItem('admin_dark', isDark ? '1' : '0');
+  document.getElementById('btn-darkmode-admin').textContent = isDark ? '☀️' : '🌙';
+}
+
+// Inicializar botão dark mode
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btn-darkmode-admin');
+  if (btn && localStorage.getItem('admin_dark') === '1') {
+    document.body.classList.add('dark');
+    btn.textContent = '☀️';
+  }
+});
+
+
+async function loadAdminMonitors() {
+  const token = localStorage.getItem('admin_token');
+  const list = document.getElementById('admin-monitors-list');
+  list.innerHTML = '<p style="color:var(--text2);font-size:13px">Carregando...</p>';
+  
+  // Busca todos os usuários e conta monitores
+  const res = await fetch('/api/admin/users', { headers: { 'x-auth-token': token } });
+  const data = await res.json();
+  if (!data.users) { list.innerHTML = '<p style="color:var(--text2);font-size:13px">Erro ao carregar.</p>'; return; }
+  
+  // Busca monitores diretamente
+  const resM = await fetch('/api/admin/monitors-count', { headers: { 'x-auth-token': token } });
+  const dataM = await resM.json();
+  
+  const total = dataM?.total || 0;
+  if (!total) {
+    list.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:1rem">Nenhum monitor ativo no banco.</p>';
+    return;
+  }
+  list.innerHTML = `
+    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Total: <strong style="color:var(--text)">${total}</strong> monitores ativos</p>
+    <p style="font-size:12px;color:var(--text3)">Use "Limpar todos" para remover todos os monitores do banco.</p>
+  `;
+}
+
+async function clearAllMonitors() {
+  if (!confirm('Limpar TODOS os monitores de todos os usuários? Esta ação não pode ser desfeita.')) return;
+  const token = localStorage.getItem('admin_token');
+  const res = await fetch('/api/admin/monitors/clear-all', { method: 'DELETE', headers: { 'x-auth-token': token } });
+  const data = await res.json();
+  if (data.ok) {
+    alert(`✅ ${data.deleted} monitores removidos com sucesso!`);
+    loadAdminMonitors();
+  } else {
+    alert('Erro ao limpar monitores.');
+  }
+}
+
+// Dark mode — aplicar antes do CSS para evitar flash
+(function() {
+  if (localStorage.getItem('admin_dark') === '1') {
+    document.documentElement.classList.add('dark');
+  }
+})();
+
 const ADMIN_EMAIL = 'diegowebm@gmail.com';
 let authToken = localStorage.getItem('admin_token');
 let allUsers = [];
+
+async function api(method, url, body) {
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (authToken) opts.headers['x-auth-token'] = authToken;
+    if (body) opts.body = JSON.stringify(body);
+    return await (await fetch(url, opts)).json();
+  } catch { return null; }
+}
 
 window.onload = async () => {
   if (authToken) {
@@ -855,15 +863,6 @@ async function deleteCoupon(code) {
   const res = await api('DELETE', `/api/admin/coupons/${code}`);
   if (res?.ok) { toast(`Cupom ${code} excluído`, 'success'); loadCoupons(); }
   else toast('Erro: ' + (res?.error || ''), 'error');
-}
-
-async function api(method, url, body) {
-  try {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (authToken) opts.headers['x-auth-token'] = authToken;
-    if (body) opts.body = JSON.stringify(body);
-    return await (await fetch(url, opts)).json();
-  } catch { return null; }
 }
 
 function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
