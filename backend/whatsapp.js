@@ -15,72 +15,41 @@ async function initWhatsAppTable() {
       updated_at BIGINT
     )
   `).catch(err => console.warn('[WhatsApp] Erro ao criar tabela:', err.message));
-  console.log('[WhatsApp] Tabela de sessão pronta');
 }
 
-async function usePostgresAuthState() {
-  await initWhatsAppTable();
+async function readData(key) {
+  try {
+    const res = await pool.query('SELECT value FROM whatsapp_session WHERE key = $1', [key]);
+    if (res.rows.length === 0) return null;
+    return JSON.parse(res.rows[0].value);
+  } catch { return null; }
+}
 
-  async function readData(key) {
-    try {
-      const res = await pool.query('SELECT value FROM whatsapp_session WHERE key = $1', [key]);
-      if (res.rows.length === 0) return null;
-      return JSON.parse(res.rows[0].value);
-    } catch { return null; }
+async function writeData(key, value) {
+  try {
+    const str = JSON.stringify(value, (k, v) => {
+      if (v instanceof Uint8Array) return { __type: 'Buffer', data: Array.from(v) };
+      return v;
+    });
+    await pool.query(
+      `INSERT INTO whatsapp_session (key, value, updated_at) VALUES ($1, $2, $3)
+       ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = $3`,
+      [key, str, Date.now()]
+    );
+  } catch (err) {
+    console.warn('[WhatsApp] Erro ao salvar:', key, err.message);
   }
+}
 
-  async function writeData(key, value) {
-    try {
-      await pool.query(
-        `INSERT INTO whatsapp_session (key, value, updated_at) VALUES ($1, $2, $3)
-         ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = $3`,
-        [key, JSON.stringify(value), Date.now()]
-      );
-    } catch (err) {
-      console.warn('[WhatsApp] Erro ao salvar sessão:', err.message);
-    }
+function reviver(k, v) {
+  if (v && typeof v === 'object' && v.__type === 'Buffer') {
+    return Buffer.from(v.data);
   }
+  return v;
+}
 
-  async function removeData(key) {
-    await pool.query('DELETE FROM whatsapp_session WHERE key = $1', [key]).catch(() => {});
-  }
-
-  const creds = await readData('creds');
-  console.log('[WhatsApp] Creds no banco:', creds ? 'SIM' : 'NÃO');
-
-  const { default: makeWASocket, initAuthCreds, proto, BufferJSON } = await import('@whiskeysockets/baileys');
-
-  const state = {
-    creds: creds || initAuthCreds(),
-    keys: {
-      get: async (type, ids) => {
-        const data = {};
-        for (const id of ids) {
-          const val = await readData(`${type}-${id}`);
-          if (val) data[id] = val;
-        }
-        return data;
-      },
-      set: async (data) => {
-        for (const [type, typeData] of Object.entries(data)) {
-          for (const [id, value] of Object.entries(typeData)) {
-            if (value) {
-              await writeData(`${type}-${id}`, value);
-            } else {
-              await removeData(`${type}-${id}`);
-            }
-          }
-        }
-      }
-    }
-  };
-
-  async function saveCreds() {
-    await writeData('creds', state.creds);
-    console.log('[WhatsApp] Credenciais salvas no banco!');
-  }
-
-  return { state, saveCreds };
+async function removeData(key) {
+  await pool.query('DELETE FROM whatsapp_session WHERE key = $1', [key]).catch(() => {});
 }
 
 let sock = null;
@@ -90,14 +59,51 @@ let lastQR = null;
 
 async function connectWhatsApp() {
   try {
+    await initWhatsAppTable();
+    
     console.log('[WhatsApp] Importando Baileys...');
     const baileysModule = await import('@whiskeysockets/baileys');
     const makeWASocket = baileysModule.makeWASocket || baileysModule.default;
-    const { DisconnectReason, fetchLatestBaileysVersion } = baileysModule;
+    const { DisconnectReason, fetchLatestBaileysVersion, initAuthCreds } = baileysModule;
     const { default: pino } = await import('pino');
     console.log('[WhatsApp] Baileys importado!');
 
-    const { state, saveCreds } = await usePostgresAuthState();
+    // Carregar creds
+    const rawCreds = await readData('creds');
+    const creds = rawCreds ? JSON.parse(JSON.stringify(rawCreds), reviver) : initAuthCreds();
+    console.log('[WhatsApp] Creds no banco:', rawCreds ? 'SIM' : 'NÃO');
+
+    const state = {
+      creds,
+      keys: {
+        get: async (type, ids) => {
+          const data = {};
+          await Promise.all(ids.map(async id => {
+            const raw = await readData(`key-${type}-${id}`);
+            if (raw) data[id] = JSON.parse(JSON.stringify(raw), reviver);
+          }));
+          return data;
+        },
+        set: async (data) => {
+          await Promise.all(
+            Object.entries(data).flatMap(([type, typeData]) =>
+              Object.entries(typeData).map(async ([id, value]) => {
+                if (value != null) {
+                  await writeData(`key-${type}-${id}`, value);
+                } else {
+                  await removeData(`key-${type}-${id}`);
+                }
+              })
+            )
+          );
+        }
+      }
+    };
+
+    async function saveCreds() {
+      await writeData('creds', state.creds);
+    }
+
     const { version } = await fetchLatestBaileysVersion();
 
     sock = makeWASocket({
@@ -110,10 +116,7 @@ async function connectWhatsApp() {
 
     console.log('[WhatsApp] Socket criado, aguardando conexão...');
 
-    // Salvar creds SEMPRE que atualizar
-    sock.ev.on('creds.update', async () => {
-      await saveCreds();
-    });
+    sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
@@ -133,7 +136,8 @@ async function connectWhatsApp() {
         console.log(`[WhatsApp] Conexão encerrada. Código: ${statusCode}`);
 
         if (statusCode === 515) {
-          console.log('[WhatsApp] Restart required — reconectando com credenciais salvas...');
+          console.log('[WhatsApp] Restart required — salvando creds e reconectando...');
+          await saveCreds();
           connectionRetries = 0;
           setTimeout(connectWhatsApp, 1500);
           return;
@@ -147,8 +151,8 @@ async function connectWhatsApp() {
           return;
         }
 
-        if (!statusCode && connectionRetries >= 3) {
-          console.log('[WhatsApp] Muitas falhas. Limpando sessão e gerando novo QR...');
+        if (!statusCode && connectionRetries >= 4) {
+          console.log('[WhatsApp] Muitas falhas. Limpando sessão...');
           await pool.query('DELETE FROM whatsapp_session').catch(() => {});
           connectionRetries = 0;
           setTimeout(connectWhatsApp, 3000);
@@ -166,7 +170,8 @@ async function connectWhatsApp() {
         isConnected = true;
         lastQR = null;
         connectionRetries = 0;
-        console.log('[WhatsApp] ✅ Conectado com sucesso! Sessão salva no banco.');
+        await saveCreds();
+        console.log('[WhatsApp] ✅ Conectado com sucesso!');
       }
     });
   } catch (err) {
