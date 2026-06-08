@@ -535,7 +535,15 @@ async function api(method, url, body) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (authToken) opts.headers['x-auth-token'] = authToken;
     if (body) opts.body = JSON.stringify(body);
-    return await (await fetch(url, opts)).json();
+    const response = await fetch(url, opts);
+    const res = await response.json();
+    // Só desloga se receber 401 explícito
+    if (response.status === 401) {
+      localStorage.removeItem('admin_token');
+      authToken = null;
+      window.location.reload();
+    }
+    return res;
   } catch { return null; }
 }
 
@@ -546,8 +554,16 @@ window.onload = async () => {
       showAdmin();
       return;
     }
-    localStorage.removeItem('admin_token');
-    authToken = null;
+    // Só desloga se o servidor respondeu explicitamente que o token é inválido
+    // Se res === null é erro de rede — mantém logado
+    if (res !== null) {
+      localStorage.removeItem('admin_token');
+      authToken = null;
+    } else {
+      // Erro de rede — tenta mostrar admin mesmo assim
+      showAdmin();
+      return;
+    }
   }
 };
 
