@@ -684,7 +684,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'caxias do sul':'caxias-do-sul','macapa':'macapa','mogi das cruzes':'mogi-das-cruzes',
     'duque de caxias':'duquedecaxias','nova iguacu':'novaiguacu',
     'sao joao de meriti':'113653795311814','sao goncalo':'saogoncalo',
-    'marica':'103415559698972','petropolis':'109764205717440','volta redonda':'103110489728817',
+    'marica':'1034155596989724','petropolis':'109764205717440','volta redonda':'103110489728817',
     'cabo frio':'105619249471656','santos':'107844482581802','taubate':'108032269225848',
     'praia grande':'841455575937924','bauru':'109494869076117','marilia':'112693518746096',
     'americana':'110272192335221','limeira':'102199689822308','piracicaba':'105811186126463',
