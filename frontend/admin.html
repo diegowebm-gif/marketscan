@@ -83,20 +83,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadAdminMonitors() {
   const token = localStorage.getItem('admin_token');
+  const list = document.getElementById('admin-monitors-list');
+  list.innerHTML = '<p style="color:var(--text2);font-size:13px">Carregando...</p>';
+  
+  // Busca todos os usuários e conta monitores
   const res = await fetch('/api/admin/users', { headers: { 'x-auth-token': token } });
   const data = await res.json();
-  const list = document.getElementById('admin-monitors-list');
   if (!data.users) { list.innerHTML = '<p style="color:var(--text2);font-size:13px">Erro ao carregar.</p>'; return; }
   
-  // Conta monitores por usuário
-  const withMonitors = data.users.filter(u => u.monitors_count > 0);
-  if (!withMonitors.length) {
-    list.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:1rem">Nenhum monitor ativo.</p>';
+  // Busca monitores diretamente
+  const resM = await fetch('/api/admin/monitors-count', { headers: { 'x-auth-token': token } });
+  const dataM = await resM.json();
+  
+  const total = dataM?.total || 0;
+  if (!total) {
+    list.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:1rem">Nenhum monitor ativo no banco.</p>';
     return;
   }
-  const total = data.users.reduce((acc, u) => acc + (u.monitors_count || 0), 0);
-  list.innerHTML = `<p style="font-size:13px;color:var(--text2);margin-bottom:8px">Total: <strong>${total}</strong> monitores ativos em <strong>${withMonitors.length}</strong> usuários</p>
-  <p style="font-size:12px;color:var(--text3)">Use "Limpar todos" para remover todos os monitores do banco.</p>`;
+  list.innerHTML = `
+    <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Total: <strong style="color:var(--text)">${total}</strong> monitores ativos</p>
+    <p style="font-size:12px;color:var(--text3)">Use "Limpar todos" para remover todos os monitores do banco.</p>
+  `;
 }
 
 async function clearAllMonitors() {
@@ -257,6 +264,16 @@ body.dark .card { background: var(--surface); }
   transition: all .2s;
 }
 #btn-darkmode-admin:hover { background: var(--surface2); }
+
+
+/* Garantir que seções de monitores e reports fiquem ocultas sem login */
+#admin-monitors-wrap, #admin-reports-wrap {
+  display: none;
+}
+#admin-screen[style*="block"] #admin-monitors-wrap,
+#admin-screen[style*="block"] #admin-reports-wrap {
+  display: block;
+}
 
 </style>
 </head>
@@ -500,6 +517,10 @@ function showAdmin() {
   document.getElementById('btn-logout').style.display = 'inline-block';
   setTimeout(loadReports, 500);
   setTimeout(loadAdminMonitors, 700);
+  const cm = document.getElementById('card-monitors');
+  const cr = document.getElementById('card-reports');
+  if (cm) cm.style.display = 'block';
+  if (cr) cr.style.display = 'block';
   loadUsers();
   loadPoolAlerts();
   loadCoupons();
@@ -931,9 +952,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </script>
 
-
-  <!-- Gerenciamento de Monitores -->
-  <div class="card" style="margin-top:1.5rem">
+<!-- Gerenciamento de Monitores -->
+  <div class="card" id="card-monitors" style="margin-top:1.5rem;display:none">
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
       <span class="card-title">🔔 Monitores de Alerta</span>
       <div style="display:flex;gap:8px">
@@ -942,21 +962,29 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     </div>
     <div style="padding:1.25rem">
-      <div id="admin-monitors-list"><p style="color:var(--text2);font-size:13px">Carregando...</p></div>
+      <div id="admin-monitors-list"><p style="color:var(--text2);font-size:13px">Clique em Atualizar para carregar.</p></div>
     </div>
   </div>
 
+  </div><!-- /admin-monitors-wrap -->
+  <div id="admin-reports-wrap">
   <!-- Seção de Anúncios Reportados -->
-  <div class="card" style="margin-top:1.5rem">
+  <div class="card" id="card-reports" style="margin-top:1.5rem;margin-bottom:2rem;display:none">
     <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
       <span class="card-title">🚩 Anúncios Reportados</span>
       <button onclick="loadReports()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif">↻ Atualizar</button>
     </div>
     <div style="padding:1.25rem">
-      <div id="reports-list"><p style="color:var(--text2);font-size:13px">Carregando...</p></div>
+      <div id="reports-list"><p style="color:var(--text2);font-size:13px">Clique em Atualizar para carregar.</p></div>
     </div>
   </div>
 
+
+
+</body>
+</html>
+
+  </div><!-- /admin-reports-wrap -->
   </div><!-- /container -->
 </div><!-- /admin-screen -->
 

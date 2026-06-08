@@ -946,6 +946,15 @@ app.post('/api/stripe/checkout-promo', async (req, res) => {
 });
 
 
+// Contar monitores (admin)
+app.get('/api/admin/monitors-count', requireAdmin, async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  const result = await pool.query('SELECT COUNT(*) as total FROM monitors').catch(() => ({ rows: [{ total: 0 }] }));
+  await pool.end();
+  res.json({ ok: true, total: parseInt(result.rows[0].total) });
+});
+
 // Limpar todos os monitores (admin)
 app.delete('/api/admin/monitors/clear-all', requireAdmin, async (req, res) => {
   const { Pool } = require('pg');
