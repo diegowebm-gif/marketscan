@@ -1040,8 +1040,12 @@ app.get('/api/admin/fb-health', requireAdmin, async (req, res) => {
         return { ...acc, status: 'sem_cookie', lastLogin: null };
       }
       
-      const cookies = cookieRes.rows[0].cookies;
+      let cookies = cookieRes.rows[0].cookies;
       const updatedAt = cookieRes.rows[0].updated_at;
+      // Cookies podem estar como string JSON
+      if (typeof cookies === 'string') {
+        try { cookies = JSON.parse(cookies); } catch { cookies = []; }
+      }
       const hasCUser = Array.isArray(cookies) && cookies.some(c => c.name === 'c_user');
       const ageHours = updatedAt ? Math.floor((Date.now() - parseInt(updatedAt)) / (1000 * 60 * 60)) : null;
       
