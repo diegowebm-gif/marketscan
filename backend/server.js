@@ -986,8 +986,9 @@ app.delete('/api/admin/monitors/clear-all', requireAdmin, async (req, res) => {
 });
 
 
-// Rota para ver QR Code do WhatsApp
+// Rota para ver QR Code do WhatsApp (protegida com senha)
 app.get('/whatsapp-qr', (req, res) => {
+  if (req.query.key !== process.env.ADMIN_KEY) return res.status(403).send('<h2 style="font-family:sans-serif;text-align:center;margin-top:100px">🔒 Acesso negado</h2>');
   const qr = getLastQR();
   const connected = getIsConnected();
   if (connected) {
