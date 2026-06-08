@@ -740,7 +740,8 @@ function renderStats(users) {
   const free = total - pro;
   const trial = users.filter(u => isOnTrial(u)).length;
   const today = users.filter(u => {
-    const d = new Date(parseInt(u.created_at) * 1000);
+    const ts = parseInt(u.created_at);
+    const d = new Date(ts > 1e12 ? ts : ts * 1000);
     const now = new Date();
     return d.toDateString() === now.toDateString();
   }).length;
@@ -804,7 +805,9 @@ function renderUsers(users) {
   // Atualizar contadores
   const total = allUsers.length;
   const today = allUsers.filter(u => {
-    const d = new Date(parseInt(u.created_at) * 1000);
+    const ts = parseInt(u.created_at);
+    // created_at pode estar em segundos ou milissegundos
+    const d = new Date(ts > 1e12 ? ts : ts * 1000);
     return d.toDateString() === new Date().toDateString();
   }).length;
   const counterEl = document.getElementById('user-counter');
