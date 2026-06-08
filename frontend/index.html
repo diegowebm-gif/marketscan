@@ -2231,7 +2231,7 @@ async function initPush() {
   try {
     const reg = await navigator.serviceWorker.register('/sw.js');
     const perm = Notification.permission;
-    if (perm === 'granted') { await subscribePush(reg); showMonitorPanel(); }
+    if (perm === 'granted') { await subscribePush(reg); }  // painel não abre automaticamente
     else if (perm !== 'denied') showPermissionBanner();
   } catch (err) { console.warn('SW erro:', err); }
 }
