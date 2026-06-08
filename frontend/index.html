@@ -911,6 +911,7 @@ header {
     <span id="trial-badge" class="trial-badge" style="display:none" title="Seu período de teste gratuito"></span>
     <button id="btn-darkmode" onclick="toggleDarkMode()" title="Alternar modo escuro" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s;margin-right:4px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">🌙</button>
     <button class="btn-saved-badge" id="btn-saved" onclick="showSavedPanel()" title="Anúncios salvos" style="display:none">🔖<span class="saved-count" id="saved-count"></span></button>
+    <button id="btn-referral" onclick="openReferral()" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s" title="Minhas indicações" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">🎁</button>
     <button id="btn-profile" onclick="showProfileModal()" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s" title="Meu perfil" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">👤</button>
     <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()"><span class="logout-text">Sair</span><span class="logout-icon" style="display:none">↩</span></button>
   </div>
@@ -2445,6 +2446,7 @@ function showAuth() {
   document.getElementById('status-text').textContent = 'Desconectado';
   document.getElementById('btn-logout').style.display = 'none';
   document.getElementById('btn-profile').style.display = 'none';
+  const btnRef = document.getElementById('btn-referral'); if(btnRef) btnRef.style.display = 'none';
   document.getElementById('btn-saved').style.display = 'none';
   setAuthStatus('');
 }
@@ -2465,6 +2467,7 @@ async function showApp() {
   document.getElementById('status-text').textContent = currentUser?.email || 'Conectado';
   document.getElementById('btn-logout').style.display = 'inline-block';
   document.getElementById('btn-profile').style.display = 'inline-block';
+  document.getElementById('btn-referral').style.display = 'inline-block';
   document.getElementById('btn-saved').style.display = 'inline-block';
   const badge = document.getElementById('plan-badge');
   if (badge) {
