@@ -22,8 +22,10 @@ async function initAlertsTables() {
       active BOOLEAN DEFAULT TRUE,
       created_at BIGINT,
       last_checked BIGINT,
-      next_check BIGINT
+      next_check BIGINT,
+      first_check_done BOOLEAN DEFAULT FALSE
     );
+    ALTER TABLE monitors ADD COLUMN IF NOT EXISTS first_check_done BOOLEAN DEFAULT FALSE;
     CREATE TABLE IF NOT EXISTS push_subscriptions (
       session_id TEXT PRIMARY KEY,
       subscription JSONB,
@@ -142,7 +144,7 @@ function startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies) {
   cron.schedule('*/30 * * * *', async () => {
     const now = Date.now();
     const monitorsRes = await pool.query('SELECT * FROM monitors WHERE active = TRUE').catch(() => ({ rows: [] }));
-    const monitors = monitorsRes.rows.map(r => ({ id: r.id, sessionId: r.session_id, keyword: r.keyword, location: r.location, city: r.city, maxPrice: r.max_price, intervalHours: r.interval_hours, whatsappPhone: r.whatsapp_phone, nextCheck: r.next_check }));
+    const monitors = monitorsRes.rows.map(r => ({ id: r.id, sessionId: r.session_id, keyword: r.keyword, location: r.location, city: r.city, maxPrice: r.max_price, intervalHours: r.interval_hours, whatsappPhone: r.whatsapp_phone, nextCheck: r.next_check, firstCheckDone: r.first_check_done }));
 
     for (const monitor of monitors) {
       if (monitor.nextCheck > now) continue;
@@ -175,6 +177,20 @@ function startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies) {
           const loc = l.location.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
           return loc.includes(cityFilter);
         }) : hitsRaw;
+
+        // Se for a primeira verificação, só marca os anúncios como vistos sem alertar
+        if (!monitor.firstCheckDone) {
+          console.log(`[Monitor] Primeira verificação de "${monitor.keyword}" — marcando ${cityFiltered.length} anúncios como vistos sem alertar`);
+          for (const l of cityFiltered) {
+            await markFired(monitor.id, l.external_id);
+          }
+          await pool.query('UPDATE monitors SET first_check_done = TRUE WHERE id = $1', [monitor.id]).catch(() => {});
+          await pool.query(
+            'UPDATE monitors SET last_checked = $1, next_check = $2 WHERE id = $3',
+            [now, now + monitor.intervalHours * 60 * 60 * 1000, monitor.id]
+          ).catch(() => {});
+          continue;
+        }
 
         const hits = [];
         for (const l of cityFiltered) {
