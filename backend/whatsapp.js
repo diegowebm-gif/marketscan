@@ -144,8 +144,25 @@ async function connectWhatsApp() {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         console.log(`[WhatsApp] Conexão encerrada. Código: ${statusCode}`);
 
-        // Código undefined = sessão inválida, limpar e gerar novo QR
-        if (!statusCode || statusCode === 401 || statusCode === 440) {
+        // 515 = restartRequired — reconectar imediatamente com credenciais salvas (QR escaneado com sucesso!)
+        if (statusCode === 515 || statusCode === DisconnectReason.restartRequired) {
+          console.log('[WhatsApp] Restart required — reconectando com credenciais salvas...');
+          connectionRetries = 0;
+          setTimeout(connectWhatsApp, 1000);
+          return;
+        }
+
+        // 401 = loggedOut — limpar sessão e gerar novo QR
+        if (statusCode === 401 || statusCode === DisconnectReason.loggedOut) {
+          console.log('[WhatsApp] Deslogado. Limpando sessão...');
+          await pool.query('DELETE FROM whatsapp_session').catch(() => {});
+          connectionRetries = 0;
+          setTimeout(connectWhatsApp, 3000);
+          return;
+        }
+
+        // undefined ou outros = sessão inválida, limpar e gerar novo QR
+        if (!statusCode) {
           console.log('[WhatsApp] Sessão inválida. Limpando banco e gerando novo QR...');
           await pool.query('DELETE FROM whatsapp_session').catch(() => {});
           connectionRetries = 0;
@@ -153,14 +170,7 @@ async function connectWhatsApp() {
           return;
         }
 
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-        if (!shouldReconnect) {
-          console.log('[WhatsApp] Deslogado. Limpando sessão...');
-          await pool.query('DELETE FROM whatsapp_session').catch(() => {});
-          connectionRetries = 0;
-          setTimeout(connectWhatsApp, 3000);
-          return;
-        }
+        // Outros erros — tentar reconectar
         if (connectionRetries < 5) {
           connectionRetries++;
           console.log(`[WhatsApp] Reconectando... tentativa ${connectionRetries}`);
