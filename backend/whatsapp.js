@@ -140,18 +140,29 @@ async function connectWhatsApp() {
       if (connection === 'close') {
         isConnected = false;
         const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
         console.log(`[WhatsApp] Conexão encerrada. Código: ${statusCode}`);
-        if (!shouldReconnect) {
-          console.log('[WhatsApp] Deslogado. Limpando sessão do banco...');
+
+        // Código undefined = sessão inválida, limpar e gerar novo QR
+        if (!statusCode || statusCode === 401 || statusCode === 440) {
+          console.log('[WhatsApp] Sessão inválida. Limpando banco e gerando novo QR...');
           await pool.query('DELETE FROM whatsapp_session').catch(() => {});
+          connectionRetries = 0;
+          setTimeout(connectWhatsApp, 3000);
+          return;
         }
-        if (shouldReconnect && connectionRetries < 5) {
+
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        if (!shouldReconnect) {
+          console.log('[WhatsApp] Deslogado. Limpando sessão...');
+          await pool.query('DELETE FROM whatsapp_session').catch(() => {});
+          connectionRetries = 0;
+          setTimeout(connectWhatsApp, 3000);
+          return;
+        }
+        if (connectionRetries < 5) {
           connectionRetries++;
           console.log(`[WhatsApp] Reconectando... tentativa ${connectionRetries}`);
           setTimeout(connectWhatsApp, 5000);
-        } else if (!shouldReconnect) {
-          setTimeout(connectWhatsApp, 3000);
         }
       }
       if (connection === 'open') {
