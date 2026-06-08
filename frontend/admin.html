@@ -63,8 +63,6 @@ async function deleteReport(id) {
   loadReports();
 }
 
-// loadReports só é chamado dentro de showAdmin()
-
 
 function toggleDarkAdmin() {
   const isDark = document.documentElement.classList.toggle('dark');
@@ -234,7 +232,10 @@ body.dark .card { background: var(--surface); }
 
 <header>
   <div class="logo">Market<span>Scan</span> <small>ADMIN</small></div>
-  <button class="btn btn-refresh" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button id="btn-darkmode-admin" onclick="toggleDarkAdmin()" title="Modo escuro" style="background:none;border:1px solid var(--border2);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:16px;color:var(--text2)">🌙</button>
+    <button class="btn btn-refresh" id="btn-logout" style="display:none" onclick="logout()">Sair</button>
+  </div>
 </header>
 
 <div id="login-screen">
@@ -247,7 +248,7 @@ body.dark .card { background: var(--surface); }
   </div>
 </div>
 
-<div id="admin-screen">
+<div id="admin-screen" style="display:none">
   <div class="container">
 
 
@@ -877,8 +878,6 @@ async function deleteReport(id) {
   await fetch(`/api/admin/reports/${id}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
   loadReports();
 }
-
-// loadReports só é chamado dentro de showAdmin()
 
 
 function toggleDarkAdmin() {
