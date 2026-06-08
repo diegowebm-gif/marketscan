@@ -1,7 +1,6 @@
 const path = require('path');
 const fs = require('fs');
 
-// Usar arquivo local para sessão (mais confiável que banco para Baileys)
 const AUTH_DIR = '/tmp/baileys_auth';
 if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
 
@@ -21,7 +20,7 @@ async function connectWhatsApp() {
 
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
     const { version } = await fetchLatestBaileysVersion();
-    
+
     const hasAuth = fs.existsSync(path.join(AUTH_DIR, 'creds.json'));
     console.log('[WhatsApp] Auth local:', hasAuth ? 'SIM' : 'NÃO');
 
