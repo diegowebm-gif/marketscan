@@ -12,7 +12,7 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, hasSavedCookiesAsync, saveCookies, loginWithCredentials, submitTwoFactor, launchBrowser } = require('./scraper');
 const { createSession, touchSession, saveSearch, saveListings, getListingsBySearch, getRecentSearches, savePriceSnapshot, getPriceHistory } = require('./database');
 const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMonitor, sendPush, sendWhatsApp, startMonitorCron } = require('./alerts');
-const { connectWhatsApp } = require('./whatsapp');
+const { connectWhatsApp, getLastQR, getIsConnected } = require('./whatsapp');
 
 // ── Email (Resend) ────────────────────────────────────────────
 async function sendEmail(to, subject, html) {
@@ -983,6 +983,29 @@ app.delete('/api/admin/monitors/clear-all', requireAdmin, async (req, res) => {
     console.error('[Admin] Erro ao limpar monitores:', err.message);
     res.status(500).json({ ok: false, error: err.message });
   }
+});
+
+
+// Rota para ver QR Code do WhatsApp
+app.get('/whatsapp-qr', (req, res) => {
+  const qr = getLastQR();
+  const connected = getIsConnected();
+  if (connected) {
+    return res.send('<h2 style="font-family:sans-serif;color:green;text-align:center;margin-top:100px">✅ WhatsApp Conectado!</h2>');
+  }
+  if (!qr) {
+    return res.send('<h2 style="font-family:sans-serif;text-align:center;margin-top:100px">⏳ Aguardando QR Code... Recarregue a página em alguns segundos.</h2><script>setTimeout(()=>location.reload(),3000)</script>');
+  }
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
+  res.send(`
+    <html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#f0f0f0">
+      <h2>📱 Escaneie o QR Code com seu WhatsApp</h2>
+      <p style="color:#666">Abra o WhatsApp → Menu → Aparelhos conectados → Conectar um aparelho</p>
+      <img src="${qrUrl}" style="margin:20px auto;display:block;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15)">
+      <p style="color:#999;font-size:12px">Esta página atualiza automaticamente a cada 5 segundos</p>
+      <script>setTimeout(()=>location.reload(),5000)</script>
+    </body></html>
+  `);
 });
 
 // Rota da página de promo

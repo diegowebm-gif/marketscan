@@ -7,6 +7,7 @@ if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
 let sock = null;
 let isConnected = false;
 let connectionRetries = 0;
+let lastQR = null;
 
 async function connectWhatsApp() {
   try {
@@ -14,30 +15,31 @@ async function connectWhatsApp() {
     const baileysModule = await import('@whiskeysockets/baileys');
     const makeWASocket = baileysModule.default;
     const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = baileysModule;
-    console.log('[WhatsApp] Baileys importado!');
 
     const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
-    console.log('[WhatsApp] Auth carregado, buscando versão...');
     const { version } = await fetchLatestBaileysVersion();
-    console.log(`[WhatsApp] Versão: ${version}. Criando socket...`);
-
     const { default: pino } = await import('pino');
 
     sock = makeWASocket({
       version,
       auth: state,
-      printQRInTerminal: true,
+      printQRInTerminal: false, // desabilitar print automático
       logger: pino({ level: 'silent' }),
       browser: ['MarketScan', 'Chrome', '1.0.0'],
     });
 
-    console.log('[WhatsApp] Socket criado, aguardando conexão...');
-
     sock.ev.on('creds.update', saveCreds);
 
-    sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+    sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
-        console.log('\n[WhatsApp] ⬇️  ESCANEIE O QR CODE ABAIXO COM SEU WHATSAPP  ⬇️\n');
+        lastQR = qr;
+        // Gerar URL do QR Code para escanear no browser
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
+        console.log('\n[WhatsApp] ============================================');
+        console.log('[WhatsApp] ESCANEIE O QR CODE PELO LINK ABAIXO:');
+        console.log(`[WhatsApp] ${qrUrl}`);
+        console.log('[WhatsApp] ============================================\n');
+        console.log('[WhatsApp] Ou acesse: https://marketscan.site/whatsapp-qr para escanear');
       }
       if (connection === 'close') {
         isConnected = false;
@@ -46,10 +48,8 @@ async function connectWhatsApp() {
         console.log(`[WhatsApp] Conexão encerrada. Código: ${statusCode}`);
         if (shouldReconnect && connectionRetries < 5) {
           connectionRetries++;
-          console.log(`[WhatsApp] Reconectando... tentativa ${connectionRetries}`);
           setTimeout(connectWhatsApp, 5000);
         } else if (!shouldReconnect) {
-          console.log('[WhatsApp] Deslogado. Limpando auth...');
           fs.rmSync(AUTH_DIR, { recursive: true, force: true });
           fs.mkdirSync(AUTH_DIR, { recursive: true });
           setTimeout(connectWhatsApp, 3000);
@@ -57,13 +57,13 @@ async function connectWhatsApp() {
       }
       if (connection === 'open') {
         isConnected = true;
+        lastQR = null;
         connectionRetries = 0;
         console.log('[WhatsApp] ✅ Conectado com sucesso!');
       }
     });
   } catch (err) {
     console.error('[WhatsApp] Erro fatal:', err.message);
-    console.error(err.stack);
   }
 }
 
@@ -85,4 +85,7 @@ async function sendWhatsAppBaileys(phone, message) {
   }
 }
 
-module.exports = { connectWhatsApp, sendWhatsAppBaileys, isConnected: () => isConnected };
+function getLastQR() { return lastQR; }
+function getIsConnected() { return isConnected; }
+
+module.exports = { connectWhatsApp, sendWhatsAppBaileys, getLastQR, getIsConnected };
