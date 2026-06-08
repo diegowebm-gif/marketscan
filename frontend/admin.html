@@ -306,7 +306,11 @@ body.dark .card { background: var(--surface); }
 
     <div class="card">
       <div class="card-header">
-        <span class="card-title">👥 Usuários</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="card-title">👥 Usuários</span>
+          <span id="user-counter" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:2px 12px;font-size:12px;font-weight:700">0 total</span>
+          <span id="user-today-counter" style="background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.3);border-radius:20px;padding:2px 12px;font-size:12px;font-weight:700">0 hoje</span>
+        </div>
         <button class="btn btn-refresh" onclick="loadUsers()">↻ Atualizar</button>
       </div>
       <div class="search-bar">
@@ -796,6 +800,18 @@ function renderChart(users) {
 
 function renderUsers(users) {
   const tbody = document.getElementById('users-table');
+  
+  // Atualizar contadores
+  const total = allUsers.length;
+  const today = allUsers.filter(u => {
+    const d = new Date(parseInt(u.created_at) * 1000);
+    return d.toDateString() === new Date().toDateString();
+  }).length;
+  const counterEl = document.getElementById('user-counter');
+  const todayEl = document.getElementById('user-today-counter');
+  if (counterEl) counterEl.textContent = `${total} total`;
+  if (todayEl) todayEl.textContent = `${today} hoje`;
+
   if (!users.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="empty">Nenhum usuário encontrado.</td></tr>';
     return;
