@@ -63,16 +63,18 @@ async function saveMonitor(sessionId, keyword, location, city, maxPrice, interva
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,TRUE,$9,NULL,$9)`,
     [id, sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone, Date.now()]
   ).catch(err => console.warn('[Alerts] saveMonitor error:', err.message));
+  console.log(`[Monitors] Salvo: ${keyword} para sessionId: ${sessionId?.slice(0,12)}...`);
   return id;
 }
 
 // Lista monitores de uma sessão
 async function getMonitors(sessionId) {
-  // Busca por session_id direto (compatibilidade com registros antigos e novos)
+  console.log(`[Monitors] Buscando monitors para sessionId: ${sessionId?.slice(0,12)}...`);
   const res = await pool.query(
-    'SELECT * FROM monitors WHERE session_id = $1 OR session_id LIKE $2 ORDER BY created_at DESC',
-    [sessionId, `${sessionId}%`]
-  ).catch(() => ({ rows: [] }));
+    'SELECT * FROM monitors WHERE session_id = $1 ORDER BY created_at DESC',
+    [sessionId]
+  ).catch((err) => { console.warn('[Monitors] Erro:', err.message); return { rows: [] }; });
+  console.log(`[Monitors] Encontrados: ${res.rows.length}`);
   return res.rows.map(r => ({
     id: r.id,
     sessionId: r.session_id,
