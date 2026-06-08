@@ -1105,6 +1105,18 @@ app.delete('/api/admin/fb-cookies/:index', requireAdmin, async (req, res) => {
   }
 });
 
+
+// Limpar sessão WhatsApp (forçar novo QR)
+app.delete('/whatsapp-session', (req, res) => {
+  if (req.query.key !== process.env.ADMIN_KEY) return res.status(403).send('Acesso negado');
+  const { Pool } = require('pg');
+  const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  p.query('DELETE FROM whatsapp_session').then(() => {
+    p.end();
+    res.send('<h2 style="font-family:sans-serif;text-align:center;margin-top:100px">✅ Sessão limpa! Reinicie o servidor e acesse /whatsapp-qr para escanear o QR Code.</h2>');
+  }).catch(err => res.status(500).send('Erro: ' + err.message));
+});
+
 // Rota da página de promo
 app.get('/promo/:code', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/promo.html'));
