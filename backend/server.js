@@ -945,6 +945,17 @@ app.post('/api/stripe/checkout-promo', async (req, res) => {
   }
 });
 
+
+// Limpar todos os monitores (admin)
+app.delete('/api/admin/monitors/clear-all', requireAdmin, async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  const result = await pool.query('DELETE FROM monitors').catch(err => ({ rowCount: 0, error: err.message }));
+  await pool.query('DELETE FROM fired_alerts').catch(() => {});
+  await pool.end();
+  res.json({ ok: true, deleted: result.rowCount });
+});
+
 // Rota da página de promo
 app.get('/promo/:code', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/promo.html'));

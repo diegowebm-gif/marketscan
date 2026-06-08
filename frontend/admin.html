@@ -80,6 +80,38 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+
+async function loadAdminMonitors() {
+  const token = localStorage.getItem('admin_token');
+  const res = await fetch('/api/admin/users', { headers: { 'x-auth-token': token } });
+  const data = await res.json();
+  const list = document.getElementById('admin-monitors-list');
+  if (!data.users) { list.innerHTML = '<p style="color:var(--text2);font-size:13px">Erro ao carregar.</p>'; return; }
+  
+  // Conta monitores por usuário
+  const withMonitors = data.users.filter(u => u.monitors_count > 0);
+  if (!withMonitors.length) {
+    list.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:1rem">Nenhum monitor ativo.</p>';
+    return;
+  }
+  const total = data.users.reduce((acc, u) => acc + (u.monitors_count || 0), 0);
+  list.innerHTML = `<p style="font-size:13px;color:var(--text2);margin-bottom:8px">Total: <strong>${total}</strong> monitores ativos em <strong>${withMonitors.length}</strong> usuários</p>
+  <p style="font-size:12px;color:var(--text3)">Use "Limpar todos" para remover todos os monitores do banco.</p>`;
+}
+
+async function clearAllMonitors() {
+  if (!confirm('Limpar TODOS os monitores de todos os usuários? Esta ação não pode ser desfeita.')) return;
+  const token = localStorage.getItem('admin_token');
+  const res = await fetch('/api/admin/monitors/clear-all', { method: 'DELETE', headers: { 'x-auth-token': token } });
+  const data = await res.json();
+  if (data.ok) {
+    alert(`✅ ${data.deleted} monitores removidos com sucesso!`);
+    loadAdminMonitors();
+  } else {
+    alert('Erro ao limpar monitores.');
+  }
+}
+
 </script>
 <script>
 // Dark mode — aplicar antes do CSS para evitar flash
@@ -467,6 +499,7 @@ function showAdmin() {
   document.getElementById('admin-screen').style.display = 'block';
   document.getElementById('btn-logout').style.display = 'inline-block';
   setTimeout(loadReports, 500);
+  setTimeout(loadAdminMonitors, 700);
   loadUsers();
   loadPoolAlerts();
   loadCoupons();
@@ -897,6 +930,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
+
+  <!-- Gerenciamento de Monitores -->
+  <div class="card" style="margin-top:1.5rem">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+      <span class="card-title">🔔 Monitores de Alerta</span>
+      <div style="display:flex;gap:8px">
+        <button onclick="loadAdminMonitors()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif">↻ Atualizar</button>
+        <button onclick="clearAllMonitors()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif">🗑 Limpar todos</button>
+      </div>
+    </div>
+    <div style="padding:1.25rem">
+      <div id="admin-monitors-list"><p style="color:var(--text2);font-size:13px">Carregando...</p></div>
+    </div>
+  </div>
 
   <!-- Seção de Anúncios Reportados -->
   <div class="card" style="margin-top:1.5rem">
