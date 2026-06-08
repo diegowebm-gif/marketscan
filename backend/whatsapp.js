@@ -1,8 +1,86 @@
 const path = require('path');
 const fs = require('fs');
+const { Pool } = require('pg');
 
-const AUTH_DIR = path.join(__dirname, '../data/baileys_auth');
-if (!fs.existsSync(AUTH_DIR)) fs.mkdirSync(AUTH_DIR, { recursive: true });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
+// Criar tabela de sessão no banco
+async function initWhatsAppTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS whatsapp_session (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at BIGINT
+    )
+  `).catch(err => console.warn('[WhatsApp] Erro ao criar tabela:', err.message));
+  console.log('[WhatsApp] Tabela de sessão pronta');
+}
+
+// Auth state usando PostgreSQL
+async function usePostgresAuthState() {
+  await initWhatsAppTable();
+
+  async function readData(key) {
+    try {
+      const res = await pool.query('SELECT value FROM whatsapp_session WHERE key = $1', [key]);
+      if (res.rows.length === 0) return null;
+      return JSON.parse(res.rows[0].value);
+    } catch { return null; }
+  }
+
+  async function writeData(key, value) {
+    try {
+      await pool.query(
+        `INSERT INTO whatsapp_session (key, value, updated_at) VALUES ($1, $2, $3)
+         ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = $3`,
+        [key, JSON.stringify(value), Date.now()]
+      );
+    } catch (err) {
+      console.warn('[WhatsApp] Erro ao salvar sessão:', err.message);
+    }
+  }
+
+  async function removeData(key) {
+    await pool.query('DELETE FROM whatsapp_session WHERE key = $1', [key]).catch(() => {});
+  }
+
+  // Carregar creds do banco
+  const creds = await readData('creds');
+
+  const state = {
+    creds: creds || undefined,
+    keys: {
+      get: async (type, ids) => {
+        const data = {};
+        for (const id of ids) {
+          const val = await readData(`${type}-${id}`);
+          if (val) data[id] = val;
+        }
+        return data;
+      },
+      set: async (data) => {
+        for (const [type, typeData] of Object.entries(data)) {
+          for (const [id, value] of Object.entries(typeData)) {
+            if (value) {
+              await writeData(`${type}-${id}`, value);
+            } else {
+              await removeData(`${type}-${id}`);
+            }
+          }
+        }
+      }
+    }
+  };
+
+  async function saveCreds() {
+    await writeData('creds', state.creds);
+  }
+
+  return { state, saveCreds };
+}
 
 let sock = null;
 let isConnected = false;
@@ -14,44 +92,65 @@ async function connectWhatsApp() {
     console.log('[WhatsApp] Importando Baileys...');
     const baileysModule = await import('@whiskeysockets/baileys');
     const makeWASocket = baileysModule.default;
-    const { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = baileysModule;
+    const { DisconnectReason, fetchLatestBaileysVersion, initAuthCreds, BufferJSON } = baileysModule;
+    console.log('[WhatsApp] Baileys importado!');
 
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
-    const { version } = await fetchLatestBaileysVersion();
-    const { default: pino } = await import('pino');
+    const { state, saveCreds } = await usePostgresAuthState();
+    
+    // Se não tem creds, inicializar
+    if (!state.creds) {
+      const { default: pino } = await import('pino');
+      const { version } = await fetchLatestBaileysVersion();
+      state.creds = initAuthCreds();
+      
+      sock = makeWASocket({
+        version,
+        auth: state,
+        printQRInTerminal: false,
+        logger: pino({ level: 'silent' }),
+        browser: ['MarketScan', 'Chrome', '1.0.0'],
+      });
+    } else {
+      const { default: pino } = await import('pino');
+      const { version } = await fetchLatestBaileysVersion();
+      
+      sock = makeWASocket({
+        version,
+        auth: state,
+        printQRInTerminal: false,
+        logger: pino({ level: 'silent' }),
+        browser: ['MarketScan', 'Chrome', '1.0.0'],
+      });
+    }
 
-    sock = makeWASocket({
-      version,
-      auth: state,
-      printQRInTerminal: false, // desabilitar print automático
-      logger: pino({ level: 'silent' }),
-      browser: ['MarketScan', 'Chrome', '1.0.0'],
-    });
+    console.log('[WhatsApp] Socket criado, aguardando conexão...');
 
     sock.ev.on('creds.update', saveCreds);
 
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
         lastQR = qr;
-        // Gerar URL do QR Code para escanear no browser
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
         console.log('\n[WhatsApp] ============================================');
-        console.log('[WhatsApp] ESCANEIE O QR CODE PELO LINK ABAIXO:');
+        console.log('[WhatsApp] ESCANEIE O QR CODE:');
         console.log(`[WhatsApp] ${qrUrl}`);
+        console.log(`[WhatsApp] Ou acesse: https://marketscan.site/whatsapp-qr`);
         console.log('[WhatsApp] ============================================\n');
-        console.log('[WhatsApp] Ou acesse: https://marketscan.site/whatsapp-qr para escanear');
       }
       if (connection === 'close') {
         isConnected = false;
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
         console.log(`[WhatsApp] Conexão encerrada. Código: ${statusCode}`);
+        if (!shouldReconnect) {
+          console.log('[WhatsApp] Deslogado. Limpando sessão do banco...');
+          await pool.query('DELETE FROM whatsapp_session').catch(() => {});
+        }
         if (shouldReconnect && connectionRetries < 5) {
           connectionRetries++;
+          console.log(`[WhatsApp] Reconectando... tentativa ${connectionRetries}`);
           setTimeout(connectWhatsApp, 5000);
         } else if (!shouldReconnect) {
-          fs.rmSync(AUTH_DIR, { recursive: true, force: true });
-          fs.mkdirSync(AUTH_DIR, { recursive: true });
           setTimeout(connectWhatsApp, 3000);
         }
       }
@@ -59,11 +158,12 @@ async function connectWhatsApp() {
         isConnected = true;
         lastQR = null;
         connectionRetries = 0;
-        console.log('[WhatsApp] ✅ Conectado com sucesso!');
+        console.log('[WhatsApp] ✅ Conectado com sucesso! Sessão salva no banco.');
       }
     });
   } catch (err) {
-    console.error('[WhatsApp] Erro fatal:', err.message);
+    console.error('[WhatsApp] Erro fatal:', err.message, err.stack);
+    setTimeout(connectWhatsApp, 10000);
   }
 }
 
