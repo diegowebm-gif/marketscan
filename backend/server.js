@@ -1032,7 +1032,7 @@ app.get('/api/admin/fb-health', requireAdmin, async (req, res) => {
     // Verificar status de cada conta
     const results = await Promise.all(accounts.map(async (acc) => {
       const cookieRes = await p.query(
-        'SELECT cookies, updated_at FROM cookie_cache WHERE session_id = $1',
+        'SELECT cookies, updated_at FROM session_cookies WHERE session_id = $1',
         [acc.sessionId]
       ).catch(() => ({ rows: [] }));
       
@@ -1093,7 +1093,7 @@ app.delete('/api/admin/fb-cookies/:index', requireAdmin, async (req, res) => {
     const sessionId = idx === 0 ? 'shared-pool-account' : `pool-account-${idx}`;
     const { Pool } = require('pg');
     const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-    await p.query('DELETE FROM cookie_cache WHERE session_id = $1', [sessionId]);
+    await p.query('DELETE FROM session_cookies WHERE session_id = $1', [sessionId]);
     await p.end();
     res.json({ ok: true });
   } catch (err) {
