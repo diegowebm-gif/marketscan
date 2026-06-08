@@ -68,9 +68,10 @@ async function saveMonitor(sessionId, keyword, location, city, maxPrice, interva
 
 // Lista monitores de uma sessão
 async function getMonitors(sessionId) {
+  // Busca por session_id direto (compatibilidade com registros antigos e novos)
   const res = await pool.query(
-    'SELECT * FROM monitors WHERE session_id = $1 ORDER BY created_at DESC',
-    [sessionId]
+    'SELECT * FROM monitors WHERE session_id = $1 OR session_id LIKE $2 ORDER BY created_at DESC',
+    [sessionId, `${sessionId}%`]
   ).catch(() => ({ rows: [] }));
   return res.rows.map(r => ({
     id: r.id,

@@ -2352,8 +2352,8 @@ function toggleMonitorPanel() {
 }
 
 async function loadMonitors() {
-  if (!sessionId) return;
-  const res = await api('GET', `/api/monitor/${sessionId}`);
+  if (!authToken) return;
+  const res = await api('GET', `/api/monitor/${authToken}`);
   const list = document.getElementById('monitor-list');
   if (!res?.monitors?.length) { list.innerHTML = '<div class="monitor-empty">Nenhum alerta configurado.</div>'; return; }
   list.innerHTML = res.monitors.map(m => `
