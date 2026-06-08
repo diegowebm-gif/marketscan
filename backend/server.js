@@ -797,8 +797,8 @@ app.post('/api/push/subscribe', requireAuth, requirePro, async (req, res) => {
 app.post('/api/monitor', requireAuth, requirePro, async (req, res) => {
   const { keyword, location, city, maxPrice, intervalHours = 2, whatsappPhone } = req.body;
   if (!keyword || !maxPrice) return res.status(400).json({ ok: false, error: 'Dados incompletos.' });
-  // Usar sempre o token do header como sessionId para consistência
-  const sessionId = req.headers['x-auth-token'];
+  // Usar user.id como sessionId — fixo por usuário, não muda com login/logout
+  const sessionId = req.user.id;
   const existing = await getMonitors(sessionId);
   if (existing.length >= req.limits.maxAlerts) return res.status(403).json({ ok: false, error: `Limite de ${req.limits.maxAlerts} alertas atingido.` });
   const id = await saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone || null);
@@ -814,19 +814,30 @@ app.post('/api/push/test-whatsapp', requireAuth, requirePro, async (req, res) =>
 });
 
 app.get('/api/monitor/:sessionId', requireAuth, requirePro, async (req, res) => {
-  const monitors = await getMonitors(req.params.sessionId);
+  // Buscar pelo user.id (fixo) e também pelo sessionId passado (compatibilidade)
+  const monitors = await getMonitors(req.user.id);
   res.json({ ok: true, monitors });
 });
 
-// Rota alternativa — busca monitores pelo token do usuário
+// Rota alternativa
 app.get('/api/monitors', requireAuth, async (req, res) => {
-  const token = req.headers['x-auth-token'];
-  const monitors = await getMonitors(token);
+  const monitors = await getMonitors(req.user.id);
   res.json({ ok: true, monitors });
 });
 
 app.delete('/api/monitor/:id', requireAuth, requirePro, async (req, res) => {
   await removeMonitor(req.params.id);
+  res.json({ ok: true });
+});
+
+// Migrar monitores antigos para usar user.id (roda uma vez)
+app.post('/api/monitor/migrate', requireAuth, requirePro, async (req, res) => {
+  const { Pool } = require('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+  // Atualiza monitores que estavam com o token como session_id
+  const token = req.headers['x-auth-token'];
+  await pool.query('UPDATE monitors SET session_id = $1 WHERE session_id = $2', [req.user.id, token]).catch(() => {});
+  await pool.end();
   res.json({ ok: true });
 });
 
