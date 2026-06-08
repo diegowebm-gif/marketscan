@@ -987,7 +987,7 @@ app.delete('/api/admin/monitors/clear-all', requireAdmin, async (req, res) => {
 
 
 // Rota para ver QR Code do WhatsApp (protegida com senha)
-app.get('/whatsapp-qr', (req, res) => {
+app.get('/whatsapp-qr', async (req, res) => {
   if (req.query.key !== process.env.ADMIN_KEY) return res.status(403).send('<h2 style="font-family:sans-serif;text-align:center;margin-top:100px">🔒 Acesso negado</h2>');
   const qr = getLastQR();
   const connected = getIsConnected();
@@ -995,18 +995,24 @@ app.get('/whatsapp-qr', (req, res) => {
     return res.send('<h2 style="font-family:sans-serif;color:green;text-align:center;margin-top:100px">✅ WhatsApp Conectado!</h2>');
   }
   if (!qr) {
-    return res.send('<h2 style="font-family:sans-serif;text-align:center;margin-top:100px">⏳ Aguardando QR Code... Recarregue a página em alguns segundos.</h2><script>setTimeout(()=>location.reload(),3000)</script>');
+    return res.send('<h2 style="font-family:sans-serif;text-align:center;margin-top:100px">⏳ Aguardando QR Code... Recarregue a página em alguns segundos.</h2><script>setTimeout(()=>location.reload(),2000)</script>');
   }
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
-  res.send(`
-    <html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#f0f0f0">
-      <h2>📱 Escaneie o QR Code com seu WhatsApp</h2>
-      <p style="color:#666">Abra o WhatsApp → Menu → Aparelhos conectados → Conectar um aparelho</p>
-      <img src="${qrUrl}" style="margin:20px auto;display:block;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15)">
-      <p style="color:#999;font-size:12px">Esta página atualiza automaticamente a cada 2 segundos</p>
-      <script>setTimeout(()=>location.reload(),2000)</script>
-    </body></html>
-  `);
+  try {
+    const QRCode = require('qrcode');
+    const qrImage = await QRCode.toDataURL(qr, { width: 300, margin: 2 });
+    res.send(`
+      <html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#f0f0f0">
+        <h2>📱 Escaneie o QR Code com seu WhatsApp</h2>
+        <p style="color:#666">Abra o WhatsApp → Menu → Aparelhos conectados → Conectar um aparelho</p>
+        <img src="${qrImage}" style="margin:20px auto;display:block;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);width:300px;height:300px">
+        <p style="color:#999;font-size:12px">Esta página atualiza automaticamente a cada 3 segundos</p>
+        <script>setTimeout(()=>location.reload(),3000)</script>
+      </body></html>
+    `);
+  } catch(e) {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`;
+    res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:40px"><h2>📱 Escaneie o QR Code</h2><img src="${qrUrl}" style="width:300px"><script>setTimeout(()=>location.reload(),3000)</script></body></html>`);
+  }
 });
 
 
