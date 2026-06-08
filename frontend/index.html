@@ -1055,7 +1055,7 @@ header {
         <!-- Estado: com permissão -->
         <div id="alert-banner-actions" style="display:none;align-items:center;gap:8px;flex-wrap:wrap">
           <button onclick="toggleMonitorForm()" style="white-space:nowrap;padding:9px 18px;border-radius:var(--radius-sm);border:none;background:var(--accent);color:#fff;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">+ Criar alerta</button>
-          <button onclick="document.getElementById('alert-monitor-panel').classList.toggle('visible')" style="white-space:nowrap;padding:9px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='transparent'">Ver meus alertas</button>
+          <button onclick="toggleMonitorPanel()" style="white-space:nowrap;padding:9px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--accent);background:transparent;color:var(--accent);font-weight:600;font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s" onmouseover="this.style.background='var(--accent-dim)'" onmouseout="this.style.background='transparent'">Ver meus alertas</button>
         </div>
       </div>
 
@@ -2337,6 +2337,17 @@ function prefillWhatsapp() {
   const field = document.getElementById('mon-whatsapp');
   if (field && currentUser?.whatsappPhone && !field.value) {
     field.value = currentUser.whatsappPhone;
+  }
+}
+
+function toggleMonitorPanel() {
+  const panel = document.getElementById('alert-monitor-panel');
+  if (!panel) return;
+  if (panel.style.display === 'none' || panel.style.display === '') {
+    panel.style.display = 'block';
+    loadMonitors();
+  } else {
+    panel.style.display = 'none';
   }
 }
 
