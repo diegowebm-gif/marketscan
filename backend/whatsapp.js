@@ -91,8 +91,10 @@ async function connectWhatsApp() {
   try {
     console.log('[WhatsApp] Importando Baileys...');
     const baileysModule = await import('@whiskeysockets/baileys');
-    const makeWASocket = baileysModule.default;
-    const { DisconnectReason, fetchLatestBaileysVersion, initAuthCreds, BufferJSON } = baileysModule;
+    // Na versão 6.x o export pode ser diferente
+    const makeWASocket = baileysModule.makeWASocket || baileysModule.default?.makeWASocket || baileysModule.default;
+    const { DisconnectReason, fetchLatestBaileysVersion, initAuthCreds } = baileysModule;
+    console.log('[WhatsApp] makeWASocket type:', typeof makeWASocket);
     console.log('[WhatsApp] Baileys importado!');
 
     const { state, saveCreds } = await usePostgresAuthState();
