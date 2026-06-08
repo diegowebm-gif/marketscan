@@ -1003,8 +1003,8 @@ app.get('/whatsapp-qr', (req, res) => {
       <h2>📱 Escaneie o QR Code com seu WhatsApp</h2>
       <p style="color:#666">Abra o WhatsApp → Menu → Aparelhos conectados → Conectar um aparelho</p>
       <img src="${qrUrl}" style="margin:20px auto;display:block;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15)">
-      <p style="color:#999;font-size:12px">Esta página atualiza automaticamente a cada 5 segundos</p>
-      <script>setTimeout(()=>location.reload(),5000)</script>
+      <p style="color:#999;font-size:12px">Esta página atualiza automaticamente a cada 2 segundos</p>
+      <script>setTimeout(()=>location.reload(),2000)</script>
     </body></html>
   `);
 });
