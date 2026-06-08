@@ -19,6 +19,7 @@
     "node-cron": "^3.0.3",
     "pg": "^8.21.0",
     "pino": "^10.3.1",
+    "postgres-baileys": "^1.5.0",
     "proxy-chain": "^2.5.9",
     "puppeteer": "^21.0.0",
     "puppeteer-extra": "^3.3.6",
