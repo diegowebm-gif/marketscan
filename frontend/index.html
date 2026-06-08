@@ -13,6 +13,54 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '26863026470046220');
 fbq('track', 'PageView');
+
+async function openReferral() {
+  const modal = document.getElementById('referral-modal');
+  modal.style.display = 'flex';
+  const [linkRes, refRes] = await Promise.all([
+    api('GET', '/api/referral/my-link'),
+    api('GET', '/api/referral/my-referrals')
+  ]);
+  if (linkRes?.ok) {
+    document.getElementById('ref-link').value = linkRes.url;
+  }
+  if (refRes?.ok) {
+    document.getElementById('ref-total').textContent = refRes.referrals.length;
+    document.getElementById('ref-days').textContent = refRes.totalDaysEarned;
+    const list = document.getElementById('ref-list');
+    if (!refRes.referrals.length) {
+      list.innerHTML = '<p style="font-size:13px;color:var(--text2);text-align:center;padding:1rem">Você ainda não indicou ninguém.<br>Compartilhe seu link!</p>';
+    } else {
+      list.innerHTML = refRes.referrals.map(r => {
+        const statusColor = r.status === 'converted' ? '#4ade80' : r.status === 'trial' ? '#f59e0b' : 'var(--text2)';
+        const statusLabel = r.status === 'converted' ? 'Pro pago' : r.status === 'trial' ? 'Trial' : 'Cadastrado';
+        const reward = r.status === 'converted' ? '<span style="font-size:10px;color:#4ade80">+7 dias para você ✓</span>' : '';
+        const masked = r.referred_email.replace(/(.{3}).+(@.+)/, '$1***$2');
+        const date = new Date(parseInt(r.created_at)).toLocaleDateString('pt-BR');
+        return `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div>
+            <div style="font-size:13px;color:var(--text)">${masked}</div>
+            <div style="font-size:11px;color:var(--text2)">Indicado em ${date}</div>
+          </div>
+          <div style="text-align:right">
+            <span style="color:${statusColor};font-size:12px;font-weight:600">${statusLabel}</span>
+            <div>${reward}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+}
+
+function closeReferral() {
+  document.getElementById('referral-modal').style.display = 'none';
+}
+
+function copyRefLink() {
+  const link = document.getElementById('ref-link').value;
+  navigator.clipboard.writeText(link).then(() => toast('Link copiado!', 'success'));
+}
+
 </script>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=26863026470046220&ev=PageView&noscript=1"
@@ -1263,6 +1311,13 @@ let currentStats = null;
 let checkInterval = null;
 
 window.onload = async () => {
+  // Salvar código de indicação se vier na URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
+  if (refCode) {
+    localStorage.setItem('mkt_ref', refCode);
+    window.history.replaceState({}, '', '/');
+  }
   await checkResetToken();
   const params = new URLSearchParams(window.location.search);
   if (params.get('upgraded') === 'true') {
@@ -1427,7 +1482,7 @@ async function doRegister() {
   if (password !== password2) { errEl.textContent = 'Senhas não conferem.'; errEl.classList.add('show'); return; }
   if (password.length < 6) { errEl.textContent = 'Senha mínima de 6 caracteres.'; errEl.classList.add('show'); return; }
   const whatsappPhone = document.getElementById('reg-whatsapp').value.replace(/\D/g, '') || null;
-  const res = await api('POST', '/api/auth/register', { email, password, whatsappPhone });
+  const res = await api('POST', '/api/auth/register', { email, password, whatsappPhone, refCode: localStorage.getItem('mkt_ref') || undefined });
   if (!res?.ok) { errEl.textContent = res?.error || 'Erro ao cadastrar.'; errEl.classList.add('show'); return; }
   authToken = res.token;
   currentUser = { email: res.email, plan: res.plan };
@@ -3193,5 +3248,43 @@ document.addEventListener('DOMContentLoaded', updateSavedBadge);
     </div>
   </div>
 </div>
+
+<!-- Modal de Indicações -->
+<div id="referral-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);max-width:480px;width:100%;max-height:90vh;overflow-y:auto">
+    <div style="padding:1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <h3 style="font-size:15px;font-weight:700;margin:0">🎁 Minhas Indicações</h3>
+        <p style="font-size:12px;color:var(--text2);margin:4px 0 0">Indique amigos e ganhe 7 dias grátis quando assinarem o Pro</p>
+      </div>
+      <button onclick="closeReferral()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--text2);padding:4px">×</button>
+    </div>
+    <div style="padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;text-align:center">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Indicados</div>
+          <div id="ref-total" style="font-size:28px;font-weight:700;color:var(--text)">0</div>
+        </div>
+        <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:var(--radius-sm);padding:14px;text-align:center">
+          <div style="font-size:11px;color:#4ade80;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Dias ganhos</div>
+          <div id="ref-days" style="font-size:28px;font-weight:700;color:#4ade80">0</div>
+        </div>
+      </div>
+
+      <div style="background:var(--accent-dim);border:1px solid rgba(106,13,173,0.3);border-radius:var(--radius-sm);padding:14px">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Seu link de indicação</div>
+        <div style="display:flex;gap:8px">
+          <input id="ref-link" readonly style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;color:var(--accent);font-family:'Inter',sans-serif;outline:none" value="Carregando..."/>
+          <button onclick="copyRefLink()" style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Copiar</button>
+        </div>
+      </div>
+
+      <div id="ref-list" style="display:flex;flex-direction:column;gap:8px">
+        <p style="font-size:13px;color:var(--text2);text-align:center;padding:1rem">Carregando...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
