@@ -1,16 +1,43 @@
 const webpush = require('web-push');
-const low = require('lowdb');
-const FileSync = require('lowdb/adapters/FileSync');
-const path = require('path');
-const fs = require('fs');
+const { Pool } = require('pg');
 const cron = require('node-cron');
 
-const DATA_DIR = path.join(__dirname, '../data');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
-const adapter = new FileSync(path.join(DATA_DIR, 'alerts.json'));
-const db = low(adapter);
-db.defaults({ subscriptions: [], monitors: [], fired: [] }).write();
+// Criar tabelas se não existirem
+async function initAlertsTables() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS monitors (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      keyword TEXT,
+      location TEXT,
+      city TEXT,
+      max_price NUMERIC,
+      interval_hours INTEGER DEFAULT 2,
+      whatsapp_phone TEXT,
+      active BOOLEAN DEFAULT TRUE,
+      created_at BIGINT,
+      last_checked BIGINT,
+      next_check BIGINT
+    );
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      session_id TEXT PRIMARY KEY,
+      subscription JSONB,
+      updated_at BIGINT
+    );
+    CREATE TABLE IF NOT EXISTS fired_alerts (
+      id TEXT PRIMARY KEY,
+      monitor_id TEXT,
+      listing_url TEXT,
+      fired_at BIGINT
+    );
+  `).catch(err => console.warn('[Alerts] Erro ao criar tabelas:', err.message));
+}
+initAlertsTables();
 
 // Configura VAPID — lê do .env ou usa padrão de desenvolvimento
 const VAPID_PUBLIC  = process.env.VAPID_PUBLIC_KEY  || 'BBeJlscCtAwLv75_YcbJHus8lySB7T8ONp9GAG4KDztm5SebE8ixNIyJ3Xtvx9a2nsuFjc7Ny8uZs7q07NRX_c4';
@@ -19,43 +46,52 @@ const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY || '5SebE8ixNIyJ3Xtvx9a2nsuF
 webpush.setVapidDetails('mailto:marketscan@app.com', VAPID_PUBLIC, VAPID_PRIVATE);
 
 // Salva subscription do browser
-function saveSubscription(sessionId, subscription) {
-  const existing = db.get('subscriptions').find({ sessionId }).value();
-  if (existing) {
-    db.get('subscriptions').find({ sessionId }).assign({ subscription, updatedAt: Date.now() }).write();
-  } else {
-    db.get('subscriptions').push({ sessionId, subscription, createdAt: Date.now() }).write();
-  }
+async function saveSubscription(sessionId, subscription) {
+  await pool.query(
+    `INSERT INTO push_subscriptions (session_id, subscription, updated_at)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (session_id) DO UPDATE SET subscription = $2, updated_at = $3`,
+    [sessionId, JSON.stringify(subscription), Date.now()]
+  ).catch(err => console.warn('[Alerts] saveSubscription error:', err.message));
 }
 
 // Salva um monitor de preço
-function saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours = 2, whatsappPhone = null) {
+async function saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours = 2, whatsappPhone = null) {
   const id = `${sessionId}_${Date.now()}`;
-  db.get('monitors').push({
-    id,
-    sessionId,
-    keyword,
-    location,
-    city,
-    maxPrice,
-    intervalHours,
-    whatsappPhone,
-    active: true,
-    createdAt: Date.now(),
-    lastChecked: null,
-    nextCheck: Date.now(),
-  }).write();
+  await pool.query(
+    `INSERT INTO monitors (id, session_id, keyword, location, city, max_price, interval_hours, whatsapp_phone, active, created_at, last_checked, next_check)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,TRUE,$9,NULL,$9)`,
+    [id, sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone, Date.now()]
+  ).catch(err => console.warn('[Alerts] saveMonitor error:', err.message));
   return id;
 }
 
 // Lista monitores de uma sessão
-function getMonitors(sessionId) {
-  return db.get('monitors').filter({ sessionId }).value();
+async function getMonitors(sessionId) {
+  const res = await pool.query(
+    'SELECT * FROM monitors WHERE session_id = $1 ORDER BY created_at DESC',
+    [sessionId]
+  ).catch(() => ({ rows: [] }));
+  return res.rows.map(r => ({
+    id: r.id,
+    sessionId: r.session_id,
+    keyword: r.keyword,
+    location: r.location,
+    city: r.city,
+    maxPrice: r.max_price,
+    intervalHours: r.interval_hours,
+    whatsappPhone: r.whatsapp_phone,
+    active: r.active,
+    createdAt: r.created_at,
+    lastChecked: r.last_checked,
+    nextCheck: r.next_check,
+  }));
 }
 
 // Remove um monitor
-function removeMonitor(id) {
-  db.get('monitors').remove({ id }).write();
+async function removeMonitor(id) {
+  await pool.query('DELETE FROM monitors WHERE id = $1', [id])
+    .catch(err => console.warn('[Alerts] removeMonitor error:', err.message));
 }
 
 // Envia push notification para uma sessão
@@ -125,7 +161,8 @@ async function sendWhatsApp(phone, message) {
 function startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies) {
   cron.schedule('*/30 * * * *', async () => {
     const now = Date.now();
-    const monitors = db.get('monitors').filter({ active: true }).value();
+    const monitorsRes = await pool.query('SELECT * FROM monitors WHERE active = TRUE').catch(() => ({ rows: [] }));
+    const monitors = monitorsRes.rows.map(r => ({ id: r.id, sessionId: r.session_id, keyword: r.keyword, location: r.location, city: r.city, maxPrice: r.max_price, intervalHours: r.interval_hours, whatsappPhone: r.whatsapp_phone, nextCheck: r.next_check }));
 
     for (const monitor of monitors) {
       if (monitor.nextCheck > now) continue;

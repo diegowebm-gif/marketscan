@@ -787,19 +787,19 @@ app.get('/api/price-history', requireAuth, requirePro, async (req, res) => {
 // ── Alertas (Pro) ─────────────────────────────────────────
 app.get('/api/push/vapid-key', (req, res) => res.json({ ok: true, publicKey: VAPID_PUBLIC_KEY }));
 
-app.post('/api/push/subscribe', requireAuth, requirePro, (req, res) => {
+app.post('/api/push/subscribe', requireAuth, requirePro, async (req, res) => {
   const { sessionId, subscription } = req.body;
   if (!sessionId || !subscription) return res.status(400).json({ ok: false, error: 'Dados obrigatórios.' });
-  saveSubscription(sessionId, subscription);
+  await saveSubscription(sessionId, subscription);
   res.json({ ok: true });
 });
 
-app.post('/api/monitor', requireAuth, requirePro, (req, res) => {
+app.post('/api/monitor', requireAuth, requirePro, async (req, res) => {
   const { sessionId, keyword, location, city, maxPrice, intervalHours = 2, whatsappPhone } = req.body;
   if (!sessionId || !keyword || !maxPrice) return res.status(400).json({ ok: false, error: 'Dados incompletos.' });
-  const existing = getMonitors(sessionId);
+  const existing = await getMonitors(sessionId);
   if (existing.length >= req.limits.maxAlerts) return res.status(403).json({ ok: false, error: `Limite de ${req.limits.maxAlerts} alertas atingido.` });
-  const id = saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone || null);
+  const id = await saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone || null);
   res.json({ ok: true, id });
 });
 
@@ -811,12 +811,13 @@ app.post('/api/push/test-whatsapp', requireAuth, requirePro, async (req, res) =>
   res.json({ ok: sent, error: sent ? null : 'Falha ao enviar. Verifique se o número está correto.' });
 });
 
-app.get('/api/monitor/:sessionId', requireAuth, requirePro, (req, res) => {
-  res.json({ ok: true, monitors: getMonitors(req.params.sessionId) });
+app.get('/api/monitor/:sessionId', requireAuth, requirePro, async (req, res) => {
+  const monitors = await getMonitors(req.params.sessionId);
+  res.json({ ok: true, monitors });
 });
 
-app.delete('/api/monitor/:id', requireAuth, requirePro, (req, res) => {
-  removeMonitor(req.params.id);
+app.delete('/api/monitor/:id', requireAuth, requirePro, async (req, res) => {
+  await removeMonitor(req.params.id);
   res.json({ ok: true });
 });
 
