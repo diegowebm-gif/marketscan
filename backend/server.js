@@ -1009,6 +1009,98 @@ app.get('/whatsapp-qr', (req, res) => {
   `);
 });
 
+
+// ── Saúde das contas Facebook ─────────────────────────────
+app.get('/api/admin/fb-health', requireAdmin, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    
+    // Pegar todas as contas configuradas
+    const accounts = [];
+    for (let i = 1; i <= 9; i++) {
+      const val = process.env[`FB_ACCOUNT_${i}`];
+      if (val && val.includes(':')) {
+        const idx = val.indexOf(':');
+        accounts.push({ email: val.slice(0, idx), sessionId: `pool-account-${i}`, index: i });
+      }
+    }
+    if (process.env.FB_EMAIL) {
+      accounts.push({ email: process.env.FB_EMAIL, sessionId: 'shared-pool-account', index: 0 });
+    }
+
+    // Verificar status de cada conta
+    const results = await Promise.all(accounts.map(async (acc) => {
+      const cookieRes = await p.query(
+        'SELECT cookies, updated_at FROM cookie_cache WHERE session_id = $1',
+        [acc.sessionId]
+      ).catch(() => ({ rows: [] }));
+      
+      if (!cookieRes.rows.length) {
+        return { ...acc, status: 'sem_cookie', lastLogin: null };
+      }
+      
+      const cookies = cookieRes.rows[0].cookies;
+      const updatedAt = cookieRes.rows[0].updated_at;
+      const hasCUser = Array.isArray(cookies) && cookies.some(c => c.name === 'c_user');
+      const ageHours = updatedAt ? Math.floor((Date.now() - parseInt(updatedAt)) / (1000 * 60 * 60)) : null;
+      
+      return {
+        ...acc,
+        status: hasCUser ? 'ativo' : 'cookie_invalido',
+        lastLogin: updatedAt ? new Date(parseInt(updatedAt)).toLocaleString('pt-BR') : null,
+        ageHours,
+      };
+    }));
+
+    await p.end();
+    res.json({ ok: true, accounts: results });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Forçar reconexão de uma conta específica
+app.post('/api/admin/fb-reconnect/:index', requireAdmin, async (req, res) => {
+  try {
+    const idx = parseInt(req.params.index);
+    let email, password, sessionId;
+    
+    if (idx === 0) {
+      email = process.env.FB_EMAIL;
+      password = process.env.FB_PASSWORD;
+      sessionId = 'shared-pool-account';
+    } else {
+      const val = process.env[`FB_ACCOUNT_${idx}`];
+      if (!val) return res.json({ ok: false, error: 'Conta não encontrada' });
+      const sepIdx = val.indexOf(':');
+      email = val.slice(0, sepIdx);
+      password = val.slice(sepIdx + 1);
+      sessionId = `pool-account-${idx}`;
+    }
+
+    const result = await loginWithCredentials(sessionId, email, password);
+    res.json({ ok: result.ok, status: result.status, error: result.error });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Limpar cookies de uma conta (forçar novo login)
+app.delete('/api/admin/fb-cookies/:index', requireAdmin, async (req, res) => {
+  try {
+    const idx = parseInt(req.params.index);
+    const sessionId = idx === 0 ? 'shared-pool-account' : `pool-account-${idx}`;
+    const { Pool } = require('pg');
+    const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await p.query('DELETE FROM cookie_cache WHERE session_id = $1', [sessionId]);
+    await p.end();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 // Rota da página de promo
 app.get('/promo/:code', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/promo.html'));
