@@ -5,60 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — MarketScan</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
-async function loadFbHealth() {
-  const list = document.getElementById('fb-health-list');
-  list.innerHTML = '<p style="color:var(--text2);font-size:13px">Carregando...</p>';
-  const res = await api('GET', '/api/admin/fb-health');
-  if (!res?.ok) { list.innerHTML = '<p style="color:var(--danger);font-size:13px">Erro ao carregar contas.</p>'; return; }
-  if (!res.accounts?.length) { list.innerHTML = '<p style="color:var(--text2);font-size:13px">Nenhuma conta configurada.</p>'; return; }
-  
-  list.innerHTML = `
-    <div style="display:grid;gap:10px">
-      ${res.accounts.map(acc => {
-        const statusColor = acc.status === 'ativo' ? '#4ade80' : acc.status === 'sem_cookie' ? '#f59e0b' : '#f87171';
-        const statusIcon = acc.status === 'ativo' ? '✅' : acc.status === 'sem_cookie' ? '⚠️' : '❌';
-        const statusLabel = acc.status === 'ativo' ? 'Ativo' : acc.status === 'sem_cookie' ? 'Sem cookie' : 'Cookie inválido';
-        const age = acc.ageHours != null ? (acc.ageHours < 24 ? `${acc.ageHours}h atrás` : `${Math.floor(acc.ageHours/24)}d atrás`) : '—';
-        return `
-          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-            <div>
-              <div style="font-size:13px;font-weight:600;color:var(--text)">${acc.email}</div>
-              <div style="font-size:11px;color:var(--text2);margin-top:2px">Conta ${acc.index === 0 ? 'principal' : '#'+acc.index} · Último login: ${acc.lastLogin || '—'} (${age})</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <span style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}40;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${statusIcon} ${statusLabel}</span>
-              <button onclick="reconnectFb(${acc.index})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif">↻ Reconectar</button>
-              <button onclick="clearFbCookies(${acc.index})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif">🗑 Limpar</button>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
-}
-
-async function reconnectFb(index) {
-  const btn = event.target;
-  btn.textContent = 'Conectando...';
-  btn.disabled = true;
-  const res = await api('POST', `/api/admin/fb-reconnect/${index}`);
-  if (res?.ok) {
-    toast(`✅ Conta reconectada com sucesso! Status: ${res.status}`, 'success');
-  } else {
-    toast(`❌ Falha: ${res?.error || 'Erro desconhecido'}`, 'error');
-  }
-  loadFbHealth();
-}
-
-async function clearFbCookies(index) {
-  if (!confirm('Limpar cookies desta conta? Ela precisará fazer login novamente.')) return;
-  const res = await api('DELETE', `/api/admin/fb-cookies/${index}`);
-  if (res?.ok) toast('✅ Cookies limpos!', 'success');
-  loadFbHealth();
-}
-
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 
 <style>
 :root {
@@ -522,6 +469,58 @@ async function clearAllMonitors() {
     document.documentElement.classList.add('dark');
   }
 })();
+
+async function loadFbHealth() {
+  const list = document.getElementById('fb-health-list');
+  list.innerHTML = '<p style="color:var(--text2);font-size:13px">Carregando...</p>';
+  const res = await api('GET', '/api/admin/fb-health');
+  if (!res?.ok) { list.innerHTML = '<p style="color:var(--danger);font-size:13px">Erro ao carregar contas.</p>'; return; }
+  if (!res.accounts?.length) { list.innerHTML = '<p style="color:var(--text2);font-size:13px">Nenhuma conta configurada.</p>'; return; }
+  
+  list.innerHTML = `
+    <div style="display:grid;gap:10px">
+      ${res.accounts.map(acc => {
+        const statusColor = acc.status === 'ativo' ? '#4ade80' : acc.status === 'sem_cookie' ? '#f59e0b' : '#f87171';
+        const statusIcon = acc.status === 'ativo' ? '✅' : acc.status === 'sem_cookie' ? '⚠️' : '❌';
+        const statusLabel = acc.status === 'ativo' ? 'Ativo' : acc.status === 'sem_cookie' ? 'Sem cookie' : 'Cookie inválido';
+        const age = acc.ageHours != null ? (acc.ageHours < 24 ? `${acc.ageHours}h atrás` : `${Math.floor(acc.ageHours/24)}d atrás`) : '—';
+        return `
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">${acc.email}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px">Conta ${acc.index === 0 ? 'principal' : '#'+acc.index} · Último login: ${acc.lastLogin || '—'} (${age})</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}40;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">${statusIcon} ${statusLabel}</span>
+              <button onclick="reconnectFb(${acc.index})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif">↻ Reconectar</button>
+              <button onclick="clearFbCookies(${acc.index})" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif">🗑 Limpar</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+async function reconnectFb(index) {
+  const btn = event.target;
+  btn.textContent = 'Conectando...';
+  btn.disabled = true;
+  const res = await api('POST', `/api/admin/fb-reconnect/${index}`);
+  if (res?.ok) {
+    toast(`✅ Conta reconectada com sucesso! Status: ${res.status}`, 'success');
+  } else {
+    toast(`❌ Falha: ${res?.error || 'Erro desconhecido'}`, 'error');
+  }
+  loadFbHealth();
+}
+
+async function clearFbCookies(index) {
+  if (!confirm('Limpar cookies desta conta? Ela precisará fazer login novamente.')) return;
+  const res = await api('DELETE', `/api/admin/fb-cookies/${index}`);
+  if (res?.ok) toast('✅ Cookies limpos!', 'success');
+  loadFbHealth();
+}
 
 const ADMIN_EMAIL = 'diegowebm@gmail.com';
 let authToken = localStorage.getItem('admin_token');
