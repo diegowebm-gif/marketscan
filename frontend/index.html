@@ -996,7 +996,7 @@ header {
           </div>
           <div class="search-field" style="width:70px;flex-shrink:0">
             <label>Qtd.</label>
-            <input type="number" id="input-max" value="40" min="10" max="100" />
+            <input type="number" id="input-max" value="20" min="10" max="100" />
           </div>
         </div>
       </div>
@@ -1871,7 +1871,7 @@ async function doSearch() {
   const keyword = document.getElementById('input-keyword').value.trim();
   const state = document.getElementById('input-state').value;
   const city = document.getElementById('input-city').value;
-  const maxItems = parseInt(document.getElementById('input-max').value) || 40;
+  const maxItems = parseInt(document.getElementById('input-max').value) || 20;
   const removeNoPrice = document.getElementById('tog-noprice').classList.contains('on');
 
   if (!keyword) { toast('Digite o que você quer buscar.', 'error'); return; }
