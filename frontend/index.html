@@ -51,8 +51,9 @@ function closeProfileModal() {
 
 function switchProfileTab(tab, btn) {
   if (tab === 'indicacoes') loadReferralProfile();
-  ['email','senha','whatsapp'].forEach(t => {
-    document.getElementById('profile-tab-' + t).style.display = t === tab ? 'block' : 'none';
+  ['email','senha','whatsapp','indicacoes'].forEach(t => {
+    const el = document.getElementById('profile-tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -2667,8 +2668,9 @@ function closeProfileModal() {
 
 function switchProfileTab(tab, btn) {
   if (tab === 'indicacoes') loadReferralProfile();
-  ['email','senha','whatsapp'].forEach(t => {
-    document.getElementById('profile-tab-' + t).style.display = t === tab ? 'block' : 'none';
+  ['email','senha','whatsapp','indicacoes'].forEach(t => {
+    const el = document.getElementById('profile-tab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
