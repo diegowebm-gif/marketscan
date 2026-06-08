@@ -816,6 +816,13 @@ app.get('/api/monitor/:sessionId', requireAuth, requirePro, async (req, res) => 
   res.json({ ok: true, monitors });
 });
 
+// Rota alternativa — busca monitores pelo token do usuário
+app.get('/api/monitors', requireAuth, async (req, res) => {
+  const token = req.headers['x-auth-token'];
+  const monitors = await getMonitors(token);
+  res.json({ ok: true, monitors });
+});
+
 app.delete('/api/monitor/:id', requireAuth, requirePro, async (req, res) => {
   await removeMonitor(req.params.id);
   res.json({ ok: true });

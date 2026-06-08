@@ -2303,7 +2303,7 @@ async function saveMonitor() {
   if (!city) { toast('Selecione a cidade.', 'error'); return; }
   if (!maxPrice || maxPrice <= 0) { toast('Digite o preço máximo.', 'error'); return; }
   if (whatsappPhone && whatsappPhone.length < 10) { toast('Número de WhatsApp inválido.', 'error'); return; }
-  const res = await api('POST', '/api/monitor', { sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone });
+  const res = await api('POST', '/api/monitor', { sessionId: authToken, keyword, location, city, maxPrice, intervalHours, whatsappPhone });
   if (res?.ok) {
     toast(`Alerta criado para "${keyword}"! ${whatsappPhone ? '📲 Você receberá no WhatsApp.' : ''}`, 'success');
     document.getElementById('monitor-form').classList.remove('visible');
