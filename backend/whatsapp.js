@@ -7,7 +7,6 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-// Criar tabela de sessão no banco
 async function initWhatsAppTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS whatsapp_session (
@@ -19,7 +18,6 @@ async function initWhatsAppTable() {
   console.log('[WhatsApp] Tabela de sessão pronta');
 }
 
-// Auth state usando PostgreSQL
 async function usePostgresAuthState() {
   await initWhatsAppTable();
 
@@ -47,11 +45,13 @@ async function usePostgresAuthState() {
     await pool.query('DELETE FROM whatsapp_session WHERE key = $1', [key]).catch(() => {});
   }
 
-  // Carregar creds do banco
   const creds = await readData('creds');
+  console.log('[WhatsApp] Creds no banco:', creds ? 'SIM' : 'NÃO');
+
+  const { default: makeWASocket, initAuthCreds, proto, BufferJSON } = await import('@whiskeysockets/baileys');
 
   const state = {
-    creds: creds || undefined,
+    creds: creds || initAuthCreds(),
     keys: {
       get: async (type, ids) => {
         const data = {};
@@ -77,6 +77,7 @@ async function usePostgresAuthState() {
 
   async function saveCreds() {
     await writeData('creds', state.creds);
+    console.log('[WhatsApp] Credenciais salvas no banco!');
   }
 
   return { state, saveCreds };
@@ -91,43 +92,28 @@ async function connectWhatsApp() {
   try {
     console.log('[WhatsApp] Importando Baileys...');
     const baileysModule = await import('@whiskeysockets/baileys');
-    // Na versão 6.x o export pode ser diferente
-    const makeWASocket = baileysModule.makeWASocket || baileysModule.default?.makeWASocket || baileysModule.default;
-    const { DisconnectReason, fetchLatestBaileysVersion, initAuthCreds } = baileysModule;
-    console.log('[WhatsApp] makeWASocket type:', typeof makeWASocket);
+    const makeWASocket = baileysModule.makeWASocket || baileysModule.default;
+    const { DisconnectReason, fetchLatestBaileysVersion } = baileysModule;
+    const { default: pino } = await import('pino');
     console.log('[WhatsApp] Baileys importado!');
 
     const { state, saveCreds } = await usePostgresAuthState();
-    
-    // Se não tem creds, inicializar
-    if (!state.creds) {
-      const { default: pino } = await import('pino');
-      const { version } = await fetchLatestBaileysVersion();
-      state.creds = initAuthCreds();
-      
-      sock = makeWASocket({
-        version,
-        auth: state,
-        printQRInTerminal: false,
-        logger: pino({ level: 'silent' }),
-        browser: ['MarketScan', 'Chrome', '1.0.0'],
-      });
-    } else {
-      const { default: pino } = await import('pino');
-      const { version } = await fetchLatestBaileysVersion();
-      
-      sock = makeWASocket({
-        version,
-        auth: state,
-        printQRInTerminal: false,
-        logger: pino({ level: 'silent' }),
-        browser: ['MarketScan', 'Chrome', '1.0.0'],
-      });
-    }
+    const { version } = await fetchLatestBaileysVersion();
+
+    sock = makeWASocket({
+      version,
+      auth: state,
+      printQRInTerminal: false,
+      logger: pino({ level: 'silent' }),
+      browser: ['MarketScan', 'Chrome', '1.0.0'],
+    });
 
     console.log('[WhatsApp] Socket criado, aguardando conexão...');
 
-    sock.ev.on('creds.update', saveCreds);
+    // Salvar creds SEMPRE que atualizar
+    sock.ev.on('creds.update', async () => {
+      await saveCreds();
+    });
 
     sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
       if (qr) {
@@ -139,21 +125,21 @@ async function connectWhatsApp() {
         console.log(`[WhatsApp] Ou acesse: https://marketscan.site/whatsapp-qr`);
         console.log('[WhatsApp] ============================================\n');
       }
+
       if (connection === 'close') {
         isConnected = false;
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const err = lastDisconnect?.error;
+        const statusCode = err?.output?.statusCode || err?.data?.statusCode;
         console.log(`[WhatsApp] Conexão encerrada. Código: ${statusCode}`);
 
-        // 515 = restartRequired — reconectar imediatamente com credenciais salvas (QR escaneado com sucesso!)
-        if (statusCode === 515 || statusCode === DisconnectReason.restartRequired) {
+        if (statusCode === 515) {
           console.log('[WhatsApp] Restart required — reconectando com credenciais salvas...');
           connectionRetries = 0;
-          setTimeout(connectWhatsApp, 1000);
+          setTimeout(connectWhatsApp, 1500);
           return;
         }
 
-        // 401 = loggedOut — limpar sessão e gerar novo QR
-        if (statusCode === 401 || statusCode === DisconnectReason.loggedOut) {
+        if (statusCode === 401) {
           console.log('[WhatsApp] Deslogado. Limpando sessão...');
           await pool.query('DELETE FROM whatsapp_session').catch(() => {});
           connectionRetries = 0;
@@ -161,22 +147,21 @@ async function connectWhatsApp() {
           return;
         }
 
-        // undefined ou outros = sessão inválida, limpar e gerar novo QR
-        if (!statusCode) {
-          console.log('[WhatsApp] Sessão inválida. Limpando banco e gerando novo QR...');
+        if (!statusCode && connectionRetries >= 3) {
+          console.log('[WhatsApp] Muitas falhas. Limpando sessão e gerando novo QR...');
           await pool.query('DELETE FROM whatsapp_session').catch(() => {});
           connectionRetries = 0;
           setTimeout(connectWhatsApp, 3000);
           return;
         }
 
-        // Outros erros — tentar reconectar
         if (connectionRetries < 5) {
           connectionRetries++;
           console.log(`[WhatsApp] Reconectando... tentativa ${connectionRetries}`);
           setTimeout(connectWhatsApp, 5000);
         }
       }
+
       if (connection === 'open') {
         isConnected = true;
         lastQR = null;
@@ -185,7 +170,7 @@ async function connectWhatsApp() {
       }
     });
   } catch (err) {
-    console.error('[WhatsApp] Erro fatal:', err.message, err.stack);
+    console.error('[WhatsApp] Erro fatal:', err.message);
     setTimeout(connectWhatsApp, 10000);
   }
 }
