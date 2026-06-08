@@ -670,7 +670,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
   };
 
   const CITY_SLUGS = {
-    'sao paulo':'sao-paulo','rio de janeiro':'rio-de-janeiro','belo horizonte':'belo-horizonte',
+    'sao paulo':'saopaulo','rio de janeiro':'rio-de-janeiro','belo horizonte':'belo-horizonte',
     'salvador':'salvador','fortaleza':'fortaleza','curitiba':'curitiba','manaus':'manaus',
     'recife':'recife','porto alegre':'porto-alegre','belem':'belem','goiania':'goiania',
     'guarulhos':'guarulhos','campinas':'campinas','sao luis':'sao-luis','maceio':'maceio',
@@ -696,7 +696,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'campos dos goytacazes':'105581756141190','macae':'107694759253918',
     'araruama':'108028815884164','saquarema':'107362312627011','belford roxo':'104010079634163',
     'mogi das cruzes':'103427389698118','blumenau':'106081109431806','chapeco':'113399188670230',
-    'itajai':'107825789240416','criciuma':'115270555152834','caxias do sul':'111708808846317',
+    'itajai':'107825789240416','criciuma':'113418455335427','caxias do sul':'111708808846317',
     'pelotas':'111195672237858','santa maria':'113399188670230','canoas':'104074329627892',
     'novo hamburgo':'109764205717440','sao leopoldo':'109830025710831','passo fundo':'103165613056684',
     'contagem':'113109768703358','juiz de fora':'104091379628476','betim':'108393699180845',
@@ -914,7 +914,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'laguna':'109614629057602',
     'imbituba':'112601968751141',
     'araranguá':'111941265488819',
-    'ponta grossa':'100244790017752',
+    'ponta grossa':'106275636069985',
     'cascavel':'1595221914094128',
     'foz do iguacu':'107845332577217',
     'sao jose dos pinhais':'113048332042619',
@@ -1144,6 +1144,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'teixeira de freitas':'171268569567981',
     'eunapolis':'102835029789326',
     'itamaraju':'112285505449432',
+    'sarandi':'sarandi-pr',
     'paracambi':'109378812414245',
     'vassouras':'108175215877398',
     'tres rios':'108333322524929',
