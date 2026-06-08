@@ -1330,6 +1330,10 @@ app.get('*', (req, res) => res.sendFile(path.join(__dirname, '../frontend/index.
 
 startMonitorCron(scrapeMarketplace, analyzeListings, hasSavedCookies);
 
+// Iniciar WhatsApp Baileys
+console.log('[WhatsApp] Iniciando Baileys...');
+connectWhatsApp().catch(err => console.error('[WhatsApp] Erro ao iniciar:', err.message, err.stack));
+
 // ── Cron de emails do trial ───────────────────────────────────
 const cron = require('node-cron');
 cron.schedule('0 10 * * *', async () => {
