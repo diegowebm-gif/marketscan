@@ -970,12 +970,18 @@ app.get('/api/admin/monitors-count', requireAdmin, async (req, res) => {
 
 // Limpar todos os monitores (admin)
 app.delete('/api/admin/monitors/clear-all', requireAdmin, async (req, res) => {
-  const { Pool } = require('pg');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-  const result = await pool.query('DELETE FROM monitors').catch(err => ({ rowCount: 0, error: err.message }));
-  await pool.query('DELETE FROM fired_alerts').catch(() => {});
-  await pool.end();
-  res.json({ ok: true, deleted: result.rowCount });
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    const result = await pool.query('DELETE FROM monitors');
+    await pool.query('DELETE FROM fired_alerts').catch(() => {});
+    await pool.end();
+    console.log(`[Admin] ${result.rowCount} monitores removidos`);
+    res.json({ ok: true, deleted: result.rowCount || 0 });
+  } catch (err) {
+    console.error('[Admin] Erro ao limpar monitores:', err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // Rota da página de promo
