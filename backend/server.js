@@ -795,8 +795,10 @@ app.post('/api/push/subscribe', requireAuth, requirePro, async (req, res) => {
 });
 
 app.post('/api/monitor', requireAuth, requirePro, async (req, res) => {
-  const { sessionId, keyword, location, city, maxPrice, intervalHours = 2, whatsappPhone } = req.body;
-  if (!sessionId || !keyword || !maxPrice) return res.status(400).json({ ok: false, error: 'Dados incompletos.' });
+  const { keyword, location, city, maxPrice, intervalHours = 2, whatsappPhone } = req.body;
+  if (!keyword || !maxPrice) return res.status(400).json({ ok: false, error: 'Dados incompletos.' });
+  // Usar sempre o token do header como sessionId para consistência
+  const sessionId = req.headers['x-auth-token'];
   const existing = await getMonitors(sessionId);
   if (existing.length >= req.limits.maxAlerts) return res.status(403).json({ ok: false, error: `Limite de ${req.limits.maxAlerts} alertas atingido.` });
   const id = await saveMonitor(sessionId, keyword, location, city, maxPrice, intervalHours, whatsappPhone || null);

@@ -186,7 +186,7 @@ async function openStripePortal() {
 
 
 // Anúncios salvos
-let savedListings = JSON.parse(localStorage.getItem('mkt_saved') || '[]');
+// savedListings declarado globalmente acima
 
 function updateSavedBadge() {
   const badge = document.getElementById('saved-count');
@@ -2783,7 +2783,7 @@ async function openStripePortal() {
 
 
 // Anúncios salvos
-let savedListings = JSON.parse(localStorage.getItem('mkt_saved') || '[]');
+// savedListings declarado globalmente acima
 
 function updateSavedBadge() {
   const badge = document.getElementById('saved-count');
