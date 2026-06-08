@@ -2364,8 +2364,11 @@ function toggleMonitorPanel() {
 
 async function loadMonitors() {
   if (!authToken) return;
+  console.log('[Monitors] Buscando com token:', authToken?.slice(0,12));
   const res = await api('GET', `/api/monitor/${authToken}`);
+  console.log('[Monitors] Resposta:', JSON.stringify(res)?.slice(0,200));
   const list = document.getElementById('monitor-list');
+  if (!list) { console.warn('[Monitors] elemento monitor-list não encontrado'); return; }
   if (!res?.monitors?.length) { list.innerHTML = '<div class="monitor-empty">Nenhum alerta configurado.</div>'; return; }
   list.innerHTML = res.monitors.map(m => `
     <div class="monitor-item">
