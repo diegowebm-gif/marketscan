@@ -12,6 +12,7 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const { openLoginWindow, checkLogin, scrapeMarketplace, closeBrowser, analyzeListings, hasSavedCookies, hasSavedCookiesAsync, saveCookies, loginWithCredentials, submitTwoFactor, launchBrowser } = require('./scraper');
 const { createSession, touchSession, saveSearch, saveListings, getListingsBySearch, getRecentSearches, savePriceSnapshot, getPriceHistory } = require('./database');
 const { VAPID_PUBLIC_KEY, saveSubscription, saveMonitor, getMonitors, removeMonitor, sendPush, sendWhatsApp, startMonitorCron } = require('./alerts');
+const { connectWhatsApp } = require('./whatsapp');
 
 // ── Email (Resend) ────────────────────────────────────────────
 async function sendEmail(to, subject, html) {

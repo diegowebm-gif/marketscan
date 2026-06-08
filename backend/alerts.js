@@ -130,31 +130,11 @@ async function markFired(monitorId, listingId) {
   ).catch(() => {});
 }
 
-// ─── Z-API WhatsApp ───────────────────────────────────────
-const ZAPI_INSTANCE = process.env.ZAPI_INSTANCE_ID;
-const ZAPI_TOKEN    = process.env.ZAPI_TOKEN;
+// ─── WhatsApp via Baileys ───────────────────────────────────
+const { sendWhatsAppBaileys } = require('./whatsapp');
 
 async function sendWhatsApp(phone, message) {
-  if (!ZAPI_INSTANCE || !ZAPI_TOKEN) {
-    console.warn('[WhatsApp] ZAPI_INSTANCE_ID ou ZAPI_TOKEN não configurados.');
-    return false;
-  }
-  let number = phone.replace(/\D/g, '');
-  if (!number.startsWith('55')) number = '55' + number;
-  try {
-    const res = await fetch(`https://api.z-api.io/instances/${ZAPI_INSTANCE}/token/${ZAPI_TOKEN}/send-text`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: number, message }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || JSON.stringify(data));
-    console.log(`[WhatsApp] Mensagem enviada para ${number}`);
-    return true;
-  } catch (err) {
-    console.error(`[WhatsApp] Erro ao enviar para ${number}:`, err.message);
-    return false;
-  }
+  return await sendWhatsAppBaileys(phone, message);
 }
 
 // Inicia o cron que verifica os monitores a cada 30 minutos
