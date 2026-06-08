@@ -13,108 +13,11 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '26863026470046220');
 fbq('track', 'PageView');
-
-async function openReferral() {
-  const modal = document.getElementById('referral-modal');
-  modal.style.display = 'flex';
-  const [linkRes, refRes] = await Promise.all([
-    api('GET', '/api/referral/my-link'),
-    api('GET', '/api/referral/my-referrals')
-  ]);
-  if (linkRes?.ok) {
-    document.getElementById('ref-link').value = linkRes.url;
-  }
-  if (refRes?.ok) {
-    document.getElementById('ref-total').textContent = refRes.referrals.length;
-    document.getElementById('ref-days').textContent = refRes.totalDaysEarned;
-    const list = document.getElementById('ref-list');
-    if (!refRes.referrals.length) {
-      list.innerHTML = '<p style="font-size:13px;color:var(--text2);text-align:center;padding:1rem">Você ainda não indicou ninguém.<br>Compartilhe seu link!</p>';
-    } else {
-      list.innerHTML = refRes.referrals.map(r => {
-        const statusColor = r.status === 'converted' ? '#4ade80' : r.status === 'trial' ? '#f59e0b' : 'var(--text2)';
-        const statusLabel = r.status === 'converted' ? 'Pro pago' : r.status === 'trial' ? 'Trial' : 'Cadastrado';
-        const reward = r.status === 'converted' ? '<span style="font-size:10px;color:#4ade80">+7 dias para você ✓</span>' : '';
-        const masked = r.referred_email.replace(/(.{3}).+(@.+)/, '$1***$2');
-        const date = new Date(parseInt(r.created_at)).toLocaleDateString('pt-BR');
-        return `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div>
-            <div style="font-size:13px;color:var(--text)">${masked}</div>
-            <div style="font-size:11px;color:var(--text2)">Indicado em ${date}</div>
-          </div>
-          <div style="text-align:right">
-            <span style="color:${statusColor};font-size:12px;font-weight:600">${statusLabel}</span>
-            <div>${reward}</div>
-          </div>
-        </div>`;
-      }).join('');
-    }
-  }
-}
-
-function closeReferral() {
-  document.getElementById('referral-modal').style.display = 'none';
-}
-
-async function copyRefLinkBanner() {
-  const btn = document.getElementById('btn-copy-ref-banner');
-  const res = await api('GET', '/api/referral/my-link');
-  if (res?.ok) {
-    navigator.clipboard.writeText(res.url).then(() => {
-      btn.textContent = 'Copiado! ✓';
-      btn.style.background = '#4ade80';
-      btn.style.color = '#051a0a';
-      setTimeout(() => { btn.textContent = 'Copiar link'; btn.style.background = 'transparent'; btn.style.color = '#4ade80'; }, 2000);
-    });
-  }
-}
-
-function copyRefLink() {
-  const link = document.getElementById('ref-link').value;
-  navigator.clipboard.writeText(link).then(() => toast('Link copiado!', 'success'));
-}
-
-
-async function loadReferralProfile() {
-  const [linkRes, refRes] = await Promise.all([
-    api('GET', '/api/referral/my-link'),
-    api('GET', '/api/referral/my-referrals')
-  ]);
-  if (linkRes?.ok) {
-    document.getElementById('ref-link-profile').value = linkRes.url;
-  }
-  if (refRes?.ok) {
-    document.getElementById('ref-total-profile').textContent = refRes.referrals.length;
-    document.getElementById('ref-days-profile').textContent = refRes.totalDaysEarned;
-    const list = document.getElementById('ref-list-profile');
-    if (!refRes.referrals.length) {
-      list.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center;padding:.75rem">Você ainda não indicou ninguém. Compartilhe seu link!</p>';
-    } else {
-      list.innerHTML = refRes.referrals.map(r => {
-        const statusColor = r.status === 'converted' ? '#4ade80' : r.status === 'trial' ? '#f59e0b' : 'var(--text2)';
-        const statusLabel = r.status === 'converted' ? 'Pro ✓' : r.status === 'trial' ? 'Trial' : 'Cadastrado';
-        const masked = r.referred_email.replace(/(.{3}).+(@.+)/, '$1***$2');
-        const date = new Date(parseInt(r.created_at)).toLocaleDateString('pt-BR');
-        const reward = r.status === 'converted' ? ' <span style="font-size:10px;color:#4ade80">+7 dias</span>' : '';
-        return `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div><div style="font-size:12px;color:var(--text)">${masked}</div><div style="font-size:10px;color:var(--text2)">${date}</div></div>
-          <div style="font-size:12px;color:${statusColor};font-weight:600">${statusLabel}${reward}</div>
-        </div>`;
-      }).join('');
-    }
-  }
-}
-
-async function copyRefLinkProfile() {
-  const btn = document.getElementById('btn-copy-ref-profile');
-  const link = document.getElementById('ref-link-profile').value;
-  navigator.clipboard.writeText(link).then(() => {
-    btn.textContent = '✓';
-    setTimeout(() => btn.textContent = 'Copiar', 2000);
-  });
-}
-
 </script>
+<!-- End Meta Pixel Code -->
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=26863026470046220&ev=PageView&noscript=1"
+/></noscript>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=26863026470046220&ev=PageView&noscript=1"
 /></noscript>
