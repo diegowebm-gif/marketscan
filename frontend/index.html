@@ -2032,7 +2032,8 @@ function renderStats() {
   if (alertBanner && alertBanner.style.display === 'none') {
     const isPro = currentUser?.plan === 'pro';
     const perm = ('Notification' in window) ? Notification.permission : 'denied';
-    if (isPro && perm !== 'granted') showPermissionBanner();
+    if (isPro && perm === 'granted') showMonitorBanner();
+    else if (isPro && perm !== 'granted') showPermissionBanner();
     else if (!isPro) {
       alertBanner.style.display = 'flex';
       const actEl = document.getElementById('alert-banner-actions');
@@ -2231,7 +2232,7 @@ async function initPush() {
   try {
     const reg = await navigator.serviceWorker.register('/sw.js');
     const perm = Notification.permission;
-    if (perm === 'granted') { await subscribePush(reg); }  // painel não abre automaticamente
+    if (perm === 'granted') { await subscribePush(reg); showMonitorBanner(); }
     else if (perm !== 'denied') showPermissionBanner();
   } catch (err) { console.warn('SW erro:', err); }
 }
@@ -2261,6 +2262,16 @@ async function subscribePush(reg) {
     await api('POST', '/api/push/subscribe', { sessionId, subscription: sub.toJSON() });
   } catch (err) { console.warn('Push subscribe erro:', err); }
 }
+function showMonitorBanner() {
+  // Mostra o banner com botões de criar/ver alertas, sem abrir o painel automaticamente
+  const banner = document.getElementById('price-alert-banner');
+  if (banner) banner.style.display = 'flex';
+  const permEl = document.getElementById('alert-banner-perm');
+  const actEl = document.getElementById('alert-banner-actions');
+  if (permEl) permEl.style.display = 'none';
+  if (actEl) actEl.style.display = 'flex';
+}
+
 function showMonitorPanel() {
   const banner = document.getElementById('price-alert-banner');
   if (banner) { banner.style.display = 'flex'; }
