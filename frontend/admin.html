@@ -5,7 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — MarketScan</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
+function toggleUsersTable() {
+  const body = document.getElementById('users-body');
+  const icon = document.getElementById('users-toggle-icon');
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  icon.textContent = isHidden ? '▾' : '▸';
+}
+
+</script>
 
 <style>
 :root {
@@ -305,32 +314,37 @@ body.dark .card { background: var(--surface); }
     </div>
 
     <div class="card">
-      <div class="card-header">
+      <div class="card-header" style="cursor:pointer" onclick="toggleUsersTable()">
         <div style="display:flex;align-items:center;gap:10px">
           <span class="card-title">👥 Usuários</span>
           <span id="user-counter" style="background:var(--accent-dim);color:var(--accent);border:1px solid var(--accent);border-radius:20px;padding:2px 12px;font-size:12px;font-weight:700">0 total</span>
           <span id="user-today-counter" style="background:rgba(74,222,128,0.1);color:#4ade80;border:1px solid rgba(74,222,128,0.3);border-radius:20px;padding:2px 12px;font-size:12px;font-weight:700">0 hoje</span>
         </div>
-        <button class="btn btn-refresh" onclick="loadUsers()">↻ Atualizar</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-refresh" onclick="event.stopPropagation();loadUsers()">↻ Atualizar</button>
+          <span id="users-toggle-icon" style="color:var(--text2);font-size:18px;transition:transform .2s">▾</span>
+        </div>
       </div>
-      <div class="search-bar">
-        <input type="text" id="search-input" placeholder="Buscar por e-mail..." oninput="filterUsers()" />
-      </div>
-      <div style="overflow-x:auto">
-        <table>
-          <thead>
-            <tr>
-              <th>E-mail</th>
-              <th>Plano</th>
-              <th>Cadastro</th>
-              <th>Vencimento Pro</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="users-table">
-            <tr><td colspan="5" class="empty">Carregando...</td></tr>
-          </tbody>
-        </table>
+      <div id="users-body" style="transition:all .3s">
+        <div class="search-bar">
+          <input type="text" id="search-input" placeholder="Buscar por e-mail..." oninput="filterUsers()" />
+        </div>
+        <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>E-mail</th>
+                <th>Plano</th>
+                <th>Cadastro</th>
+                <th>Vencimento Pro</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="users-table">
+              <tr><td colspan="5" class="empty">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -535,15 +549,7 @@ async function api(method, url, body) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (authToken) opts.headers['x-auth-token'] = authToken;
     if (body) opts.body = JSON.stringify(body);
-    const response = await fetch(url, opts);
-    const res = await response.json();
-    // Só desloga se receber 401 explícito
-    if (response.status === 401) {
-      localStorage.removeItem('admin_token');
-      authToken = null;
-      window.location.reload();
-    }
-    return res;
+    return await (await fetch(url, opts)).json();
   } catch { return null; }
 }
 
@@ -554,16 +560,8 @@ window.onload = async () => {
       showAdmin();
       return;
     }
-    // Só desloga se o servidor respondeu explicitamente que o token é inválido
-    // Se res === null é erro de rede — mantém logado
-    if (res !== null) {
-      localStorage.removeItem('admin_token');
-      authToken = null;
-    } else {
-      // Erro de rede — tenta mostrar admin mesmo assim
-      showAdmin();
-      return;
-    }
+    localStorage.removeItem('admin_token');
+    authToken = null;
   }
 };
 
@@ -756,8 +754,7 @@ function renderStats(users) {
   const free = total - pro;
   const trial = users.filter(u => isOnTrial(u)).length;
   const today = users.filter(u => {
-    const ts = parseInt(u.created_at);
-    const d = new Date(ts > 1e12 ? ts : ts * 1000);
+    const d = new Date(parseInt(u.created_at) * 1000);
     const now = new Date();
     return d.toDateString() === now.toDateString();
   }).length;
@@ -817,20 +814,6 @@ function renderChart(users) {
 
 function renderUsers(users) {
   const tbody = document.getElementById('users-table');
-  
-  // Atualizar contadores
-  const total = allUsers.length;
-  const today = allUsers.filter(u => {
-    const ts = parseInt(u.created_at);
-    // created_at pode estar em segundos ou milissegundos
-    const d = new Date(ts > 1e12 ? ts : ts * 1000);
-    return d.toDateString() === new Date().toDateString();
-  }).length;
-  const counterEl = document.getElementById('user-counter');
-  const todayEl = document.getElementById('user-today-counter');
-  if (counterEl) counterEl.textContent = `${total} total`;
-  if (todayEl) todayEl.textContent = `${today} hoje`;
-
   if (!users.length) {
     tbody.innerHTML = '<tr><td colspan="5" class="empty">Nenhum usuário encontrado.</td></tr>';
     return;
