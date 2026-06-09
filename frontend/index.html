@@ -2568,9 +2568,11 @@ async function api(method, url, body) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
     opts.signal = controller.signal;
-    const res = await (await fetch(url, opts)).json();
+    const response = await fetch(url, opts);
     clearTimeout(timeout);
-    if (res?.error?.includes('autenticado') && url !== '/api/auth/login' && url !== '/api/auth/me') {
+    const res = await response.json();
+    // Só desloga em 401 explícito e nunca durante login/register
+    if (response.status === 401 && !url.includes('/api/auth/')) {
       localStorage.removeItem('mkt_token'); authToken = null; currentUser = null; showAuth();
     }
     return res;
