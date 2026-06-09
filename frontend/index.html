@@ -23,6 +23,16 @@ window.addEventListener('beforeinstallprompt', (e) => {
   if (btn) btn.style.display = 'flex';
 });
 
+// Mostrar botão se não está rodando como PWA instalado
+window.addEventListener('load', () => {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const btn = document.getElementById('btn-install-pwa');
+  if (btn && !isStandalone && isAndroid) {
+    btn.style.display = 'flex';
+  }
+});
+
 async function installPWA() {
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
