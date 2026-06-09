@@ -1890,7 +1890,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
   }
 
   // Monta URL inicial com slug
-  let finalUrl = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
+  let finalUrl = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=distance_ascend&exact=false`;
 
   console.log(`[Scraper] URL: ${finalUrl}`);
 
@@ -1915,17 +1915,9 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
 
       // Se redirecionou para /category/search/ = slug não reconhecido
       if (currentUrl.includes('/category/search/') || currentUrl.includes('/marketplace/category/')) {
-        const isNumericId = /^\d+$/.test(citySlug);
-        if (isNumericId) {
-          // ID numérico — tentar URL alternativa com o ID
-          console.warn(`[Scraper] ID "${citySlug}" redirecionou — tentando URL com /category/`);
-          const altUrl = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=creation_time_descend`;
-          await page.goto(altUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
-        } else {
-          console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — redirecionando para busca geral`);
-          options._cityMismatch = true;
-          await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
-        }
+        console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — redirecionando para busca geral`);
+        options._cityMismatch = true;
+        await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=distance_ascend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
       }
     } catch (gotoErr) {
       if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
