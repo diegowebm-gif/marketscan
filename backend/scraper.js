@@ -1915,9 +1915,17 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
 
       // Se redirecionou para /category/search/ = slug não reconhecido
       if (currentUrl.includes('/category/search/') || currentUrl.includes('/marketplace/category/')) {
-        console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — redirecionando para busca geral`);
-        options._cityMismatch = true;
-        await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        const isNumericId = /^\d+$/.test(citySlug);
+        if (isNumericId) {
+          // ID numérico — tentar URL alternativa com o ID
+          console.warn(`[Scraper] ID "${citySlug}" redirecionou — tentando URL com /category/`);
+          const altUrl = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=creation_time_descend`;
+          await page.goto(altUrl, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        } else {
+          console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — redirecionando para busca geral`);
+          options._cityMismatch = true;
+          await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        }
       }
     } catch (gotoErr) {
       if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
