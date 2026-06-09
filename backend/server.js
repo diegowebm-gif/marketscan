@@ -175,24 +175,6 @@ async function handleStripeWebhook(req, res) {
         await p.end();
       }
       console.log(`[Stripe] Pro ativado via checkout para token: ${token.slice(0, 8)}...`);
-      // Verificar se o usuário é um indicado e creditar 7 dias ao indicador
-      try {
-        const { Pool } = require('pg');
-        const pRef = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-        const userRes = await pRef.query('SELECT email FROM users WHERE token = $1', [token]);
-        if (userRes.rows.length > 0) {
-          const email = userRes.rows[0].email;
-          const refRes = await pRef.query('SELECT referrer_id FROM referrals WHERE referred_email = $1 AND status != $2', [email, 'converted']);
-          if (refRes.rows.length > 0) {
-            const referrerId = refRes.rows[0].referrer_id;
-            // Creditar 7 dias ao indicador
-            await pRef.query('UPDATE users SET plan_expires_at = plan_expires_at + $1 WHERE id = $2', [7 * 24 * 60 * 60 * 1000, referrerId]);
-            await pRef.query('UPDATE referrals SET status = $1, converted_at = $2 WHERE referred_email = $3', ['converted', Date.now(), email]);
-            console.log(`[Referral] 7 dias creditados para indicador ${referrerId}`);
-          }
-        }
-        await pRef.end();
-      } catch(e) { console.warn('[Referral] Erro ao processar indicação:', e.message); }
     } else if (promoCode && session.customer_email) {
       // Checkout via página de promo — cria conta com senha já definida
       const email = session.customer_email;
@@ -283,31 +265,12 @@ function requirePro(req, res, next) {
 
 // ── Auth ──────────────────────────────────────────────────
 app.post('/api/auth/register', authLimiter, async (req, res) => {
-  const { email, password, refCode } = req.body;
+  const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ ok: false, error: 'E-mail e senha obrigatórios.' });
   if (password.length < 6) return res.status(400).json({ ok: false, error: 'Senha mínima de 6 caracteres.' });
   const { whatsappPhone } = req.body;
   const result = await register(email, password, whatsappPhone || null);
-  if (result.ok) {
-    emailBoasVindas(email).catch(() => {});
-    // Salvar referral se veio com código de indicação
-    if (refCode) {
-      try {
-        const { Pool } = require('pg');
-        const pRef = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-        const refRes = await pRef.query('SELECT user_id FROM referral_codes WHERE code = $1', [refCode.toUpperCase()]);
-        if (refRes.rows.length > 0) {
-          const referrerId = refRes.rows[0].user_id;
-          await pRef.query(
-            'INSERT INTO referrals (referrer_id, referred_email, referred_id, status) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING',
-            [referrerId, email.toLowerCase(), result.userId || null, 'registered']
-          );
-          console.log(`[Referral] ${email} indicado por ${referrerId}`);
-        }
-        await pRef.end();
-      } catch(e) { console.warn('[Referral] Erro ao salvar referral:', e.message); }
-    }
-  }
+  if (result.ok) emailBoasVindas(email).catch(() => {});
   res.json(result);
 });
 
@@ -1161,75 +1124,24 @@ app.delete('/whatsapp-session', (req, res) => {
 });
 
 
-// ── Sistema de Indicação ──────────────────────────────────────
-async function initReferralTable() {
-  const { Pool } = require('pg');
-  const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-  await p.query(`
-    CREATE TABLE IF NOT EXISTS referrals (
-      id SERIAL PRIMARY KEY,
-      referrer_id TEXT NOT NULL,
-      referred_email TEXT NOT NULL,
-      referred_id TEXT,
-      status TEXT DEFAULT 'registered',
-      created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000,
-      converted_at BIGINT
+// Inserir cookies manualmente para uma conta do pool
+app.post('/api/admin/fb-set-cookies', requireAdmin, async (req, res) => {
+  try {
+    const { sessionId, cookies } = req.body;
+    if (!sessionId || !cookies) return res.status(400).json({ ok: false, error: 'sessionId e cookies obrigatórios' });
+    const { Pool } = require('pg');
+    const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await p.query(
+      `INSERT INTO session_cookies (session_id, cookies, updated_at)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (session_id) DO UPDATE SET cookies = $2, updated_at = $3`,
+      [sessionId, JSON.stringify(cookies), Date.now()]
     );
-    CREATE TABLE IF NOT EXISTS referral_codes (
-      user_id TEXT PRIMARY KEY,
-      code TEXT UNIQUE NOT NULL,
-      created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
-    );
-  `).catch(err => console.warn('[Referral] Erro ao criar tabelas:', err.message));
-  await p.end();
-}
-initReferralTable();
-
-// Gerar código único de indicação
-function generateRefCode(email) {
-  const base = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 8);
-  const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
-  return `${base}${rand}`;
-}
-
-// Buscar ou criar código de indicação do usuário
-async function getOrCreateRefCode(userId, email) {
-  const { Pool } = require('pg');
-  const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-  const existing = await p.query('SELECT code FROM referral_codes WHERE user_id = $1', [userId]);
-  if (existing.rows.length > 0) { await p.end(); return existing.rows[0].code; }
-  const code = generateRefCode(email);
-  await p.query('INSERT INTO referral_codes (user_id, code) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, code]);
-  await p.end();
-  return code;
-}
-
-// Rota: pegar link de indicação
-app.get('/api/referral/my-link', requireAuth, async (req, res) => {
-  const code = await getOrCreateRefCode(req.user.id, req.user.email);
-  res.json({ ok: true, code, url: `${BASE_URL}/ref/${code}` });
-});
-
-// Rota: listar indicados
-app.get('/api/referral/my-referrals', requireAuth, async (req, res) => {
-  const { Pool } = require('pg');
-  const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-  const result = await p.query(
-    'SELECT referred_email, status, created_at, converted_at FROM referrals WHERE referrer_id = $1 ORDER BY created_at DESC',
-    [req.user.id]
-  );
-  const stats = await p.query(
-    'SELECT COUNT(*) as total, SUM(CASE WHEN status = $1 THEN 1 ELSE 0 END) as converted FROM referrals WHERE referrer_id = $2',
-    ['converted', req.user.id]
-  );
-  await p.end();
-  const converted = parseInt(stats.rows[0].converted) || 0;
-  res.json({ ok: true, referrals: result.rows, totalDaysEarned: converted * 7 });
-});
-
-// Rota: página de cadastro via referral
-app.get('/ref/:code', (req, res) => {
-  res.redirect(`/?ref=${req.params.code}`);
+    await p.end();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
 });
 
 // Rota da página de promo
