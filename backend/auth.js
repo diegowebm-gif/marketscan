@@ -5,6 +5,16 @@ const { Pool } = require('pg');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000,
+});
+
+// Reconectar em caso de erro
+pool.on('error', (err) => {
+  console.warn('[DB] Erro no pool, reconectando...', err.message);
 });
 
 // Cria tabela de usuários se não existir
@@ -72,7 +82,11 @@ async function login(email, password) {
 
 async function getUserByToken(token) {
   if (!token) return null;
-  const result = await pool.query('SELECT * FROM users WHERE token = $1', [token]);
+  const result = await pool.query('SELECT * FROM users WHERE token = $1', [token]).catch(async (err) => {
+    console.warn('[DB] Erro ao buscar token, tentando novamente...', err.message);
+    await new Promise(r => setTimeout(r, 500));
+    return pool.query('SELECT * FROM users WHERE token = $1', [token]);
+  });
   const user = result.rows[0];
   if (!user) return null;
   // Verifica se plano pro expirou
