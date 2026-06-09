@@ -754,7 +754,8 @@ function renderStats(users) {
   const free = total - pro;
   const trial = users.filter(u => isOnTrial(u)).length;
   const today = users.filter(u => {
-    const d = new Date(parseInt(u.created_at) * 1000);
+    const ts = parseInt(u.created_at);
+    const d = new Date(ts > 1e12 ? ts : ts * 1000);
     const now = new Date();
     return d.toDateString() === now.toDateString();
   }).length;
@@ -762,6 +763,10 @@ function renderStats(users) {
   const revenue = 'R$ ' + (proPayng * 29.90).toFixed(2).replace('.', ',');
 
   document.getElementById('stat-total').textContent = total;
+  const uc = document.getElementById('user-counter');
+  const utc = document.getElementById('user-today-counter');
+  if (uc) uc.textContent = `${total} total`;
+  if (utc) utc.textContent = `${today} hoje`;
   document.getElementById('stat-pro').textContent = pro;
   document.getElementById('stat-free').textContent = free;
   document.getElementById('stat-today').textContent = today;
@@ -782,7 +787,8 @@ function renderChart(users) {
     d.setDate(d.getDate() - i);
     labels.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
     const count = users.filter(u => {
-      const ud = new Date(parseInt(u.created_at) * 1000);
+      const ts = parseInt(u.created_at);
+      const ud = new Date(ts > 1e12 ? ts : ts * 1000);
       return ud.toDateString() === d.toDateString();
     }).length;
     data.push(count);
