@@ -6,13 +6,6 @@
 <title>Admin — MarketScan</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
-function toggleUsersTable() {
-  const body = document.getElementById('users-body');
-  const icon = document.getElementById('users-toggle-icon');
-  const isHidden = body.style.display === 'none';
-  body.style.display = isHidden ? 'block' : 'none';
-  icon.textContent = isHidden ? '▾' : '▸';
-}
 
 </script>
 
@@ -551,6 +544,14 @@ async function api(method, url, body) {
     if (body) opts.body = JSON.stringify(body);
     return await (await fetch(url, opts)).json();
   } catch { return null; }
+}
+
+function toggleUsersTable() {
+  const body = document.getElementById('users-body');
+  const icon = document.getElementById('users-toggle-icon');
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  icon.textContent = isHidden ? '▾' : '▸';
 }
 
 window.onload = async () => {
