@@ -1910,24 +1910,12 @@ async function doSearch() {
   const params = new URLSearchParams({ keyword, city, state, maxItems, removeNoPrice, blockedWords: blockedWords.join(',') });
   const url = `/api/search/stream?${params}`;
 
-  // Ping rápido para garantir que a conexão está viva antes de iniciar busca
-  try {
-    await fetch('/api/auth/me', { headers: { 'x-auth-token': authToken }, signal: AbortSignal.timeout(2000) });
-  } catch {
-    // Conexão caiu — aguarda 500ms e continua (a busca vai reconectar)
-    await new Promise(r => setTimeout(r, 500));
-  }
-
   try {
     await new Promise((resolve, reject) => {
       const es = new EventSource(url, { headers: { 'x-auth-token': authToken, 'x-session-id': sessionId || '' } });
 
       // EventSource não suporta headers nativamente — usa fetch + ReadableStream
       es.close();
-
-      // Teste de conectividade — se falhar, faz ping antes de buscar
-      let connOk = true;
-      try { await fetch('/api/auth/me', { headers: { 'x-auth-token': authToken }, signal: AbortSignal.timeout(3000) }); } catch { connOk = false; }
 
       const abortController = new AbortController();
       fetch(url, {
@@ -2564,20 +2552,9 @@ async function api(method, url, body) {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
     if (authToken) opts.headers['x-auth-token'] = authToken;
     if (body) opts.body = JSON.stringify(body);
-    // Timeout de 120s para buscas que demoram com proxy
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000);
-    opts.signal = controller.signal;
-    const response = await fetch(url, opts);
-    clearTimeout(timeout);
-    const res = await response.json();
-    // Só desloga em 401 explícito e nunca durante login/register
-    if (response.status === 401 && !url.includes('/api/auth/')) {
-      localStorage.removeItem('mkt_token'); authToken = null; currentUser = null; showAuth();
-    }
+    const res = await (await fetch(url, opts)).json();
     return res;
   } catch (e) {
-    if (e.name === 'AbortError') return { ok: false, error: 'Busca demorou demais. Tente novamente.' };
     return null;
   }
 }
