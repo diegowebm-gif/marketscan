@@ -676,6 +676,24 @@ async function checkSearchLimit(userId, isPro) {
   }
 }
 
+// ── Registro de histórico de buscas ──────────────────────────
+async function recordSearch(userId, plan) {
+  try {
+    const { Pool } = require('pg');
+    const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await p.query(`CREATE TABLE IF NOT EXISTS search_history (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      plan TEXT NOT NULL DEFAULT 'free',
+      created_at BIGINT NOT NULL
+    )`);
+    await p.query('INSERT INTO search_history (user_id, plan, created_at) VALUES ($1, $2, $3)', [userId, plan, Date.now()]);
+    await p.end();
+  } catch (err) {
+    console.error('[SearchHistory] Erro ao registrar:', err.message);
+  }
+}
+
 // ── Busca com streaming (SSE) ────────────────────────────────
 app.get('/api/search/stream', searchLimiter, requireAuth, async (req, res) => {
   const { keyword, city = '', state = '', maxItems = 40, removeNoPrice = 'false', blockedWords = '' } = req.query;
@@ -745,6 +763,7 @@ data: ${JSON.stringify(data)}
       setCachedSearch(keyword, city, { listings, stats, cityMismatch }).catch(() => {});
     }
     send('done', { listings, stats, cityMismatch, plan: req.user.plan, limits: req.limits });
+    recordSearch(req.user.id, req.user.plan).catch(() => {});
   } catch (err) {
     send('error', { message: err.message });
   } finally {
@@ -1395,6 +1414,57 @@ async function requireAdmin(req, res, next) {
   req.user = user;
   next();
 }
+
+app.get('/api/admin/searches-stats', requireAdmin, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await pool.query(`CREATE TABLE IF NOT EXISTS search_history (
+      id SERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      plan TEXT NOT NULL DEFAULT 'free',
+      created_at BIGINT NOT NULL
+    )`);
+    // Total hoje
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayTs = todayStart.getTime();
+    const todayResult = await pool.query(`SELECT COUNT(*) as total, COUNT(DISTINCT user_id) as unique_users FROM search_history WHERE created_at >= $1`, [todayTs]);
+    const todayByPlan = await pool.query(`SELECT plan, COUNT(*) as total FROM search_history WHERE created_at >= $1 GROUP BY plan`, [todayTs]);
+    // Últimos 14 dias — agrupado por dia
+    const since14 = Date.now() - (14 * 24 * 60 * 60 * 1000);
+    const histResult = await pool.query(`SELECT created_at, plan FROM search_history WHERE created_at >= $1 ORDER BY created_at ASC`, [since14]);
+    // Total geral
+    const totalResult = await pool.query(`SELECT COUNT(*) as total FROM search_history`);
+    await pool.end();
+
+    // Agrupa por dia (últimos 14 dias)
+    const days = {};
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i); d.setHours(0,0,0,0);
+      days[d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })] = { total: 0, pro: 0, free: 0 };
+    }
+    for (const row of histResult.rows) {
+      const d = new Date(parseInt(row.created_at));
+      const label = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      if (days[label] !== undefined) {
+        days[label].total++;
+        days[label][row.plan === 'pro' ? 'pro' : 'free']++;
+      }
+    }
+
+    const planBreakdown = {};
+    for (const row of todayByPlan.rows) planBreakdown[row.plan] = parseInt(row.total);
+
+    res.json({
+      ok: true,
+      today: { total: parseInt(todayResult.rows[0].total), unique_users: parseInt(todayResult.rows[0].unique_users), by_plan: planBreakdown },
+      history: days,
+      total_all_time: parseInt(totalResult.rows[0].total)
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
   try {
