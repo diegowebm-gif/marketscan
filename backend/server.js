@@ -1123,6 +1123,12 @@ app.delete('/whatsapp-session', (req, res) => {
   }).catch(err => res.status(500).send('Erro: ' + err.message));
 });
 
+// Robots.txt
+app.get('/robots.txt', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain');
+  res.sendFile(path.join(__dirname, '../frontend/robots.txt'));
+});
+
 // Sitemap
 app.get('/sitemap.xml', (req, res) => {
   res.setHeader('Content-Type', 'application/xml');
