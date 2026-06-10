@@ -22,7 +22,7 @@ cookiePool.query(`
   )
 `).catch(err => console.warn('[Cookies] Erro ao criar tabela:', err.message));
 
-// ─── Filtros de qualidade 1 ─────────────────────────────────
+// ─── Filtros de qualidade ─────────────────────────────────
 
 const ACCESSORY_KEYWORDS = [
   'capinha','capa protetora','película','pelicula','carregador','cabo usb',
@@ -220,22 +220,18 @@ function findChromePath() {
   return undefined;
 }
 
-// ─── Proxy residencial Brasil (proxy-seller.com) via proxy-chain ──
-const ProxyChain = require('proxy-chain');
-
-// Proxy-seller residencial BR (país BR configurado no painel do proxy-seller)
+// ─── Proxy residencial Brasil (proxy-seller.com) ─────────────
+// Sem proxy-chain — passa direto via --proxy-server + page.authenticate()
 const PROXY_USER = '9418de876b2eeb75';
 const PROXY_PASS = 'L7cyB6AnifHUxKeZ';
 const PROXY_HOST = 'res.proxy-seller.com';
-const PROXY_PORT = 443;
+const PROXY_PORT = 10000;
 
 function getNextProxyUrl() {
-  return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
+  return { host: PROXY_HOST, port: PROXY_PORT, user: PROXY_USER, pass: PROXY_PASS };
 }
 
-// proxy-chain anonimiza o proxy — cria um tunnel local sem auth
-// que o Chromium aceita sem ERR_NO_SUPPORTED_PROXIES
-async function launchBrowser(proxyUrl = null) {
+async function launchBrowser(proxyConfig = null) {
   const executablePath = findChromePath();
   const args = [
     '--no-sandbox',
@@ -245,20 +241,14 @@ async function launchBrowser(proxyUrl = null) {
     '--single-process',
     '--no-zygote',
     '--disable-blink-features=AutomationControlled',
-    '--ignore-certificate-errors',         // Bright Data usa cert próprio
+    '--ignore-certificate-errors',
     '--ignore-ssl-errors',
     '--allow-insecure-localhost',
   ];
 
-  let anonProxyUrl = null;
-  if (proxyUrl) {
-    try {
-      anonProxyUrl = await ProxyChain.anonymizeProxy(proxyUrl);
-      args.push(`--proxy-server=${anonProxyUrl}`);
-      console.log('[Proxy] Tunnel anônimo criado:', anonProxyUrl);
-    } catch (e) {
-      console.warn('[Proxy] Falha ao criar tunnel anônimo:', e.message);
-    }
+  if (proxyConfig) {
+    args.push(`--proxy-server=http://${proxyConfig.host}:${proxyConfig.port}`);
+    console.log(`[Proxy] Usando proxy direto: ${proxyConfig.host}:${proxyConfig.port}`);
   }
 
   const browser = await puppeteer.launch({
@@ -269,9 +259,13 @@ async function launchBrowser(proxyUrl = null) {
     ignoreDefaultArgs: ['--enable-automation'],
   });
 
-  // Associa o proxy anônimo ao browser para fechar depois
-  if (anonProxyUrl) browser._anonProxyUrl = anonProxyUrl;
   return browser;
+}
+
+async function authenticateProxy(page, proxyConfig) {
+  if (proxyConfig) {
+    await page.authenticate({ username: proxyConfig.user, password: proxyConfig.pass });
+  }
 }
 
 // ─── Pool de contas compartilhadas ────────────────────────────
@@ -377,23 +371,24 @@ async function loginWithCredentials(sessionId, email, password) {
   }
 
   // Sem fallback direto — garante que o login sempre usa proxy BR
-  const proxyUrl = getNextProxyUrl();
+  const proxyConfig = getNextProxyUrl();
   console.log('[Login] Tentando via proxy-seller BR...');
-  const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
+  const result = await tryLoginWithProxy(sessionId, email, password, proxyConfig);
   if (result.ok || result.status === 'needs_2fa') return result;
   console.log('[Login] Proxy falhou:', result.error);
   return { ok: false, status: 'error', error: 'Falha no proxy BR. Tente novamente em alguns segundos.' };
 }
 
-async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
-  const browser = await launchBrowser(proxyUrl);
+async function tryLoginWithProxy(sessionId, email, password, proxyConfig) {
+  const browser = await launchBrowser(proxyConfig);
   const page = await browser.newPage();
+  await authenticateProxy(page, proxyConfig);
 
   await page.evaluateOnNewDocument(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Proxy auth já nas credenciais do --proxy-server
+  // Proxy auth via page.authenticate()
 
   try {
     await page.goto('https://www.facebook.com/login', { waitUntil: 'domcontentloaded', timeout: 40000 });
@@ -438,7 +433,6 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
 
     if (hasSession) {
       saveCookies(sessionId, cookies);
-      if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
       await browser.close();
       console.log('[Login] Sucesso para sessão', sessionId.slice(0, 8));
       return { ok: true, status: 'logged_in' };
@@ -468,7 +462,6 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
       );
 
     if (isHardBlock) {
-      if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
       await browser.close();
       console.log('[Login] Conta bloqueada pelo Facebook:', sessionId.slice(0, 8));
       return { ok: false, status: 'blocked', error: 'O Facebook bloqueou o acesso a esta conta. Isso acontece quando a conta detecta um login de local desconhecido. Acesse o facebook.com normalmente pelo seu celular, confirme sua identidade lá e tente novamente aqui.' };
@@ -500,7 +493,6 @@ async function tryLoginWithProxy(sessionId, email, password, proxyUrl) {
     return { ok: false, status: 'error', error: errorText || 'Credenciais inválidas. Verifique e tente novamente.' };
 
   } catch (err) {
-    if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     await browser.close().catch(() => null);
     return { ok: false, status: 'error', error: err.message };
   }
@@ -591,8 +583,10 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
   console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem cookies)'}: "${keyword}"`);
 
   // Scraping com proxy BR para garantir resultados do Facebook
-  const browser = await launchBrowser(getNextProxyUrl());
+  const proxyConfig = getNextProxyUrl();
+  const browser = await launchBrowser(proxyConfig);
   const page = await browser.newPage();
+  await authenticateProxy(page, proxyConfig);
 
   await page.evaluateOnNewDocument(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
@@ -2100,7 +2094,6 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
       browser.close(),
       new Promise(resolve => setTimeout(resolve, 5000))
     ]).catch(() => {});
-    if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     console.log(`[Scraper] [T] Browser fechado, processando... [${Date.now()}]`);
 
     const processed = listings.map(item => ({
@@ -2123,7 +2116,6 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     return sorted.slice(0, maxItems).map(l => ({ ...l, _cityRaw: cityRaw, _cityMismatch: options._cityMismatch || false }));
 
   } catch (err) {
-    if (browser._anonProxyUrl) await ProxyChain.closeAnonymizedProxy(browser._anonProxyUrl, true).catch(() => {});
     await browser.close().catch(() => null);
     throw err;
   }
@@ -2135,13 +2127,13 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
     try {
       return await scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems, options, onBatch);
     } catch (err) {
-      const isTunnelError = err.message && (
+      const isProxyError = err.message && (
         err.message.includes('ERR_TUNNEL_CONNECTION_FAILED') ||
         err.message.includes('ERR_PROXY_CONNECTION_FAILED') ||
         err.message.includes('net::ERR_') ||
         err.message.includes('tunnel')
       );
-      if (isTunnelError && attempt < MAX_RETRIES) {
+      if (isProxyError && attempt < MAX_RETRIES) {
         console.warn(`[Scraper] Erro de proxy na tentativa ${attempt}, tentando novamente... (${err.message.slice(0, 60)})`);
         await new Promise(r => setTimeout(r, 2000 * attempt));
         continue;
