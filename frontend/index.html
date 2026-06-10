@@ -1282,14 +1282,13 @@ window.onload = async () => {
       showApp();
       return;
     }
-    // Só desloga se o servidor explicitamente recusou (token inválido)
-    // Se res === null é erro de rede — mantém logado e tenta mostrar app
-    if (res === null) {
-      // Erro de rede/timeout — mantém token e mostra app mesmo assim
+    // Só desloga se o servidor explicitamente recusou (token inválido 401)
+    // 503 = banco indisponível temporariamente — mantém logado
+    if (res === null || res?._status === 503) {
       showApp();
       return;
     }
-    // res.ok === false com resposta do servidor — token inválido
+    // res.ok === false com 401 — token inválido de verdade
     localStorage.removeItem('mkt_token');
     authToken = null;
   }
@@ -2534,8 +2533,10 @@ async function api(method, url, body) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
     opts.signal = controller.signal;
-    const res = await (await fetch(url, opts)).json();
+    const httpRes = await fetch(url, opts);
+    const res = await httpRes.json();
     clearTimeout(timeout);
+    if (res) res._status = httpRes.status;
     if (res?.error?.includes('autenticado') && url !== '/api/auth/login' && url !== '/api/auth/me') {
       localStorage.removeItem('mkt_token'); authToken = null; currentUser = null; showAuth();
     }

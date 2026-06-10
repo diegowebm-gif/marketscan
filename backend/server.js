@@ -249,11 +249,17 @@ app.use(express.static(path.join(__dirname, '../frontend')));
 // ── Middleware de autenticação ─────────────────────────────
 async function requireAuth(req, res, next) {
   const token = req.headers['x-auth-token'] || req.body?.authToken || req.query?.authToken;
-  const user = await getUserByToken(token);
-  if (!user) return res.status(401).json({ ok: false, error: 'Não autenticado. Faça login.' });
-  req.user = user;
-  req.limits = getLimits(user.plan);
-  next();
+  try {
+    const user = await getUserByToken(token);
+    if (!user) return res.status(401).json({ ok: false, error: 'Não autenticado. Faça login.' });
+    req.user = user;
+    req.limits = getLimits(user.plan);
+    next();
+  } catch (err) {
+    // Erro de banco (idle timeout, etc) — não desloga o usuário
+    console.error('[Auth] Erro ao verificar token:', err.message);
+    return res.status(503).json({ ok: false, error: 'Serviço temporariamente indisponível. Tente novamente.' });
+  }
 }
 
 function requirePro(req, res, next) {
