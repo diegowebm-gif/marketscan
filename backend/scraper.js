@@ -238,7 +238,11 @@ const PROXY_FALLBACK = {
 };
 let usingFallbackProxy = false;
 
-function getNextProxyUrl() {
+function getNextProxyUrl(useFallback = false) {
+  if (useFallback) {
+    console.log('[Proxy] Usando proxy fallback Thordata...');
+    return `http://${PROXY_FALLBACK.user}:${PROXY_FALLBACK.pass}@${PROXY_FALLBACK.host}:${PROXY_FALLBACK.port}`;
+  }
   return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
 }
 
@@ -386,7 +390,7 @@ async function loginWithCredentials(sessionId, email, password) {
   }
 
   // Sem fallback direto — garante que o login sempre usa proxy BR
-  const proxyUrl = getNextProxyUrl();
+  const proxyUrl = getNextProxyUrl(usingFallbackProxy);
   console.log('[Login] Tentando via proxy-seller BR...');
   const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
   if (result.ok || result.status === 'needs_2fa') return result;
@@ -600,7 +604,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
   console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem cookies)'}: "${keyword}"`);
 
   // Scraping com proxy BR para garantir resultados do Facebook
-  const browser = await launchBrowser(getNextProxyUrl());
+  const browser = await launchBrowser(getNextProxyUrl(usingFallbackProxy));
   const page = await browser.newPage();
 
   await page.evaluateOnNewDocument(() => {
@@ -2152,9 +2156,14 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       );
       if (isTunnelError && attempt < MAX_RETRIES) {
         console.warn(`[Scraper] Erro de proxy na tentativa ${attempt}, tentando novamente... (${err.message.slice(0, 60)})`);
-        await new Promise(r => setTimeout(r, 2000 * attempt));
+        if (attempt >= 1) {
+          console.log('[Proxy] Trocando para proxy fallback Thordata...');
+          usingFallbackProxy = true;
+        }
+        await new Promise(r => setTimeout(r, 1500));
         continue;
       }
+      usingFallbackProxy = false;
       throw err;
     }
   }
