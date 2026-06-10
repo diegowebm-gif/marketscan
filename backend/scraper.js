@@ -229,51 +229,7 @@ const PROXY_PASS = 'L7cyB6AnifHUxKeZ';
 const PROXY_HOST = 'res.proxy-seller.com';
 const PROXY_PORT = 10000;
 
-// Proxy fallback (Thordata)
-const PROXY_FALLBACK = {
-  host: 'i3q9ggnl.na.thordata.net',
-  port: 9999,
-  user: 'td-customer-DADBwgvgeoub-country-BR',
-  pass: 'cewyc2my4itu'
-};
-let usingFallbackProxy = false;
-
-
-// Cache do status do proxy principal
-let _proxySellerOk = true;
-let _proxySellerLastCheck = 0;
-const PROXY_CHECK_INTERVAL = 30000; // 30s
-
-async function checkProxySellerHealth() {
-  const now = Date.now();
-  // Usar cache se verificou há menos de 30s
-  if (now - _proxySellerLastCheck < PROXY_CHECK_INTERVAL) {
-    return _proxySellerOk;
-  }
-  try {
-    const net = require('net');
-    await new Promise((resolve, reject) => {
-      const socket = net.createConnection({ host: PROXY_HOST, port: PROXY_PORT, timeout: 3000 });
-      socket.on('connect', () => { socket.destroy(); resolve(); });
-      socket.on('error', reject);
-      socket.on('timeout', () => { socket.destroy(); reject(new Error('timeout')); });
-    });
-    _proxySellerOk = true;
-    _proxySellerLastCheck = now;
-    if (!_proxySellerOk) console.log('[Proxy] Proxy-Seller voltou a funcionar!');
-  } catch {
-    if (_proxySellerOk) console.log('[Proxy] Proxy-Seller offline, usando Thordata...');
-    _proxySellerOk = false;
-    _proxySellerLastCheck = now;
-  }
-  return _proxySellerOk;
-}
-
-function getNextProxyUrl(useFallback = false) {
-  if (useFallback) {
-    console.log('[Proxy] Usando proxy fallback Thordata...');
-    return `http://${PROXY_FALLBACK.user}:${PROXY_FALLBACK.pass}@${PROXY_FALLBACK.host}:${PROXY_FALLBACK.port}`;
-  }
+function getNextProxyUrl() {
   return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
 }
 
@@ -421,10 +377,7 @@ async function loginWithCredentials(sessionId, email, password) {
   }
 
   // Sem fallback direto — garante que o login sempre usa proxy BR
-  // Verificar saúde do proxy principal antes de tentar
-  const proxyOk = await checkProxySellerHealth();
-  if (!proxyOk) usingFallbackProxy = true;
-  const proxyUrl = getNextProxyUrl(usingFallbackProxy);
+  const proxyUrl = getNextProxyUrl();
   console.log('[Login] Tentando via proxy-seller BR...');
   const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
   if (result.ok || result.status === 'needs_2fa') return result;
@@ -638,7 +591,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
   console.log(`[Scraper] Iniciando busca${cookies ? ` (${cookies.length} cookies)` : ' (sem cookies)'}: "${keyword}"`);
 
   // Scraping com proxy BR para garantir resultados do Facebook
-  const browser = await launchBrowser(getNextProxyUrl(usingFallbackProxy));
+  const browser = await launchBrowser(getNextProxyUrl());
   const page = await browser.newPage();
 
   await page.evaluateOnNewDocument(() => {
@@ -725,7 +678,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'joao pessoa':'joao-pessoa','osasco':'osasco','santo andre':'santo-andre',
     'sao bernardo do campo':'sao-bernardo-do-campo','ribeirao preto':'ribeirao-preto',
     'uberlandia':'uberlandia','sorocaba':'sorocaba','contagem':'contagem','aracaju':'aracaju',
-    'feira de santana':'feira-de-santana','cuiaba':'cuiaba','joinville':'joinville',
+    'feira de santana':'104066829630683','cuiaba':'cuiaba','joinville':'joinville',
     'florianopolis':'florianopolis','londrina':'londrina','juiz de fora':'juiz-de-fora',
     'niteroi':'niteroi','porto velho':'porto-velho','serra':'serra',
     'caxias do sul':'caxias-do-sul','macapa':'macapa','mogi das cruzes':'mogi-das-cruzes',
@@ -962,7 +915,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'imbituba':'112601968751141',
     'araranguá':'111941265488819',
     'ponta grossa':'106275636069985',
-    'cascavel':'109084455786011',
+    'cascavel':'1595221914094128',
     'foz do iguacu':'107845332577217',
     'sao jose dos pinhais':'113048332042619',
     'colombo':'108110605890492',
@@ -977,7 +930,6 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'contenda':'112394712109103',
     'toledo':'798908626873690',
     'umuarama':'108424242515911',
-    'cambe':'105493912816591',
     'campo mourao':'111722322185417',
     'apucarana':'107664652596260',
     'arapongas':'106505452716653',
@@ -1193,7 +1145,6 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'eunapolis':'102835029789326',
     'itamaraju':'112285505449432',
     'sarandi':'106275636069985',
-    'cambe':'105493912816591',
     'paracambi':'109378812414245',
     'vassouras':'108175215877398',
     'tres rios':'108333322524929',
@@ -1207,7 +1158,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'ourinhos':'105758466125069',
     'avare':'103102633063518',
     'assis':'112745438740490',
-    'maringa':'108234175870962',
+    'maringa':'111837995502320',
     'catanduva':'108373062520402',
     'london':'113944221949539',
     'diadema':'110302185664097',
@@ -1939,7 +1890,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
   }
 
   // Monta URL inicial com slug
-  let finalUrl = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=distance_ascend&exact=false`;
+  let finalUrl = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
 
   console.log(`[Scraper] URL: ${finalUrl}`);
 
@@ -1966,7 +1917,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
       if (currentUrl.includes('/category/search/') || currentUrl.includes('/marketplace/category/')) {
         console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — redirecionando para busca geral`);
         options._cityMismatch = true;
-        await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=distance_ascend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
       }
     } catch (gotoErr) {
       if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
@@ -2192,14 +2143,9 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       );
       if (isTunnelError && attempt < MAX_RETRIES) {
         console.warn(`[Scraper] Erro de proxy na tentativa ${attempt}, tentando novamente... (${err.message.slice(0, 60)})`);
-        if (attempt >= 1) {
-          console.log('[Proxy] Trocando para proxy fallback Thordata...');
-          usingFallbackProxy = true;
-        }
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, 2000 * attempt));
         continue;
       }
-      usingFallbackProxy = false;
       throw err;
     }
   }
