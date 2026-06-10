@@ -753,7 +753,7 @@ header {
         <input type="email" id="login-email" placeholder="Seu e-mail" />
         <div style="position:relative;width:100%">
           <input type="password" id="login-password" placeholder="Sua senha" style="width:100%;padding-right:40px" />
-          <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+          <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
         </div>
         <div class="auth-error" id="login-error"></div>
         <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
@@ -766,11 +766,11 @@ header {
         <input type="email" id="reg-email" placeholder="Seu e-mail" />
         <div style="position:relative;width:100%">
           <input type="password" id="reg-password" placeholder="Senha (mín. 6 caracteres)" style="width:100%;padding-right:40px" />
-          <button type="button" onclick="togglePass('reg-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+          <button type="button" onclick="togglePass('reg-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
         </div>
         <div style="position:relative;width:100%">
           <input type="password" id="reg-password2" placeholder="Confirmar senha" style="width:100%;padding-right:40px" />
-          <button type="button" onclick="togglePass('reg-password2',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+          <button type="button" onclick="togglePass('reg-password2',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
         </div>
         <div style="position:relative;width:100%">
           <input type="tel" id="reg-whatsapp" placeholder="WhatsApp (opcional) — ex: 48991846246" style="width:100%;padding-left:36px" />
@@ -1408,7 +1408,7 @@ function restoreLoginForm() {
       <input type="email" id="login-email" placeholder="Seu e-mail" />
       <div style="position:relative;width:100%">
         <input type="password" id="login-password" placeholder="Sua senha" style="width:100%;padding-right:40px" />
-        <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+        <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
       </div>
       <div class="auth-error" id="login-error"></div>
       <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
@@ -1473,11 +1473,11 @@ async function checkResetToken() {
     <div class="auth-form">
       <div style="position:relative;width:100%">
         <input type="password" id="reset-password" placeholder="Nova senha (mín. 6 caracteres)" style="width:100%;padding-right:40px" />
-        <button type="button" onclick="togglePass('reset-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+        <button type="button" onclick="togglePass('reset-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
       </div>
       <div style="position:relative;width:100%">
         <input type="password" id="reset-password2" placeholder="Confirmar nova senha" style="width:100%;padding-right:40px" />
-        <button type="button" onclick="togglePass('reset-password2',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
+        <button type="button" onclick="togglePass('reset-password2',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
       </div>
       <div class="auth-error" id="reset-error"></div>
       <div id="reset-success" style="font-size:12px;color:var(--success);background:var(--success-dim);padding:8px 12px;border-radius:var(--radius-sm);display:none"></div>
@@ -1557,7 +1557,7 @@ function showCredentialsForm() {
       <div style="position:relative;width:100%">
         <input type="password" id="fb-password" placeholder="Senha do Facebook"
           style="width:100%;padding:11px 40px 11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
-        <button type="button" onclick="togglePass('fb-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px">👁</button>
+        <button type="button" onclick="togglePass('fb-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
       </div>
     </div>
     <button onclick="doFacebookLogin()"
