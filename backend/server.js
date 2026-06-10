@@ -1123,25 +1123,10 @@ app.delete('/whatsapp-session', (req, res) => {
   }).catch(err => res.status(500).send('Erro: ' + err.message));
 });
 
-
-// Inserir cookies manualmente para uma conta do pool
-app.post('/api/admin/fb-set-cookies', requireAdmin, async (req, res) => {
-  try {
-    const { sessionId, cookies } = req.body;
-    if (!sessionId || !cookies) return res.status(400).json({ ok: false, error: 'sessionId e cookies obrigatórios' });
-    const { Pool } = require('pg');
-    const p = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
-    await p.query(
-      `INSERT INTO session_cookies (session_id, cookies, updated_at)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (session_id) DO UPDATE SET cookies = $2, updated_at = $3`,
-      [sessionId, JSON.stringify(cookies), Date.now()]
-    );
-    await p.end();
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: err.message });
-  }
+// Sitemap
+app.get('/sitemap.xml', (req, res) => {
+  res.setHeader('Content-Type', 'application/xml');
+  res.sendFile(path.join(__dirname, '../frontend/sitemap.xml'));
 });
 
 // Rota da página de promo
