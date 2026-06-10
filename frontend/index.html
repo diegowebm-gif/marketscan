@@ -1271,6 +1271,7 @@ let authToken = localStorage.getItem('mkt_token');
 let currentUser = null;
 let allListings = [];
 let _pendingListings = null;
+let _activeSearchController = null;
 let currentFilter = 'all';
 let currentStats = null;
 let checkInterval = null;
@@ -1903,6 +1904,11 @@ async function doSearch() {
   _pendingListings = null;
   showLoading();
 
+  // Cancelar busca anterior se ainda estiver ativa
+  if (_activeSearchController) {
+    _activeSearchController.abort();
+    _activeSearchController = null;
+  }
   allListings = [];
   currentStats = null;
   currentFilter = 'all';
@@ -1918,6 +1924,7 @@ async function doSearch() {
       es.close();
 
       const abortController = new AbortController();
+      _activeSearchController = abortController;
       fetch(url, {
         headers: { 'x-auth-token': authToken, 'x-session-id': sessionId || '', 'Accept': 'text/event-stream' },
         signal: abortController.signal
@@ -2051,6 +2058,7 @@ async function doSearch() {
     }
   } finally {
     btn.disabled = false; btn.innerHTML = '🔍 Buscar';
+    _activeSearchController = null;
   }
 }
 
