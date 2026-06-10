@@ -1907,12 +1907,34 @@ async function doSearch() {
       fetch(url, {
         headers: { 'x-auth-token': authToken, 'x-session-id': sessionId || '', 'Accept': 'text/event-stream' }
       }).then(response => {
+        if (response.status === 401) {
+          hideLoading();
+          btn.disabled = false; btn.innerHTML = '🔍 Buscar';
+          toast('Sessão expirada. Faça login novamente.', 'error');
+          setTimeout(() => logout(), 1500);
+          resolve(); return;
+        }
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
 
+        // Watchdog: se ficar 60s sem receber nada, cancela
+        let watchdog = null;
+        function resetWatchdog() {
+          clearTimeout(watchdog);
+          watchdog = setTimeout(() => {
+            reader.cancel();
+            hideLoading();
+            btn.disabled = false; btn.innerHTML = '🔍 Buscar';
+            toast('A conexão demorou muito. Tente buscar novamente.', 'error');
+            resolve();
+          }, 60000);
+        }
+        resetWatchdog();
+
         function processChunk({ done, value }) {
-          if (done) { resolve(); return; }
+          if (done) { clearTimeout(watchdog); resolve(); return; }
+          resetWatchdog();
           buffer += decoder.decode(value, { stream: true });
           const SEP = '\n\n'; const parts = buffer.split(SEP);
           buffer = parts.pop();
