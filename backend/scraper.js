@@ -238,6 +238,37 @@ const PROXY_FALLBACK = {
 };
 let usingFallbackProxy = false;
 
+
+// Cache do status do proxy principal
+let _proxySellerOk = true;
+let _proxySellerLastCheck = 0;
+const PROXY_CHECK_INTERVAL = 30000; // 30s
+
+async function checkProxySellerHealth() {
+  const now = Date.now();
+  // Usar cache se verificou há menos de 30s
+  if (now - _proxySellerLastCheck < PROXY_CHECK_INTERVAL) {
+    return _proxySellerOk;
+  }
+  try {
+    const net = require('net');
+    await new Promise((resolve, reject) => {
+      const socket = net.createConnection({ host: PROXY_HOST, port: PROXY_PORT, timeout: 3000 });
+      socket.on('connect', () => { socket.destroy(); resolve(); });
+      socket.on('error', reject);
+      socket.on('timeout', () => { socket.destroy(); reject(new Error('timeout')); });
+    });
+    _proxySellerOk = true;
+    _proxySellerLastCheck = now;
+    if (!_proxySellerOk) console.log('[Proxy] Proxy-Seller voltou a funcionar!');
+  } catch {
+    if (_proxySellerOk) console.log('[Proxy] Proxy-Seller offline, usando Thordata...');
+    _proxySellerOk = false;
+    _proxySellerLastCheck = now;
+  }
+  return _proxySellerOk;
+}
+
 function getNextProxyUrl(useFallback = false) {
   if (useFallback) {
     console.log('[Proxy] Usando proxy fallback Thordata...');
@@ -390,6 +421,9 @@ async function loginWithCredentials(sessionId, email, password) {
   }
 
   // Sem fallback direto — garante que o login sempre usa proxy BR
+  // Verificar saúde do proxy principal antes de tentar
+  const proxyOk = await checkProxySellerHealth();
+  if (!proxyOk) usingFallbackProxy = true;
   const proxyUrl = getNextProxyUrl(usingFallbackProxy);
   console.log('[Login] Tentando via proxy-seller BR...');
   const result = await tryLoginWithProxy(sessionId, email, password, proxyUrl);
