@@ -22,7 +22,7 @@ cookiePool.query(`
   )
 `).catch(err => console.warn('[Cookies] Erro ao criar tabela:', err.message));
 
-// ─── Filtros de qualidade ─────────────────────────────────
+// ─── Filtros de qualidade 1 ─────────────────────────────────
 
 const ACCESSORY_KEYWORDS = [
   'capinha','capa protetora','película','pelicula','carregador','cabo usb',
@@ -227,7 +227,7 @@ const ProxyChain = require('proxy-chain');
 const PROXY_USER = '9418de876b2eeb75';
 const PROXY_PASS = 'L7cyB6AnifHUxKeZ';
 const PROXY_HOST = 'res.proxy-seller.com';
-const PROXY_PORT = 10000;
+const PROXY_PORT = 443;
 
 function getNextProxyUrl() {
   return `http://${PROXY_USER}:${PROXY_PASS}@${PROXY_HOST}:${PROXY_PORT}`;
