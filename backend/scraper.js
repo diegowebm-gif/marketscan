@@ -678,7 +678,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'joao pessoa':'joao-pessoa','osasco':'osasco','santo andre':'santo-andre',
     'sao bernardo do campo':'sao-bernardo-do-campo','ribeirao preto':'ribeirao-preto',
     'uberlandia':'uberlandia','sorocaba':'sorocaba','contagem':'contagem','aracaju':'aracaju',
-    'feira de santana':'104066829630683','cuiaba':'cuiaba','joinville':'joinville',
+    'feira de santana':'feira-de-santana','cuiaba':'cuiaba','joinville':'joinville',
     'florianopolis':'florianopolis','londrina':'londrina','juiz de fora':'juiz-de-fora',
     'niteroi':'niteroi','porto velho':'porto-velho','serra':'serra',
     'caxias do sul':'caxias-do-sul','macapa':'macapa','mogi das cruzes':'mogi-das-cruzes',
@@ -1890,7 +1890,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
   }
 
   // Monta URL inicial com slug
-  let finalUrl = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`;
+  let finalUrl = `https://www.facebook.com/marketplace/${citySlug}/search/?query=${encodedKeyword}&sortBy=distance_ascend&exact=false`;
 
   console.log(`[Scraper] URL: ${finalUrl}`);
 
@@ -1917,7 +1917,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
       if (currentUrl.includes('/category/search/') || currentUrl.includes('/marketplace/category/')) {
         console.warn(`[Scraper] Slug "${citySlug}" não reconhecido — redirecionando para busca geral`);
         options._cityMismatch = true;
-        await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=creation_time_descend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+        await page.goto(`https://www.facebook.com/marketplace/search/?query=${encodedKeyword}&sortBy=distance_ascend&exact=false`, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
       }
     } catch (gotoErr) {
       if (gotoErr.message.includes('Sessão expirada')) throw gotoErr;
