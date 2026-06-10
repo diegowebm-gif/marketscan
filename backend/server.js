@@ -741,6 +741,11 @@ data: ${JSON.stringify(data)}
 
   send('status', { message: 'Conectando ao Marketplace...' });
 
+  // Heartbeat a cada 20s para manter a conexão SSE viva no Railway
+  const heartbeat = setInterval(() => {
+    try { res.write(': ping\n\n'); } catch (_) {}
+  }, 20000);
+
   try {
     await touchSession(sessionId);
     let batchCount = 0;
@@ -767,6 +772,7 @@ data: ${JSON.stringify(data)}
   } catch (err) {
     send('error', { message: err.message });
   } finally {
+    clearInterval(heartbeat);
     res.end();
   }
 });
