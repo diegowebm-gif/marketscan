@@ -1276,19 +1276,28 @@ window.onload = async () => {
   populateStates();
   populateMobStates();
   if (authToken) {
-    const res = await api('GET', '/api/auth/me');
+    let res = await api('GET', '/api/auth/me');
     if (res?.ok) {
       currentUser = res;
       showApp();
       return;
     }
-    // Só desloga se o servidor explicitamente recusou (token inválido 401)
-    // 503 = banco indisponível temporariamente — mantém logado
-    if (res === null || res?._status === 503) {
+    // Se falhou, tenta mais uma vez após 2s (banco pode estar reiniciando)
+    if (!res?.ok || res === null) {
+      await new Promise(r => setTimeout(r, 2000));
+      res = await api('GET', '/api/auth/me');
+    }
+    if (res?.ok) {
+      currentUser = res;
       showApp();
       return;
     }
-    // res.ok === false com 401 — token inválido de verdade
+    // Erro de rede ou banco temporário — mantém logado
+    if (res === null || res?._status === 503 || res?._status === 500) {
+      showApp();
+      return;
+    }
+    // 401 confirmado duas vezes — token inválido de verdade
     localStorage.removeItem('mkt_token');
     authToken = null;
   }

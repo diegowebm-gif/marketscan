@@ -17,6 +17,11 @@ pool.on('error', (err) => {
   console.warn('[DB] Erro no pool, reconectando...', err.message);
 });
 
+// Warmup: mantém uma conexão ativa para evitar cold start no primeiro request
+setInterval(async () => {
+  try { await pool.query('SELECT 1'); } catch (_) {}
+}, 60000); // ping a cada 60s
+
 // Cria tabela de usuários se não existir
 async function initDB() {
   await pool.query(`
@@ -87,7 +92,7 @@ async function getUserByToken(token) {
   if (!token) return null;
   const result = await pool.query('SELECT * FROM users WHERE token = $1', [token]).catch(async (err) => {
     console.warn('[DB] Erro ao buscar token, tentando novamente...', err.message);
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 1500));
     return pool.query('SELECT * FROM users WHERE token = $1', [token]);
   });
   const user = result.rows[0];
