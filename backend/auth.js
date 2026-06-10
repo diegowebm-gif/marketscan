@@ -75,8 +75,11 @@ async function login(email, password) {
   if (!user || user.password !== hashPassword(password)) {
     return { ok: false, error: 'E-mail ou senha incorretos.' };
   }
-  const token = generateToken();
-  await pool.query('UPDATE users SET token = $1 WHERE email = $2', [token, email]);
+  // Reutiliza token existente — evita deslogar sessões abertas em outras abas/dispositivos
+  const token = user.token || generateToken();
+  if (!user.token) {
+    await pool.query('UPDATE users SET token = $1 WHERE email = $2', [token, email]);
+  }
   return { ok: true, token, plan: user.plan, email: user.email };
 }
 
