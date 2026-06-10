@@ -1,26 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<!-- Meta Pixel Code (carregamento adiado) -->
-<script>
-window.addEventListener('load', function() {
-  setTimeout(function() {
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '26863026470046220');
-    fbq('track', 'PageView');
-  }, 2000);
-});
-</script>
-<!-- End Meta Pixel Code -->html>
-<html lang="pt-BR">
-<head>
 <!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)
@@ -40,46 +20,7 @@ src="https://www.facebook.com/tr?id=26863026470046220&ev=PageView&noscript=1"
 <!-- End Meta Pixel Code -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MarketScan — Alertas de Preço no Facebook Marketplace</title>
-  <meta name="description" content="Encontre produtos abaixo do preço no Facebook Marketplace antes de todo mundo. Alertas automáticos no WhatsApp, análise de preços em tempo real e monitoramento 24h. Teste grátis por 7 dias.">
-  <meta name="keywords" content="facebook marketplace, alertas de preço, monitoramento marketplace, oportunidades marketplace, revenda, garimpo, preço abaixo da média">
-  <meta name="robots" content="index, follow">
-  <meta name="author" content="MarketScan">
-
-  <!-- Open Graph (WhatsApp, Facebook) -->
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://marketscan.site">
-  <meta property="og:title" content="MarketScan — Alertas de Preço no Facebook Marketplace">
-  <meta property="og:description" content="Encontre produtos abaixo do preço antes de todo mundo. Alertas no WhatsApp quando aparecer uma oportunidade no Marketplace. Teste grátis por 7 dias.">
-  <meta property="og:image" content="https://marketscan.site/icons/icon-512.png">
-  <meta property="og:locale" content="pt_BR">
-  <meta property="og:site_name" content="MarketScan">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="MarketScan — Alertas de Preço no Facebook Marketplace">
-  <meta name="twitter:description" content="Encontre produtos abaixo do preço antes de todo mundo. Alertas no WhatsApp quando aparecer uma oportunidade no Marketplace.">
-  <meta name="twitter:image" content="https://marketscan.site/icons/icon-512.png">
-
-  <!-- Schema.org (Google Rich Results) -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "MarketScan",
-    "url": "https://marketscan.site",
-    "description": "Encontre produtos abaixo do preço no Facebook Marketplace antes de todo mundo. Alertas automáticos no WhatsApp e análise de preços em tempo real.",
-    "applicationCategory": "BusinessApplication",
-    "operatingSystem": "Web",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "BRL",
-      "description": "7 dias grátis, depois R$29,90/mês"
-    },
-    "inLanguage": "pt-BR"
-  }
-  </script>
+<title>MarketScan</title>
 
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#6a0dad">
@@ -91,7 +32,247 @@ src="https://www.facebook.com/tr?id=26863026470046220&ev=PageView&noscript=1"
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="shortcut icon" href="/favicon.svg">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<!-- Chart.js carregado dinamicamente -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
+function showProfileModal() {
+  document.getElementById('profile-current-email').value = currentUser?.email || '';
+  document.getElementById('profile-whatsapp').value = currentUser?.whatsappPhone || '';
+  document.getElementById('profile-overlay').classList.add('show');
+  switchProfileTab('email', document.querySelector('.profile-tab'));
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-overlay').classList.remove('show');
+  ['msg-email','msg-senha','msg-whatsapp'].forEach(id => { const el = document.getElementById(id); if(el) { el.textContent=''; el.className='profile-msg'; } });
+}
+
+function switchProfileTab(tab, btn) {
+  ['email','senha','whatsapp'].forEach(t => {
+    document.getElementById('profile-tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function profileMsg(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'profile-msg ' + type;
+  setTimeout(() => { if(el.textContent === msg) { el.textContent = ''; el.className = 'profile-msg'; } }, 4000);
+}
+
+async function saveProfileEmail() {
+  const newEmail = document.getElementById('profile-new-email').value.trim();
+  const password = document.getElementById('profile-email-password').value;
+  if (!newEmail) { profileMsg('msg-email', 'Digite o novo e-mail.', 'err'); return; }
+  if (!password) { profileMsg('msg-email', 'Confirme sua senha.', 'err'); return; }
+  const res = await api('POST', '/api/auth/update-email', { newEmail, password });
+  if (res?.ok) {
+    currentUser.email = newEmail;
+    document.getElementById('profile-current-email').value = newEmail;
+    document.getElementById('profile-new-email').value = '';
+    document.getElementById('profile-email-password').value = '';
+    profileMsg('msg-email', '✅ E-mail atualizado!', 'ok');
+  } else profileMsg('msg-email', res?.error || 'Erro ao atualizar.', 'err');
+}
+
+async function saveProfilePassword() {
+  const current = document.getElementById('profile-current-password').value;
+  const newPass = document.getElementById('profile-new-password').value;
+  const confirm = document.getElementById('profile-confirm-password').value;
+  if (!current || !newPass || !confirm) { profileMsg('msg-senha', 'Preencha todos os campos.', 'err'); return; }
+  if (newPass !== confirm) { profileMsg('msg-senha', 'Senhas não conferem.', 'err'); return; }
+  if (newPass.length < 6) { profileMsg('msg-senha', 'Senha mínima de 6 caracteres.', 'err'); return; }
+  const res = await api('POST', '/api/auth/update-password', { currentPassword: current, newPassword: newPass });
+  if (res?.ok) {
+    document.getElementById('profile-current-password').value = '';
+    document.getElementById('profile-new-password').value = '';
+    document.getElementById('profile-confirm-password').value = '';
+    profileMsg('msg-senha', '✅ Senha atualizada!', 'ok');
+  } else profileMsg('msg-senha', res?.error || 'Erro ao atualizar.', 'err');
+}
+
+async function saveProfileWhatsapp() {
+  const phone = document.getElementById('profile-whatsapp').value.replace(/\D/g, '');
+  const res = await api('POST', '/api/auth/update-whatsapp', { phone });
+  if (res?.ok) {
+    if (currentUser) currentUser.whatsappPhone = phone || null;
+    profileMsg('msg-whatsapp', '✅ WhatsApp salvo!', 'ok');
+  } else profileMsg('msg-whatsapp', res?.error || 'Erro ao salvar.', 'err');
+}
+
+
+// search panel scroll: removido para melhor UX
+
+
+// Botão voltar ao topo
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('btn-top');
+  if (!btn) return;
+  if (window.scrollY > 300) {
+    btn.classList.add('show');
+  } else {
+    btn.classList.remove('show');
+  }
+}, { passive: true });
+
+
+async function showSubscriptionModal() {
+  document.getElementById('sub-overlay').classList.add('show');
+  document.getElementById('sub-loading').style.display = 'block';
+  document.getElementById('sub-content').style.display = 'none';
+  document.getElementById('sub-free-content').style.display = 'none';
+  document.getElementById('sub-trial-content').style.display = 'none';
+
+  if (!currentUser || currentUser.plan === 'free') {
+    document.getElementById('sub-loading').style.display = 'none';
+    document.getElementById('sub-free-content').style.display = 'block';
+    document.getElementById('sub-plan-name').textContent = 'Plano Free';
+    document.getElementById('sub-plan-icon').textContent = '🔒';
+    document.getElementById('sub-plan-status').textContent = 'Gratuito';
+    return;
+  }
+
+  const res = await api('GET', '/api/stripe/subscription');
+  document.getElementById('sub-loading').style.display = 'none';
+
+  const daysLeft = currentUser.planExpiresAt ? Math.ceil((currentUser.planExpiresAt - Date.now()) / (1000*60*60*24)) : null;
+  const isTrial = !res?.hasStripe && !res?.renewal;
+
+  if (isTrial) {
+    // Trial gratuito — sem assinatura Stripe
+    document.getElementById('sub-plan-name').textContent = 'Trial Pro';
+    document.getElementById('sub-plan-icon').textContent = '⏳';
+    document.getElementById('sub-plan-status').textContent = `${daysLeft > 0 ? daysLeft + ' dias restantes' : 'Expirando'}`;
+    document.getElementById('sub-trial-expires').textContent = currentUser.planExpiresAt ? new Date(currentUser.planExpiresAt).toLocaleDateString('pt-BR') : '—';
+    document.getElementById('sub-trial-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : 'Último dia';
+    const pct = daysLeft ? Math.min(100, (daysLeft/7)*100) : 0;
+    document.getElementById('sub-trial-bar').style.width = pct + '%';
+    document.getElementById('sub-trial-content').style.display = 'block';
+    return;
+  }
+
+  // Pro pago via Stripe
+  document.getElementById('sub-plan-name').textContent = 'Plano Pro';
+  document.getElementById('sub-plan-icon').textContent = '⭐';
+  document.getElementById('sub-plan-status').textContent = res?.cancelAtPeriodEnd ? 'Cancelamento agendado' : 'Ativo';
+  document.getElementById('sub-renewal').textContent = res?.renewal || '—';
+  document.getElementById('sub-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : '—';
+  const pct = daysLeft ? Math.min(100, Math.max(0, (daysLeft/30)*100)) : 100;
+  document.getElementById('sub-progress-bar').style.width = pct + '%';
+  document.getElementById('sub-progress-bar').style.background = daysLeft <= 5 ? '#f59e0b' : 'var(--accent)';
+  const monitorsRes = await api('GET', '/api/monitors');
+  document.getElementById('sub-alerts-count').textContent = monitorsRes?.monitors?.length ? `${monitorsRes.monitors.length} de 5` : '0 de 5';
+  document.getElementById('sub-cancel-warning').style.display = res?.cancelAtPeriodEnd ? 'block' : 'none';
+  document.getElementById('sub-content').style.display = 'block';
+}
+
+function closeSubscriptionModal() {
+  document.getElementById('sub-overlay').classList.remove('show');
+}
+
+async function openStripePortal() {
+  const btn = document.getElementById('sub-btn-portal');
+  btn.textContent = 'Abrindo...';
+  btn.disabled = true;
+  const res = await api('POST', '/api/stripe/portal', {});
+  btn.textContent = 'Gerenciar assinatura →';
+  btn.disabled = false;
+  if (res?.ok && res.url) {
+    window.location.href = res.url;
+  } else {
+    toast(res?.error || 'Erro ao abrir portal.', 'error');
+  }
+}
+
+
+// Anúncios salvos
+// savedListings declarado globalmente acima
+
+function updateSavedBadge() {
+  const badge = document.getElementById('saved-count');
+  if (!badge) return;
+  if (savedListings.length > 0) {
+    badge.textContent = savedListings.length > 9 ? '9+' : savedListings.length;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+}
+
+function toggleCardMenu(btn, event) {
+  event.stopPropagation();
+  document.querySelectorAll('.card-menu-dropdown.show').forEach(d => { if (d !== btn.nextElementSibling) d.classList.remove('show'); });
+  btn.nextElementSibling.classList.toggle('show');
+  setTimeout(() => document.addEventListener('click', () => document.querySelectorAll('.card-menu-dropdown.show').forEach(d => d.classList.remove('show')), { once: true }), 0);
+}
+
+function saveListingFromMenu(btn, url, title, price, img) {
+  const dropdown = btn.closest('.card-menu-dropdown');
+  const already = savedListings.find(s => s.url === url);
+  if (already) {
+    savedListings = savedListings.filter(s => s.url !== url);
+    btn.innerHTML = btn.innerHTML.replace('Remover dos salvos', 'Salvar anúncio');
+    toast('Anúncio removido dos salvos.', '');
+  } else {
+    savedListings.unshift({ url, title, price, img, savedAt: Date.now() });
+    btn.innerHTML = btn.innerHTML.replace('Salvar anúncio', 'Remover dos salvos');
+    toast('✅ Anúncio salvo!', 'success');
+  }
+  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
+  updateSavedBadge();
+  if (dropdown) dropdown.classList.remove('show');
+}
+
+async function reportListing(btn) {
+  const url = btn.dataset.url || '';
+  const title = btn.dataset.title || '';
+  const dropdown = btn.closest('.card-menu-dropdown');
+  if (dropdown) dropdown.classList.remove('show');
+  await api('POST', '/api/report', { url, title, userEmail: currentUser?.email || 'anônimo' });
+  toast('✅ Anúncio reportado! Obrigado pelo feedback.', 'success');
+}
+
+function showSavedPanel() {
+  renderSavedList();
+  document.getElementById('saved-overlay').classList.add('show');
+}
+
+function closeSavedPanel() {
+  document.getElementById('saved-overlay').classList.remove('show');
+}
+
+function renderSavedList() {
+  const list = document.getElementById('saved-list');
+  if (!savedListings.length) {
+    list.innerHTML = '<div class="saved-empty">Nenhum anúncio salvo ainda.<br>Clique em ⋮ em qualquer card para salvar.</div>';
+    return;
+  }
+  list.innerHTML = savedListings.map((s, i) => `
+    <div class="saved-item">
+      ${s.img ? `<img class="saved-item-img" src="${esc(s.img)}" loading="lazy" onerror="this.style.display='none'">` : '<div class="saved-item-img"></div>'}
+      <div class="saved-item-info">
+        <p class="saved-item-title">${esc(s.title)}</p>
+        <p class="saved-item-price">${s.price ? 'R$ ' + fmt(s.price) : 'Sem preço'}</p>
+      </div>
+      <div class="saved-item-actions" style="display:flex;gap:6px;flex-shrink:0">
+        <a href="${esc(s.url)}" target="_blank" rel="noopener" title="Ver anúncio" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-size:14px;text-decoration:none">↗</a>
+        <button onclick="removeSaved(${i})" title="Remover" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;background:var(--surface2);border:1px solid var(--border2);cursor:pointer;color:var(--text2);font-size:16px;font-family:'Inter',sans-serif">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeSaved(i) {
+  savedListings.splice(i, 1);
+  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
+  updateSavedBadge();
+  renderSavedList();
+}
+
+// Inicializa badge ao carregar
+document.addEventListener('DOMContentLoaded', updateSavedBadge);
+
+</script>
 <style>
 :root {
   --bg: #f4f5f7; --surface: #ffffff; --surface2: #f0f2f5;
@@ -100,7 +281,7 @@ src="https://www.facebook.com/tr?id=26863026470046220&ev=PageView&noscript=1"
   --accent-text: #ffffff;
   --warn: #e67e00; --danger: #d32f2f; --danger-dim: rgba(211,47,47,0.08);
   --success: #16a34a; --success-dim: rgba(22,163,74,0.08);
-  --text: #1a1a2e; --text2: #4b5563; --text3: #6b7280;
+  --text: #1a1a2e; --text2: #6b7280; --text3: #9ca3af;
   --radius: 12px; --radius-sm: 8px;
   --shadow: 0 1px 4px rgba(0,0,0,0.08);
   --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
@@ -250,7 +431,7 @@ header {
 .search-field-state { flex: 1.2; min-width: 130px; }
 .search-field-city { flex: 1.5; min-width: 150px; }
 .search-field-qty { width: 80px; flex-shrink: 0; }
-.btn-search-main { padding: 9px 22px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0; height: 38px; }
+.btn-search-main { padding: 10px 28px; border-radius: var(--radius-sm); border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; white-space: nowrap; flex-shrink: 0; height: 44px; }
 .btn-search-main:hover { opacity: .9; }
 .filters-bar { max-width: 1100px; margin: .5rem auto 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .btn-toggle-filters { padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border2); background: transparent; color: var(--text2); font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 4px; }
@@ -737,7 +918,7 @@ header {
   </div>
 </div>
 
-<div id="screen-auth" role="main" aria-label="Tela de acesso">
+<div id="screen-auth">
   <div class="auth-icon">🔍</div>
   <h1 class="auth-title">MarketScan</h1>
   <p class="auth-sub">Encontre oportunidades de compra e venda no Marketplace com análise inteligente de preços.</p>
@@ -753,7 +934,7 @@ header {
         <input type="email" id="login-email" placeholder="Seu e-mail" />
         <div style="position:relative;width:100%">
           <input type="password" id="login-password" placeholder="Sua senha" style="width:100%;padding-right:40px" />
-          <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
+          <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
         </div>
         <div class="auth-error" id="login-error"></div>
         <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
@@ -766,11 +947,11 @@ header {
         <input type="email" id="reg-email" placeholder="Seu e-mail" />
         <div style="position:relative;width:100%">
           <input type="password" id="reg-password" placeholder="Senha (mín. 6 caracteres)" style="width:100%;padding-right:40px" />
-          <button type="button" onclick="togglePass('reg-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
+          <button type="button" onclick="togglePass('reg-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
         </div>
         <div style="position:relative;width:100%">
           <input type="password" id="reg-password2" placeholder="Confirmar senha" style="width:100%;padding-right:40px" />
-          <button type="button" onclick="togglePass('reg-password2',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
+          <button type="button" onclick="togglePass('reg-password2',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
         </div>
         <div style="position:relative;width:100%">
           <input type="tel" id="reg-whatsapp" placeholder="WhatsApp (opcional) — ex: 48991846246" style="width:100%;padding-left:36px" />
@@ -795,7 +976,7 @@ header {
         <div style="display:flex;gap:8px;align-items:flex-end;width:100%">
           <div class="search-field" style="flex:1">
             <label>Produto</label>
-            <input type="text" id="input-keyword" placeholder="ex: iPhone 13, PS5…" onkeydown="if(event.key==='Enter')doSearch()" />
+            <input type="text" id="input-keyword" placeholder="O que você quer buscar? ex: iPhone 13, PS5…" onkeydown="if(event.key==='Enter')doSearch()" style="padding:10px 14px;font-size:14px" />
           </div>
           <button class="btn-search-main" id="btn-search" onclick="doSearch()">🔍 Buscar</button>
         </div>
@@ -815,7 +996,7 @@ header {
           </div>
           <div class="search-field" style="width:70px;flex-shrink:0">
             <label>Qtd.</label>
-            <input type="number" id="input-max" value="20" min="10" max="100" />
+            <input type="number" id="input-max" value="40" min="10" max="100" />
           </div>
         </div>
       </div>
@@ -839,7 +1020,7 @@ header {
       </div>
     </div>
 
-    <main class="main-content" aria-label="Conteúdo principal">
+    <main class="main-content">
       <div class="main-content-inner">
 
       <!-- Painel de busca inline mobile LEGADO - oculto -->
@@ -861,13 +1042,6 @@ header {
       <div class="stats-grid" id="stats-grid" style="display:none"></div>
 
       <!-- Banner Alertas de Preço -->
-
-      <!-- Banner de Indicação -->
-      <div id="referral-banner" style="display:none;align-items:center;gap:8px;background:rgba(74,222,128,0.05);border:1px solid rgba(74,222,128,0.2);border-radius:var(--radius);padding:.6rem 1rem;margin-bottom:1rem">
-        <span style="font-size:16px;flex-shrink:0">🎁</span>
-        <p style="margin:0;font-size:12px;color:var(--text2);flex:1;min-width:0"><strong style="color:var(--text)">Indique e ganhe 7 dias grátis</strong> quando seu amigo assinar</p>
-        <button onclick="copyRefLinkBanner()" id="btn-copy-ref-banner" style="padding:5px 12px;border-radius:var(--radius-sm);border:1px solid #4ade80;background:transparent;color:#4ade80;font-weight:600;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">Copiar link</button>
-      </div>
       <div id="price-alert-banner" style="display:none;align-items:center;gap:16px;background:linear-gradient(135deg,rgba(106,13,173,0.07),rgba(106,13,173,0.03));border:1.5px solid rgba(106,13,173,0.28);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;flex-wrap:wrap">
         <div style="width:38px;height:38px;border-radius:50%;background:rgba(106,13,173,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔔</div>
         <div style="flex:1;min-width:200px">
@@ -994,11 +1168,6 @@ header {
       <a href="/landing#faq" target="_blank">FAQ</a>
       <a href="/contact" target="_blank">Contato</a>
       <a href="https://wa.me/5548991846246" target="_blank">Suporte</a>
-      <button id="btn-install-pwa" onclick="installPWA()" style="display:none;background:linear-gradient(135deg,#6a0dad,#7c3aed);border:none;border-radius:50px;padding:6px 16px;align-items:center;gap:8px;cursor:pointer;box-shadow:0 4px 16px rgba(106,13,173,0.4)">
-        <span style="font-size:13px">📱</span>
-        <span style="font-size:12px;font-weight:700;color:#fff">Instalar app</span>
-        <span style="font-size:10px;color:rgba(255,255,255,0.65);border-left:1px solid rgba(255,255,255,0.2);padding-left:8px">grátis</span>
-      </button>
     </div>
   </footer>
 
@@ -1093,259 +1262,6 @@ let currentFilter = 'all';
 let currentStats = null;
 let checkInterval = null;
 
-
-// Carrega Chart.js apenas quando necessário
-let _chartJsLoaded = false;
-function loadChartJs() {
-  return new Promise((resolve) => {
-    if (_chartJsLoaded || window.Chart) { resolve(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js';
-    s.onload = () => { _chartJsLoaded = true; resolve(); };
-    document.head.appendChild(s);
-  });
-}
-
-function showProfileModal() {
-  document.getElementById('profile-current-email').value = currentUser?.email || '';
-  document.getElementById('profile-whatsapp').value = currentUser?.whatsappPhone || '';
-  document.getElementById('profile-overlay').classList.add('show');
-  switchProfileTab('email', document.querySelector('.profile-tab'));
-}
-
-function closeProfileModal() {
-  document.getElementById('profile-overlay').classList.remove('show');
-  ['msg-email','msg-senha','msg-whatsapp'].forEach(id => { const el = document.getElementById(id); if(el) { el.textContent=''; el.className='profile-msg'; } });
-}
-
-function switchProfileTab(tab, btn) {
-  if (tab === 'indicacoes') loadReferralProfile();
-  ['email','senha','whatsapp','indicacoes'].forEach(t => {
-    document.getElementById('profile-tab-' + t).style.display = t === tab ? 'block' : 'none';
-  });
-  document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
-function profileMsg(id, msg, type) {
-  const el = document.getElementById(id);
-  el.textContent = msg;
-  el.className = 'profile-msg ' + type;
-  setTimeout(() => { if(el.textContent === msg) { el.textContent = ''; el.className = 'profile-msg'; } }, 4000);
-}
-
-async function saveProfileEmail() {
-  const newEmail = document.getElementById('profile-new-email').value.trim();
-  const password = document.getElementById('profile-email-password').value;
-  if (!newEmail) { profileMsg('msg-email', 'Digite o novo e-mail.', 'err'); return; }
-  if (!password) { profileMsg('msg-email', 'Confirme sua senha.', 'err'); return; }
-  const res = await api('POST', '/api/auth/update-email', { newEmail, password });
-  if (res?.ok) {
-    currentUser.email = newEmail;
-    document.getElementById('profile-current-email').value = newEmail;
-    document.getElementById('profile-new-email').value = '';
-    document.getElementById('profile-email-password').value = '';
-    profileMsg('msg-email', '✅ E-mail atualizado!', 'ok');
-  } else profileMsg('msg-email', res?.error || 'Erro ao atualizar.', 'err');
-}
-
-async function saveProfilePassword() {
-  const current = document.getElementById('profile-current-password').value;
-  const newPass = document.getElementById('profile-new-password').value;
-  const confirm = document.getElementById('profile-confirm-password').value;
-  if (!current || !newPass || !confirm) { profileMsg('msg-senha', 'Preencha todos os campos.', 'err'); return; }
-  if (newPass !== confirm) { profileMsg('msg-senha', 'Senhas não conferem.', 'err'); return; }
-  if (newPass.length < 6) { profileMsg('msg-senha', 'Senha mínima de 6 caracteres.', 'err'); return; }
-  const res = await api('POST', '/api/auth/update-password', { currentPassword: current, newPassword: newPass });
-  if (res?.ok) {
-    document.getElementById('profile-current-password').value = '';
-    document.getElementById('profile-new-password').value = '';
-    document.getElementById('profile-confirm-password').value = '';
-    profileMsg('msg-senha', '✅ Senha atualizada!', 'ok');
-  } else profileMsg('msg-senha', res?.error || 'Erro ao atualizar.', 'err');
-}
-
-async function saveProfileWhatsapp() {
-  const phone = document.getElementById('profile-whatsapp').value.replace(/\D/g, '');
-  const res = await api('POST', '/api/auth/update-whatsapp', { phone });
-  if (res?.ok) {
-    if (currentUser) currentUser.whatsappPhone = phone || null;
-    profileMsg('msg-whatsapp', '✅ WhatsApp salvo!', 'ok');
-  } else profileMsg('msg-whatsapp', res?.error || 'Erro ao salvar.', 'err');
-}
-
-
-// search panel scroll: removido para melhor UX
-
-
-// Botão voltar ao topo
-window.addEventListener('scroll', () => {
-  const btn = document.getElementById('btn-top');
-  if (!btn) return;
-  if (window.scrollY > 300) {
-    btn.classList.add('show');
-  } else {
-    btn.classList.remove('show');
-  }
-}, { passive: true });
-
-
-async function showSubscriptionModal() {
-  document.getElementById('sub-overlay').classList.add('show');
-  document.getElementById('sub-loading').style.display = 'block';
-  document.getElementById('sub-content').style.display = 'none';
-  document.getElementById('sub-free-content').style.display = 'none';
-  document.getElementById('sub-trial-content').style.display = 'none';
-
-  if (!currentUser || currentUser.plan === 'free') {
-    document.getElementById('sub-loading').style.display = 'none';
-    document.getElementById('sub-free-content').style.display = 'block';
-    document.getElementById('sub-plan-name').textContent = 'Plano Free';
-    document.getElementById('sub-plan-icon').textContent = '🔒';
-    document.getElementById('sub-plan-status').textContent = 'Gratuito';
-    return;
-  }
-
-  const res = await api('GET', '/api/stripe/subscription');
-  document.getElementById('sub-loading').style.display = 'none';
-
-  const daysLeft = currentUser.planExpiresAt ? Math.ceil((currentUser.planExpiresAt - Date.now()) / (1000*60*60*24)) : null;
-  const isTrial = !res?.hasStripe && !res?.renewal;
-
-  if (isTrial) {
-    // Trial gratuito — sem assinatura Stripe
-    document.getElementById('sub-plan-name').textContent = 'Trial Pro';
-    document.getElementById('sub-plan-icon').textContent = '⏳';
-    document.getElementById('sub-plan-status').textContent = `${daysLeft > 0 ? daysLeft + ' dias restantes' : 'Expirando'}`;
-    document.getElementById('sub-trial-expires').textContent = currentUser.planExpiresAt ? new Date(currentUser.planExpiresAt).toLocaleDateString('pt-BR') : '—';
-    document.getElementById('sub-trial-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : 'Último dia';
-    const pct = daysLeft ? Math.min(100, (daysLeft/7)*100) : 0;
-    document.getElementById('sub-trial-bar').style.width = pct + '%';
-    document.getElementById('sub-trial-content').style.display = 'block';
-    return;
-  }
-
-  // Pro pago via Stripe
-  document.getElementById('sub-plan-name').textContent = 'Plano Pro';
-  document.getElementById('sub-plan-icon').textContent = '⭐';
-  document.getElementById('sub-plan-status').textContent = res?.cancelAtPeriodEnd ? 'Cancelamento agendado' : 'Ativo';
-  document.getElementById('sub-renewal').textContent = res?.renewal || '—';
-  document.getElementById('sub-days').textContent = daysLeft > 0 ? `${daysLeft} dias` : '—';
-  const pct = daysLeft ? Math.min(100, Math.max(0, (daysLeft/30)*100)) : 100;
-  document.getElementById('sub-progress-bar').style.width = pct + '%';
-  document.getElementById('sub-progress-bar').style.background = daysLeft <= 5 ? '#f59e0b' : 'var(--accent)';
-  const monitorsRes = await api('GET', '/api/monitors');
-  document.getElementById('sub-alerts-count').textContent = monitorsRes?.monitors?.length ? `${monitorsRes.monitors.length} de 5` : '0 de 5';
-  document.getElementById('sub-cancel-warning').style.display = res?.cancelAtPeriodEnd ? 'block' : 'none';
-  document.getElementById('sub-content').style.display = 'block';
-}
-
-function closeSubscriptionModal() {
-  document.getElementById('sub-overlay').classList.remove('show');
-}
-
-async function openStripePortal() {
-  const btn = document.getElementById('sub-btn-portal');
-  btn.textContent = 'Abrindo...';
-  btn.disabled = true;
-  const res = await api('POST', '/api/stripe/portal', {});
-  btn.textContent = 'Gerenciar assinatura →';
-  btn.disabled = false;
-  if (res?.ok && res.url) {
-    window.location.href = res.url;
-  } else {
-    toast(res?.error || 'Erro ao abrir portal.', 'error');
-  }
-}
-
-
-// Anúncios salvos
-// savedListings declarado globalmente acima
-
-function updateSavedBadge() {
-  const badge = document.getElementById('saved-count');
-  if (!badge) return;
-  if (savedListings.length > 0) {
-    badge.textContent = savedListings.length > 9 ? '9+' : savedListings.length;
-    badge.classList.add('show');
-  } else {
-    badge.classList.remove('show');
-  }
-}
-
-function toggleCardMenu(btn, event) {
-  event.stopPropagation();
-  document.querySelectorAll('.card-menu-dropdown.show').forEach(d => { if (d !== btn.nextElementSibling) d.classList.remove('show'); });
-  btn.nextElementSibling.classList.toggle('show');
-  setTimeout(() => document.addEventListener('click', () => document.querySelectorAll('.card-menu-dropdown.show').forEach(d => d.classList.remove('show')), { once: true }), 0);
-}
-
-function saveListingFromMenu(btn, url, title, price, img) {
-  const dropdown = btn.closest('.card-menu-dropdown');
-  const already = savedListings.find(s => s.url === url);
-  if (already) {
-    savedListings = savedListings.filter(s => s.url !== url);
-    btn.innerHTML = btn.innerHTML.replace('Remover dos salvos', 'Salvar anúncio');
-    toast('Anúncio removido dos salvos.', '');
-  } else {
-    savedListings.unshift({ url, title, price, img, savedAt: Date.now() });
-    btn.innerHTML = btn.innerHTML.replace('Salvar anúncio', 'Remover dos salvos');
-    toast('✅ Anúncio salvo!', 'success');
-  }
-  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
-  updateSavedBadge();
-  if (dropdown) dropdown.classList.remove('show');
-}
-
-async function reportListing(btn) {
-  const url = btn.dataset.url || '';
-  const title = btn.dataset.title || '';
-  const dropdown = btn.closest('.card-menu-dropdown');
-  if (dropdown) dropdown.classList.remove('show');
-  await api('POST', '/api/report', { url, title, userEmail: currentUser?.email || 'anônimo' });
-  toast('✅ Anúncio reportado! Obrigado pelo feedback.', 'success');
-}
-
-function showSavedPanel() {
-  renderSavedList();
-  document.getElementById('saved-overlay').classList.add('show');
-}
-
-function closeSavedPanel() {
-  document.getElementById('saved-overlay').classList.remove('show');
-}
-
-function renderSavedList() {
-  const list = document.getElementById('saved-list');
-  if (!savedListings.length) {
-    list.innerHTML = '<div class="saved-empty">Nenhum anúncio salvo ainda.<br>Clique em ⋮ em qualquer card para salvar.</div>';
-    return;
-  }
-  list.innerHTML = savedListings.map((s, i) => `
-    <div class="saved-item">
-      ${s.img ? `<img class="saved-item-img" src="${esc(s.img)}" loading="lazy" onerror="this.style.display='none'">` : '<div class="saved-item-img"></div>'}
-      <div class="saved-item-info">
-        <p class="saved-item-title">${esc(s.title)}</p>
-        <p class="saved-item-price">${s.price ? 'R$ ' + fmt(s.price) : 'Sem preço'}</p>
-      </div>
-      <div class="saved-item-actions" style="display:flex;gap:6px;flex-shrink:0">
-        <a href="${esc(s.url)}" target="_blank" rel="noopener" title="Ver anúncio" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font-size:14px;text-decoration:none">↗</a>
-        <button onclick="removeSaved(${i})" title="Remover" style="display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:6px;background:var(--surface2);border:1px solid var(--border2);cursor:pointer;color:var(--text2);font-size:16px;font-family:'Inter',sans-serif">×</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-function removeSaved(i) {
-  savedListings.splice(i, 1);
-  localStorage.setItem('mkt_saved', JSON.stringify(savedListings));
-  updateSavedBadge();
-  renderSavedList();
-}
-
-// Inicializa badge ao carregar
-document.addEventListener('DOMContentLoaded', updateSavedBadge);
-
 window.onload = async () => {
   await checkResetToken();
   const params = new URLSearchParams(window.location.search);
@@ -1408,7 +1324,7 @@ function restoreLoginForm() {
       <input type="email" id="login-email" placeholder="Seu e-mail" />
       <div style="position:relative;width:100%">
         <input type="password" id="login-password" placeholder="Sua senha" style="width:100%;padding-right:40px" />
-        <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
+        <button type="button" onclick="togglePass('login-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
       </div>
       <div class="auth-error" id="login-error"></div>
       <button class="btn-primary" style="width:100%" onclick="doLogin()">Entrar</button>
@@ -1473,11 +1389,11 @@ async function checkResetToken() {
     <div class="auth-form">
       <div style="position:relative;width:100%">
         <input type="password" id="reset-password" placeholder="Nova senha (mín. 6 caracteres)" style="width:100%;padding-right:40px" />
-        <button type="button" onclick="togglePass('reset-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
+        <button type="button" onclick="togglePass('reset-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
       </div>
       <div style="position:relative;width:100%">
         <input type="password" id="reset-password2" placeholder="Confirmar nova senha" style="width:100%;padding-right:40px" />
-        <button type="button" onclick="togglePass('reset-password2',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
+        <button type="button" onclick="togglePass('reset-password2',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px">👁</button>
       </div>
       <div class="auth-error" id="reset-error"></div>
       <div id="reset-success" style="font-size:12px;color:var(--success);background:var(--success-dim);padding:8px 12px;border-radius:var(--radius-sm);display:none"></div>
@@ -1557,7 +1473,7 @@ function showCredentialsForm() {
       <div style="position:relative;width:100%">
         <input type="password" id="fb-password" placeholder="Senha do Facebook"
           style="width:100%;padding:11px 40px 11px 14px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.14);font-family:'Inter',sans-serif;font-size:14px;outline:none" />
-        <button type="button" onclick="togglePass('fb-password',this)" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:18px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:8px">👁</button>
+        <button type="button" onclick="togglePass('fb-password',this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6b7280;font-size:16px">👁</button>
       </div>
     </div>
     <button onclick="doFacebookLogin()"
@@ -1955,7 +1871,7 @@ async function doSearch() {
   const keyword = document.getElementById('input-keyword').value.trim();
   const state = document.getElementById('input-state').value;
   const city = document.getElementById('input-city').value;
-  const maxItems = parseInt(document.getElementById('input-max').value) || 20;
+  const maxItems = parseInt(document.getElementById('input-max').value) || 40;
   const removeNoPrice = document.getElementById('tog-noprice').classList.contains('on');
 
   if (!keyword) { toast('Digite o que você quer buscar.', 'error'); return; }
@@ -2239,8 +2155,7 @@ async function loadPriceHistory(keyword, city) {
   renderHistoryChart(res.history);
 }
 
-async function renderHistoryChart(history) {
-  await loadChartJs();
+function renderHistoryChart(history) {
   if (history.length < 2) { document.getElementById('history-container').style.display = 'none'; return; }
   const labels = history.map(h => { const d = new Date(h.date); return `${d.getDate()}/${d.getMonth()+1}`; });
   const avgs = history.map(h => Math.round(h.avg));
@@ -2475,7 +2390,6 @@ function showAuth() {
   document.getElementById('status-text').textContent = 'Desconectado';
   document.getElementById('btn-logout').style.display = 'none';
   document.getElementById('btn-profile').style.display = 'none';
-  const rb = document.getElementById('referral-banner'); if(rb) rb.style.display = 'none';
   document.getElementById('btn-saved').style.display = 'none';
   setAuthStatus('');
 }
@@ -2496,7 +2410,6 @@ async function showApp() {
   document.getElementById('status-text').textContent = currentUser?.email || 'Conectado';
   document.getElementById('btn-logout').style.display = 'inline-block';
   document.getElementById('btn-profile').style.display = 'inline-block';
-  const refBanner = document.getElementById('referral-banner'); if(refBanner) refBanner.style.display = 'flex';
   document.getElementById('btn-saved').style.display = 'inline-block';
   const badge = document.getElementById('plan-badge');
   if (badge) {
@@ -2730,8 +2643,7 @@ function closeProfileModal() {
 }
 
 function switchProfileTab(tab, btn) {
-  if (tab === 'indicacoes') loadReferralProfile();
-  ['email','senha','whatsapp','indicacoes'].forEach(t => {
+  ['email','senha','whatsapp'].forEach(t => {
     document.getElementById('profile-tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
@@ -2963,7 +2875,6 @@ document.addEventListener('DOMContentLoaded', updateSavedBadge);
       <button class="profile-tab active" onclick="switchProfileTab('email', this)">E-mail</button>
       <button class="profile-tab" onclick="switchProfileTab('senha', this)">Senha</button>
       <button class="profile-tab" onclick="switchProfileTab('whatsapp', this)">WhatsApp</button>
-      <button class="profile-tab" onclick="switchProfileTab('indicacoes', this)">Indicações</button>
     </div>
     <div class="profile-body">
       <!-- Aba E-mail -->
@@ -3010,31 +2921,6 @@ document.addEventListener('DOMContentLoaded', updateSavedBadge);
         <button class="profile-save" style="background:#25d366" onclick="saveProfileWhatsapp()">Salvar WhatsApp</button>
         <p class="profile-msg" id="msg-whatsapp"></p>
       </div>
-
-      <div id="profile-tab-indicacoes" style="display:none">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;text-align:center">
-            <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Indicados</div>
-            <div id="ref-total-profile" style="font-size:24px;font-weight:700;color:var(--text)">0</div>
-          </div>
-          <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:var(--radius-sm);padding:12px;text-align:center">
-            <div style="font-size:11px;color:#4ade80;margin-bottom:4px">Dias ganhos</div>
-            <div id="ref-days-profile" style="font-size:24px;font-weight:700;color:#4ade80">0</div>
-          </div>
-        </div>
-        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Seu link de indicação</div>
-          <div style="display:flex;gap:6px">
-            <input id="ref-link-profile" readonly style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:12px;color:var(--accent);font-family:'Inter',sans-serif;outline:none" value="Carregando..."/>
-            <button onclick="copyRefLinkProfile()" id="btn-copy-ref-profile" style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Copiar</button>
-          </div>
-          <p style="font-size:11px;color:var(--text3);margin:6px 0 0">Ganhe 7 dias grátis quando seu amigo assinar o Pro</p>
-        </div>
-        <div id="ref-list-profile" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto">
-          <p style="font-size:13px;color:var(--text2);text-align:center;padding:1rem">Carregando...</p>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
@@ -3213,68 +3099,6 @@ function removeSaved(i) {
 // Inicializa badge ao carregar
 document.addEventListener('DOMContentLoaded', updateSavedBadge);
 
-
-async function loadReferralProfile() {
-  const [linkRes, refRes] = await Promise.all([
-    api('GET', '/api/referral/my-link'),
-    api('GET', '/api/referral/my-referrals')
-  ]);
-  if (linkRes?.ok) document.getElementById('ref-link-profile').value = linkRes.url;
-  if (refRes?.ok) {
-    document.getElementById('ref-total-profile').textContent = refRes.referrals.length;
-    document.getElementById('ref-days-profile').textContent = refRes.totalDaysEarned;
-    const list = document.getElementById('ref-list-profile');
-    if (!refRes.referrals.length) {
-      list.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center;padding:.75rem">Você ainda não indicou ninguém. Compartilhe seu link!</p>';
-    } else {
-      list.innerHTML = refRes.referrals.map(r => {
-        const sc = r.status==='converted'?'#4ade80':r.status==='trial'?'#f59e0b':'var(--text2)';
-        const sl = r.status==='converted'?'Pro ✓':r.status==='trial'?'Trial':'Cadastrado';
-        const masked = r.referred_email.replace(/(.{3}).+(@.+)/,'$1***$2');
-        const date = new Date(parseInt(r.created_at)).toLocaleDateString('pt-BR');
-        const reward = r.status==='converted'?' <span style="font-size:10px;color:#4ade80">+7 dias</span>':'';
-        return `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px"><div><div style="font-size:12px;color:var(--text)">${masked}</div><div style="font-size:10px;color:var(--text2)">${date}</div></div><div style="font-size:12px;color:${sc};font-weight:600">${sl}${reward}</div></div>`;
-      }).join('');
-    }
-  }
-}
-
-async function copyRefLinkProfile() {
-  const link = document.getElementById('ref-link-profile').value;
-  navigator.clipboard.writeText(link).then(() => { const btn = document.getElementById('btn-copy-ref-profile'); btn.textContent='✓'; setTimeout(()=>btn.textContent='Copiar',2000); });
-}
-
-async function copyRefLinkBanner() {
-  const btn = document.getElementById('btn-copy-ref-banner');
-  if (!btn) return;
-  const res = await api('GET', '/api/referral/my-link');
-  if (res?.ok) {
-    navigator.clipboard.writeText(res.url).then(() => {
-      btn.textContent='Copiado! ✓'; btn.style.background='#4ade80'; btn.style.color='#051a0a';
-      setTimeout(()=>{ btn.textContent='Copiar link'; btn.style.background='transparent'; btn.style.color='#4ade80'; },2000);
-    });
-  }
-}
-
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e;
-  const btn = document.getElementById('btn-install-pwa'); if(btn) btn.style.display='flex';
-});
-window.addEventListener('load', () => {
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  const isAndroid = /android/i.test(navigator.userAgent);
-  const btn = document.getElementById('btn-install-pwa');
-  if (btn && !isStandalone && isAndroid) btn.style.display='flex';
-});
-async function installPWA() {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  if (outcome==='accepted') { const btn=document.getElementById('btn-install-pwa'); if(btn) btn.style.display='none'; toast('✅ App instalado!','success'); }
-  deferredPrompt = null;
-}
-window.addEventListener('appinstalled', () => { const btn=document.getElementById('btn-install-pwa'); if(btn) btn.style.display='none'; deferredPrompt=null; });
 </script>
 
 <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo">↑</button>
