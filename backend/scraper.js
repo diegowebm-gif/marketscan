@@ -220,15 +220,23 @@ function findChromePath() {
   return undefined;
 }
 
-// ─── Proxy residencial Brasil (proxy-seller.com) ─────────────
-// Sem proxy-chain — passa direto via --proxy-server + page.authenticate()
-const PROXY_USER = '9418de876b2eeb75';
-const PROXY_PASS = 'L7cyB6AnifHUxKeZ';
-const PROXY_HOST = 'res.proxy-seller.com';
-const PROXY_PORT = 10000;
+// ─── Proxies residenciais ─────────────────────────────────────
+// Primário: proxy-seller.com | Secundário: thordata.net
+const PROXIES = [
+  { host: 'res.proxy-seller.com',      port: 10000, user: '9418de876b2eeb75',          pass: 'L7cyB6AnifHUxKeZ',  name: 'proxy-seller' },
+  { host: 'i3q9ggnl.pr.thordata.net',  port: 9999,  user: 'td-customer-DADBwgvgeoub', pass: 'cewyc2my4itu',      name: 'thordata'     },
+];
+let currentProxyIndex = 0;
 
 function getNextProxyUrl() {
-  return { host: PROXY_HOST, port: PROXY_PORT, user: PROXY_USER, pass: PROXY_PASS };
+  return PROXIES[currentProxyIndex % PROXIES.length];
+}
+
+function rotateProxy(reason = '') {
+  const prev = PROXIES[currentProxyIndex % PROXIES.length].name;
+  currentProxyIndex++;
+  const next = PROXIES[currentProxyIndex % PROXIES.length].name;
+  console.log(`[Proxy] Rotacionando ${prev} → ${next}${reason ? ' (' + reason + ')' : ''}`);
 }
 
 async function launchBrowser(proxyConfig = null) {
@@ -2135,6 +2143,7 @@ async function scrapeMarketplace(sessionId, keyword, location, maxItems = 40, op
       );
       if (isProxyError && attempt < MAX_RETRIES) {
         console.warn(`[Scraper] Erro de proxy na tentativa ${attempt}, tentando novamente... (${err.message.slice(0, 60)})`);
+        rotateProxy(`tentativa ${attempt}`);
         await new Promise(r => setTimeout(r, 2000 * attempt));
         continue;
       }
