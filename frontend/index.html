@@ -848,6 +848,18 @@ header {
 .saved-item-price { font-size:12px; color:var(--accent); margin:0; }
 .saved-item-actions { display:flex; gap:6px; flex-shrink:0; }
 .saved-empty { text-align:center; padding:3rem 1rem; color:var(--text3); font-size:13px; }
+
+/* ── Chat Comunidade ──────────────────────────────────────── */
+.chat-msg { display:flex; flex-direction:column; gap:3px; }
+.chat-msg-bubble { padding:9px 12px; border-radius:12px; font-size:13px; line-height:1.5; max-width:100%; word-break:break-word; background:var(--surface2); color:var(--text); }
+.chat-msg-bubble.mine { background:var(--accent); color:#fff; align-self:flex-end; }
+.chat-msg-meta { font-size:11px; color:var(--text2); display:flex; align-items:center; gap:6px; }
+.chat-badge-pro { background:var(--accent); color:#fff; font-size:9px; font-weight:700; padding:1px 5px; border-radius:4px; }
+.chat-badge-free { background:var(--surface2); color:var(--text2); font-size:9px; font-weight:700; padding:1px 5px; border-radius:4px; border:1px solid var(--border); }
+.chat-listing-card { margin-top:6px; padding:8px 10px; background:var(--surface); border:1px solid var(--border); border-radius:8px; font-size:12px; cursor:pointer; transition:background .2s; }
+.chat-listing-card:hover { background:var(--surface2); }
+.chat-listing-card strong { color:var(--accent); }
+
 </style>
 </head>
 <body>
@@ -863,6 +875,7 @@ header {
     <span id="trial-badge" class="trial-badge" style="display:none" title="Seu período de teste gratuito"></span>
     <button id="btn-darkmode" onclick="toggleDarkMode()" title="Alternar modo escuro" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s;margin-right:4px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">🌙</button>
     <button class="btn-saved-badge" id="btn-saved" onclick="showSavedPanel()" title="Anúncios salvos" style="display:none">🔖<span class="saved-count" id="saved-count"></span></button>
+    <button id="btn-chat" onclick="showChat()" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s;position:relative" title="Comunidade" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">💬<span id="chat-unread" style="display:none;position:absolute;top:2px;right:2px;background:#e53e3e;color:#fff;border-radius:50%;width:14px;height:14px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center"></span></button>
     <button id="btn-profile" onclick="showProfileModal()" style="display:none;background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:8px;color:var(--text2);transition:all .2s" title="Meu perfil" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">👤</button>
     <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()"><span class="logout-text">Sair</span><span class="logout-icon" style="display:none">↩</span></button>
   </div>
@@ -2111,7 +2124,8 @@ function renderListings() {
       <button class="card-menu-btn" onclick="toggleCardMenu(this, event)" aria-label="Mais opções"><span class="card-menu-dot"></span><span class="card-menu-dot"></span><span class="card-menu-dot"></span></button>
       <div class="card-menu-dropdown">
         <button class="card-menu-item" onclick="saveListingFromMenu(this, '${esc(l.listing_url)}', '${esc(l.title).replace(/'/g,"\'")}', ${l.price || 0}, '${esc(l.image_url || '')}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Salvar anúncio</button>
-        <a class="card-menu-item" href="https://wa.me/?text=${encodeURIComponent('📦 ' + l.title + (l.price ? ' · R$ ' + fmt(l.price) : '') + (l.location ? ' · ' + l.location : '') + '\n👉 ' + l.listing_url + '\n\n🔍 Achei no MarketScan!')}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Compartilhar</a>
+        <a class="card-menu-item" href="https://wa.me/?text=${encodeURIComponent('📦 ' + l.title + (l.price ? ' · R$ ' + fmt(l.price) : '') + (l.location ? ' · ' + l.location : '') + '\n👉 ' + l.listing_url + '\n\n🔍 Achei no MarketScan!')}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Compartilhar WhatsApp</a>
+        <button class="card-menu-item" onclick="attachListingToChat({title:'${esc(l.title).replace(/'/g,"\'")}',price:${l.price||0},url:'${esc(l.listing_url)}',city:'${esc(l.location||'')}'})" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Compartilhar na Comunidade</button>
         <button class="card-menu-item" onclick="reportListing(this)" data-url="${esc(l.listing_url)}" data-title="${esc(l.title)}" style="color:var(--danger)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Reportar anúncio</button>
       </div>
       ${l.price ? `
@@ -2421,6 +2435,8 @@ function showAuth() {
   document.getElementById('btn-logout').style.display = 'none';
   document.getElementById('btn-profile').style.display = 'none';
   document.getElementById('btn-saved').style.display = 'none';
+  document.getElementById('btn-chat').style.display = 'none';
+  if (chatWs) { chatWs.close(); chatWs = null; }
   setAuthStatus('');
 }
 
@@ -2441,6 +2457,7 @@ async function showApp() {
   document.getElementById('btn-logout').style.display = 'inline-block';
   document.getElementById('btn-profile').style.display = 'inline-block';
   document.getElementById('btn-saved').style.display = 'inline-block';
+  initChat();
   const badge = document.getElementById('plan-badge');
   if (badge) {
     badge.style.display = 'inline-block';
@@ -3131,6 +3148,161 @@ function removeSaved(i) {
 // Inicializa badge ao carregar
 document.addEventListener('DOMContentLoaded', updateSavedBadge);
 
+
+// ── Chat Comunidade ───────────────────────────────────────────
+let chatWs = null;
+let chatOpen = false;
+let chatUnreadCount = 0;
+let chatPendingListing = null;
+
+function showChat() {
+  document.getElementById('chat-modal').style.display = 'block';
+  chatOpen = true;
+  chatUnreadCount = 0;
+  updateChatUnread();
+  if (!chatWs || chatWs.readyState > 1) connectChatWs();
+  setTimeout(() => scrollChatToBottom(), 100);
+}
+
+function hideChat() {
+  document.getElementById('chat-modal').style.display = 'none';
+  chatOpen = false;
+}
+
+function updateChatUnread() {
+  const badge = document.getElementById('chat-unread');
+  if (!badge) return;
+  if (chatUnreadCount > 0 && !chatOpen) {
+    badge.style.display = 'flex';
+    badge.textContent = chatUnreadCount > 9 ? '9+' : chatUnreadCount;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function connectChatWs() {
+  if (!authToken) return;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const wsUrl = `${proto}://${location.host}/ws/chat?token=${authToken}`;
+  chatWs = new WebSocket(wsUrl);
+
+  chatWs.onopen = () => console.log('[Chat] Conectado');
+  chatWs.onclose = () => {
+    console.log('[Chat] Desconectado, reconectando em 5s...');
+    setTimeout(() => { if (authToken) connectChatWs(); }, 5000);
+  };
+  chatWs.onerror = () => chatWs.close();
+
+  chatWs.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === 'history') {
+      renderChatHistory(data.messages);
+    } else if (data.type === 'message') {
+      appendChatMessage(data.message);
+      if (!chatOpen) {
+        chatUnreadCount++;
+        updateChatUnread();
+      }
+    } else if (data.type === 'online') {
+      const el = document.getElementById('chat-online-count');
+      if (el) el.textContent = `• ${data.count} online agora`;
+    }
+  };
+}
+
+function renderChatHistory(messages) {
+  const container = document.getElementById('chat-messages');
+  if (!messages.length) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text2);font-size:13px;padding:40px 20px">Nenhuma mensagem ainda.<br>Seja o primeiro a compartilhar um achado! 🎯</div>';
+    return;
+  }
+  container.innerHTML = '';
+  messages.forEach(m => appendChatMessage(m, false));
+  scrollChatToBottom();
+}
+
+function appendChatMessage(m, scroll = true) {
+  const container = document.getElementById('chat-messages');
+  // Remove placeholder
+  const placeholder = container.querySelector('div[style*="text-align:center"]');
+  if (placeholder) placeholder.remove();
+
+  const isMine = currentUser && m.user_id === currentUser.id;
+  const name = m.email.split('@')[0];
+  const time = new Date(parseInt(m.created_at)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const planBadge = m.plan === 'pro'
+    ? '<span class="chat-badge-pro">PRO</span>'
+    : '<span class="chat-badge-free">FREE</span>';
+
+  let listingHtml = '';
+  if (m.listing) {
+    const l = typeof m.listing === 'string' ? JSON.parse(m.listing) : m.listing;
+    listingHtml = `<div class="chat-listing-card" onclick="window.open('${esc(l.url || '')}','_blank')">
+      📦 <strong>${esc(l.title || '')}</strong> · R$ ${l.price ? fmt(l.price) : '?'}
+      <span style="color:var(--text2)"> · ${esc(l.city || '')}</span>
+    </div>`;
+  }
+
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.style.alignItems = isMine ? 'flex-end' : 'flex-start';
+  div.innerHTML = `
+    <div class="chat-msg-meta" style="${isMine ? 'flex-direction:row-reverse' : ''}">
+      ${planBadge}
+      <span style="font-weight:600">${esc(name)}</span>
+      <span>${time}</span>
+    </div>
+    <div class="chat-msg-bubble${isMine ? ' mine' : ''}">
+      ${esc(m.message).replace(/\n/g, '<br>')}
+      ${listingHtml}
+    </div>`;
+  container.appendChild(div);
+  if (scroll) scrollChatToBottom();
+}
+
+function scrollChatToBottom() {
+  const c = document.getElementById('chat-messages');
+  if (c) c.scrollTop = c.scrollHeight;
+}
+
+function sendChatMessage() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg || !chatWs || chatWs.readyState !== 1) return;
+  chatWs.send(JSON.stringify({ type: 'message', message: msg, listing: chatPendingListing }));
+  input.value = '';
+  input.style.height = 'auto';
+  removePendingListing();
+}
+
+function attachListingToChat(listing) {
+  chatPendingListing = listing;
+  const el = document.getElementById('chat-pending-listing');
+  const title = document.getElementById('chat-pending-listing-title');
+  if (el && title) {
+    title.textContent = '📦 ' + (listing.title || 'Anúncio').slice(0, 40);
+    el.style.display = 'flex';
+  }
+  showChat();
+}
+
+function removePendingListing() {
+  chatPendingListing = null;
+  const el = document.getElementById('chat-pending-listing');
+  if (el) el.style.display = 'none';
+}
+
+function initChat() {
+  const btn = document.getElementById('btn-chat');
+  if (btn) btn.style.display = '';
+  // Banner free
+  if (currentUser?.plan !== 'pro') {
+    const banner = document.getElementById('chat-free-banner');
+    if (banner) banner.style.display = 'flex';
+  }
+  connectChatWs();
+}
+
 </script>
 
 <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo">↑</button>
@@ -3225,5 +3397,46 @@ document.addEventListener('DOMContentLoaded', updateSavedBadge);
     </div>
   </div>
 </div>
+
+<!-- ── Modal Comunidade ─────────────────────────────────────── -->
+<div id="chat-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px)" onclick="if(event.target===this)hideChat()">
+  <div style="position:absolute;right:0;top:0;bottom:0;width:min(420px,100vw);background:var(--surface);display:flex;flex-direction:column;box-shadow:-4px 0 24px rgba(0,0,0,0.2)">
+    <!-- Header -->
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">💬</span>
+        <div>
+          <div style="font-weight:700;font-size:15px;color:var(--text)">Comunidade MarketScan</div>
+          <div style="font-size:11px;color:var(--text2)" id="chat-online-count">• carregando...</div>
+        </div>
+      </div>
+      <button onclick="hideChat()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2);padding:4px 8px;border-radius:8px" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">✕</button>
+    </div>
+    <!-- Banner para usuários free -->
+    <div id="chat-free-banner" style="display:none;padding:10px 16px;background:linear-gradient(90deg,#6a0dad22,#6a0dad11);border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px">
+      <span>⭐</span><span>Usuários <strong style="color:var(--accent)">Pro</strong> compartilham alertas e achados exclusivos aqui!</span>
+    </div>
+    <!-- Mensagens -->
+    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px">
+      <div style="text-align:center;color:var(--text2);font-size:13px;padding:20px">Carregando mensagens...</div>
+    </div>
+    <!-- Input -->
+    <div style="padding:12px 16px;border-top:1px solid var(--border);background:var(--surface)">
+      <div id="chat-pending-listing" style="display:none;padding:8px 10px;background:var(--surface2);border-radius:8px;margin-bottom:8px;font-size:12px;color:var(--text2);display:flex;align-items:center;justify-content:space-between">
+        <span id="chat-pending-listing-title">📦 Anúncio anexado</span>
+        <button onclick="removePendingListing()" style="background:none;border:none;cursor:pointer;color:var(--text2);font-size:14px">✕</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <textarea id="chat-input" placeholder="Escreva sua mensagem..." rows="1"
+          style="flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;font-family:'Inter',sans-serif;background:var(--surface2);color:var(--text);resize:none;outline:none;max-height:100px;line-height:1.4"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage()}"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+        <button onclick="sendChatMessage()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:16px;flex-shrink:0" title="Enviar">➤</button>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin-top:6px;text-align:center">Shift+Enter para nova linha · Seja respeitoso 🤝</div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

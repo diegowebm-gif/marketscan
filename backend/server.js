@@ -1,5 +1,7 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { WebSocketServer } = require('ws');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -1594,4 +1596,82 @@ cron.schedule('0 10 * * *', async () => {
   } catch (err) { console.error('[Cron] Erro:', err.message); }
 }, { timezone: 'America/Sao_Paulo' });
 
-app.listen(PORT, () => console.log(`\n🚀 MarketScan rodando em ${BASE_URL}\n`));
+// ── Chat Comunidade (WebSocket) ──────────────────────────────
+const httpServer = http.createServer(app);
+const wss = new WebSocketServer({ server: httpServer, path: '/ws/chat' });
+
+// Pool do banco para chat
+const { Pool } = require('pg');
+const chatPool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
+
+// Cria tabela de mensagens do chat
+chatPool.query(`
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    email TEXT NOT NULL,
+    plan TEXT NOT NULL DEFAULT 'free',
+    message TEXT NOT NULL,
+    listing JSONB DEFAULT NULL,
+    created_at BIGINT NOT NULL
+  )
+`).catch(err => console.error('[Chat] Erro ao criar tabela:', err.message));
+
+// Broadcast para todos os clientes conectados
+function chatBroadcast(data) {
+  const str = JSON.stringify(data);
+  wss.clients.forEach(client => {
+    if (client.readyState === 1) client.send(str);
+  });
+}
+
+wss.on('connection', async (ws, req) => {
+  // Autentica via token na query string
+  const url = new URL(req.url, 'http://localhost');
+  const token = url.searchParams.get('token');
+  const user = await getUserByToken(token).catch(() => null);
+  if (!user) { ws.close(1008, 'Não autenticado'); return; }
+
+  ws._user = user;
+
+  // Envia histórico das últimas 80 mensagens
+  try {
+    const hist = await chatPool.query(
+      'SELECT * FROM chat_messages ORDER BY created_at DESC LIMIT 80'
+    );
+    ws.send(JSON.stringify({ type: 'history', messages: hist.rows.reverse() }));
+  } catch (e) {
+    console.error('[Chat] Erro ao buscar histórico:', e.message);
+  }
+
+  // Broadcast de entrada (apenas contagem online)
+  chatBroadcast({ type: 'online', count: wss.clients.size });
+
+  ws.on('message', async (raw) => {
+    try {
+      const data = JSON.parse(raw.toString());
+      if (data.type !== 'message') return;
+      const msg = (data.message || '').trim().slice(0, 500);
+      if (!msg) return;
+
+      const listing = data.listing || null;
+      const now = Date.now();
+      const row = await chatPool.query(
+        'INSERT INTO chat_messages (user_id, email, plan, message, listing, created_at) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+        [user.id, user.email, user.plan, msg, listing ? JSON.stringify(listing) : null, now]
+      );
+      chatBroadcast({ type: 'message', message: row.rows[0] });
+    } catch (e) {
+      console.error('[Chat] Erro ao processar mensagem:', e.message);
+    }
+  });
+
+  ws.on('close', () => {
+    chatBroadcast({ type: 'online', count: wss.clients.size });
+  });
+});
+
+httpServer.listen(PORT, () => console.log(`\n🚀 MarketScan rodando em ${BASE_URL}\n`));
