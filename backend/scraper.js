@@ -534,14 +534,14 @@ async function submitTwoFactor(sessionId, code) {
     ).catch(() => null);
     if (submitBtn) await submitBtn.click();
 
-    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 }).catch(() => null);
+    await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => null);
 
     // Navega por checkpoints adicionais (ex: "Não reconheço este dispositivo")
     for (let i = 0; i < 4; i++) {
       const continueBtn = await page.$('[name="submit[Continue]"], [name="submit[This was me]"]').catch(() => null);
       if (!continueBtn) break;
       await continueBtn.click();
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 8000 }).catch(() => null);
+      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 8000 }).catch(() => null);
     }
 
     const cookies = await page.cookies();
@@ -600,20 +600,21 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
   });
 
-  // Bloqueia recursos desnecessários para economizar banda
+  // Bloqueia recursos desnecessários para economizar banda e acelerar carregamento
   await page.setRequestInterception(true);
   page.on('request', req => {
     const type = req.resourceType();
     const url = req.url();
-    // Bloqueia vídeos, fontes externas e rastreadores
+    // Bloqueia tudo que não é necessário para o scraping
     if (type === 'media') { req.abort(); return; }
-    if (type === 'font' && !url.includes('facebook.com') && !url.includes('fbcdn.net')) { req.abort(); return; }
-    if (type === 'other' && (url.includes('google-analytics') || url.includes('doubleclick') || url.includes('googlesyndication') || url.includes('facebook.net/signals'))) { req.abort(); return; }
-    // Bloqueia imagens grandes (perfil, banners) mas mantém thumbnails dos anúncios
+    if (type === 'font') { req.abort(); return; }
+    if (type === 'stylesheet') { req.abort(); return; }
+    if (type === 'other' && (url.includes('google-analytics') || url.includes('doubleclick') ||
+        url.includes('googlesyndication') || url.includes('facebook.net/signals') ||
+        url.includes('connect.facebook.net') || url.includes('analytics'))) { req.abort(); return; }
+    // Bloqueia imagens grandes — mantém só thumbnails dos anúncios
     if (type === 'image') {
-      // Mantém imagens do fbcdn (thumbnails dos anúncios) e bloqueia o resto
-      if (!url.includes('fbcdn.net') && !url.includes('facebook.com')) { req.abort(); return; }
-      // Bloqueia imagens de alta resolução (scontent com dimensões grandes)
+      if (!url.includes('fbcdn.net')) { req.abort(); return; }
       if (url.includes('_n.jpg') || url.includes('_o.jpg') || url.includes('p720x720') || url.includes('p960x960')) { req.abort(); return; }
     }
     req.continue().catch(() => {});
@@ -1936,9 +1937,9 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
 
     // Aguarda anúncios aparecerem (para assim que encontrar, não espera timeout)
     await page.waitForSelector('a[href*="/marketplace/item/"]', {
-      timeout: 15000,
+      timeout: 10000,
     }).catch(() => {
-      console.log('[Scraper] Seletor não encontrado em 15s — coletando o que carregou');
+      console.log('[Scraper] Seletor não encontrado em 10s — coletando o que carregou');
     });
 
     const pageTitle = await page.title().catch(() => 'erro');
