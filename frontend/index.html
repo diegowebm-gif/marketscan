@@ -864,6 +864,15 @@ header {
 .chat-listing-card:hover { background:var(--surface2); }
 .chat-listing-card strong { color:var(--accent); }
 
+
+/* ── Banner Comunidade ───────────────────────────────────── */
+.community-banner { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:500; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+.community-banner.show { display:flex; }
+.community-box { background:var(--surface); border-radius:16px; padding:0; max-width:400px; width:92%; box-shadow:0 12px 50px rgba(106,13,173,0.3); overflow:hidden; animation:welcomePop .4s cubic-bezier(.34,1.56,.64,1); }
+.community-box-top { background:linear-gradient(135deg,#6a0dad,#9b59b6); padding:2rem 2rem 1.5rem; text-align:center; position:relative; }
+.community-box-top::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:20px; background:var(--surface); clip-path:ellipse(55% 100% at 50% 100%); }
+.community-box-body { padding:1.25rem 1.75rem 1.5rem; text-align:center; }
+
 </style>
 </head>
 <body>
@@ -2462,6 +2471,7 @@ async function showApp() {
   document.getElementById('btn-profile').style.display = 'inline-block';
   document.getElementById('btn-saved').style.display = 'inline-block';
   initChat();
+  showCommunityBanner();
   const badge = document.getElementById('plan-badge');
   if (badge) {
     badge.style.display = 'inline-block';
@@ -3316,6 +3326,23 @@ function initChat() {
   connectChatWs();
 }
 
+
+// ── Banner Comunidade ─────────────────────────────────────
+function showCommunityBanner() {
+  const key = 'mkt_community_seen_' + (currentUser?.id || '');
+  if (localStorage.getItem(key)) return;
+  setTimeout(() => {
+    document.getElementById('community-banner').classList.add('show');
+  }, 1200);
+}
+
+function closeCommunityBanner(openChat) {
+  const key = 'mkt_community_seen_' + (currentUser?.id || '');
+  localStorage.setItem(key, '1');
+  document.getElementById('community-banner').classList.remove('show');
+  if (openChat) showChat();
+}
+
 </script>
 
 <button id="btn-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Voltar ao topo">↑</button>
@@ -3447,6 +3474,40 @@ function initChat() {
         <button onclick="sendChatMessage()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 14px;cursor:pointer;font-size:16px;flex-shrink:0" title="Enviar">➤</button>
       </div>
       <div style="font-size:11px;color:var(--text2);margin-top:6px;text-align:center">Shift+Enter para nova linha · Seja respeitoso 🤝</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── Banner Comunidade ─────────────────────────────────── -->
+<div class="community-banner" id="community-banner">
+  <div class="community-box">
+    <div class="community-box-top">
+      <div style="font-size:3.2rem;margin-bottom:.75rem">💬</div>
+      <h2 style="color:#fff;font-family:'Syne',sans-serif;font-size:1.35rem;font-weight:800;margin:0 0 .4rem">Comunidade de Revendedores</h2>
+      <p style="color:rgba(255,255,255,0.85);font-size:13px;margin:0;line-height:1.5">Troque experiências, compartilhe achados e descubra o que vale a pena comprar para revender.</p>
+    </div>
+    <div class="community-box-body">
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:1.25rem;text-align:left">
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text)">
+          <span style="font-size:18px">🔥</span><span>Veja o que está em alta para revenda</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text)">
+          <span style="font-size:18px">📦</span><span>Compartilhe anúncios diretamente do resultado de busca</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text)">
+          <span style="font-size:18px">🤝</span><span>Dicas de negociação de revendedores experientes</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text)">
+          <span style="font-size:18px">⚡</span><span>Alertas e oportunidades em tempo real</span>
+        </div>
+      </div>
+      <button onclick="closeCommunityBanner(true)" style="width:100%;padding:13px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-weight:700;font-size:15px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;margin-bottom:8px" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+        💬 Entrar na Comunidade
+      </button>
+      <button onclick="closeCommunityBanner(false)" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+        Agora não
+      </button>
     </div>
   </div>
 </div>
