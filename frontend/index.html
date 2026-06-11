@@ -874,6 +874,66 @@ header {
 .community-box-top::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:20px; background:var(--surface); clip-path:ellipse(55% 100% at 50% 100%); }
 .community-box-body { padding:1.25rem 1.75rem 1.5rem; text-align:center; }
 
+
+/* ── Banner Comunidade Imagem ─────────────────────────────── */
+#community-img-banner {
+  display:none;
+  position:relative;
+  border-radius:var(--radius);
+  overflow:hidden;
+  margin-bottom:1.25rem;
+  min-height:140px;
+  cursor:pointer;
+}
+#community-img-banner .cib-bg {
+  position:absolute;inset:0;
+  background-image:url('https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&q=80');
+  background-size:cover;
+  background-position:center 30%;
+}
+#community-img-banner .cib-overlay {
+  position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(50,5,110,0.92) 0%,rgba(80,20,150,0.75) 45%,rgba(0,0,0,0.15) 100%);
+}
+#community-img-banner .cib-content {
+  position:relative;z-index:2;
+  padding:1.1rem 1.25rem;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-height:140px;
+}
+#community-img-banner .cib-text { flex:1; }
+#community-img-banner .cib-eyebrow {
+  font-size:10px;font-weight:700;color:rgba(255,255,255,0.75);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;
+}
+#community-img-banner .cib-title {
+  font-size:16px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:5px;
+  font-family:'Syne',sans-serif;
+}
+#community-img-banner .cib-sub {
+  font-size:12px;color:rgba(255,255,255,0.8);line-height:1.5;margin-bottom:8px;
+}
+#community-img-banner .cib-online {
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11px;color:rgba(255,255,255,0.7);
+}
+#community-img-banner .cib-online-dot {
+  width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;
+}
+#community-img-banner .cib-btn {
+  white-space:nowrap;padding:9px 18px;border-radius:var(--radius-sm);
+  border:none;background:#fff;color:#6a0dad;
+  font-weight:700;font-size:13px;font-family:'Inter',sans-serif;
+  cursor:pointer;transition:all .2s;flex-shrink:0;align-self:center;
+}
+#community-img-banner .cib-btn:hover { opacity:.9;transform:translateY(-1px); }
+@media (max-width:600px) {
+  #community-img-banner .cib-bg { background-position:70% center; }
+  #community-img-banner .cib-overlay { background:linear-gradient(180deg,rgba(50,5,110,0.55) 0%,rgba(50,5,110,0.94) 100%); }
+  #community-img-banner .cib-content { flex-direction:column;align-items:flex-start;gap:10px;min-height:170px; }
+  #community-img-banner .cib-btn { width:100%;text-align:center; }
+}
+
 </style>
 </head>
 <body>
@@ -1067,6 +1127,21 @@ header {
       </div>
 
       <div class="stats-grid" id="stats-grid" style="display:none"></div>
+
+      <!-- Banner Comunidade com Imagem -->
+      <div id="community-img-banner" onclick="showChat()">
+        <div class="cib-bg"></div>
+        <div class="cib-overlay"></div>
+        <div class="cib-content">
+          <div class="cib-text">
+            <div class="cib-eyebrow">💬 Novidade no MarketScan</div>
+            <div class="cib-title">Comunidade de Revendedores</div>
+            <div class="cib-sub">Troque experiências, compartilhe achados<br>e descubra o que vale revender agora.</div>
+            <div class="cib-online"><div class="cib-online-dot"></div><span id="cib-online-count">Carregando...</span></div>
+          </div>
+          <button class="cib-btn" onclick="event.stopPropagation();showChat()">Entrar na comunidade →</button>
+        </div>
+      </div>
 
       <!-- Banner Alertas de Preço -->
       <div id="referral-banner" style="display:none;align-items:center;gap:8px;background:rgba(74,222,128,0.05);border:1px solid rgba(74,222,128,0.2);border-radius:var(--radius);padding:.6rem 1rem;margin-bottom:1rem">
@@ -2459,6 +2534,7 @@ function showAuth() {
   document.getElementById('btn-chat').style.display = 'none';
   if (chatWs) { chatWs.close(); chatWs = null; }
   const rb2 = document.getElementById('referral-banner'); if(rb2) rb2.style.display = 'none';
+  const cib2 = document.getElementById('community-img-banner'); if(cib2) cib2.style.display = 'none';
   setAuthStatus('');
 }
 
@@ -2484,6 +2560,9 @@ async function showApp() {
   // Referral banner
   const rb = document.getElementById('referral-banner');
   if (rb) rb.style.display = 'flex';
+  // Banner comunidade com imagem
+  const cib = document.getElementById('community-img-banner');
+  if (cib) cib.style.display = 'block';
   const badge = document.getElementById('plan-badge');
   if (badge) {
     badge.style.display = 'inline-block';
@@ -3274,6 +3353,8 @@ function connectChatWs() {
     } else if (data.type === 'online') {
       const el = document.getElementById('chat-online-count');
       if (el) el.textContent = `• ${data.count} online agora`;
+      const cibEl = document.getElementById('cib-online-count');
+      if (cibEl) cibEl.textContent = `${data.count} membro${data.count !== 1 ? 's' : ''} online agora`;
     }
   };
 }
