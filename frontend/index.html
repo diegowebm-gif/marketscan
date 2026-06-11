@@ -1467,7 +1467,9 @@ async function doRegister() {
   if (password !== password2) { errEl.textContent = 'Senhas não conferem.'; errEl.classList.add('show'); return; }
   if (password.length < 6) { errEl.textContent = 'Senha mínima de 6 caracteres.'; errEl.classList.add('show'); return; }
   const whatsappPhone = document.getElementById('reg-whatsapp').value.replace(/\D/g, '') || null;
-  const res = await api('POST', '/api/auth/register', { email, password, whatsappPhone });
+  const refCode = localStorage.getItem('mkt_ref') || null;
+  const res = await api('POST', '/api/auth/register', { email, password, whatsappPhone, refCode });
+  if (res?.ok && refCode) localStorage.removeItem('mkt_ref');
   if (!res?.ok) { errEl.textContent = res?.error || 'Erro ao cadastrar.'; errEl.classList.add('show'); return; }
   authToken = res.token;
   currentUser = { email: res.email, plan: res.plan };

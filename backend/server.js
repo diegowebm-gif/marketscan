@@ -278,7 +278,11 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
   if (password.length < 6) return res.status(400).json({ ok: false, error: 'Senha mínima de 6 caracteres.' });
   const { whatsappPhone } = req.body;
   const result = await register(email, password, whatsappPhone || null);
-  if (result.ok) emailBoasVindas(email).catch(() => {});
+  if (result.ok) {
+    emailBoasVindas(email).catch(() => {});
+    const { refCode } = req.body;
+    if (refCode) registerReferral(refCode, email).catch(() => {});
+  }
   res.json(result);
 });
 
@@ -372,6 +376,92 @@ app.post('/api/report', requireAuth, async (req, res) => {
   await pool.end();
   res.json({ ok: true });
 });
+
+
+// ── Sistema de Indicações ─────────────────────────────────────
+app.get('/api/referral/my-link', requireAuth, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS referrals (
+        id SERIAL PRIMARY KEY,
+        referrer_id TEXT NOT NULL,
+        referred_email TEXT NOT NULL,
+        status TEXT DEFAULT 'registered',
+        created_at BIGINT NOT NULL
+      )
+    `);
+    // Gera ref_code baseado no id do usuário (primeiros 8 chars)
+    const refCode = req.user.id.replace(/-/g, '').slice(0, 8);
+    const url = `${process.env.BASE_URL || 'https://marketscan.site'}/?ref=${refCode}`;
+    await pool.end();
+    res.json({ ok: true, url, refCode });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+app.get('/api/referral/my-referrals', requireAuth, async (req, res) => {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    const refCode = req.user.id.replace(/-/g, '').slice(0, 8);
+    const result = await pool.query(
+      'SELECT * FROM referrals WHERE referrer_id = $1 ORDER BY created_at DESC',
+      [req.user.id]
+    );
+    const totalDaysEarned = result.rows.filter(r => r.status === 'converted').length * 7;
+    await pool.end();
+    res.json({ ok: true, referrals: result.rows, totalDaysEarned, refCode });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Registra indicação no cadastro (chamado internamente)
+async function registerReferral(referrerCode, referredEmail) {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    // Acha o referrer pelo ref_code (primeiros 8 chars do id sem hífens)
+    const users = await pool.query('SELECT id FROM users');
+    const referrer = users.rows.find(u => u.id.replace(/-/g, '').slice(0, 8) === referrerCode);
+    if (!referrer) { await pool.end(); return; }
+    // Evita duplicata
+    const exists = await pool.query('SELECT id FROM referrals WHERE referrer_id=$1 AND referred_email=$2', [referrer.id, referredEmail]);
+    if (exists.rows.length) { await pool.end(); return; }
+    await pool.query('INSERT INTO referrals (referrer_id, referred_email, status, created_at) VALUES ($1,$2,$3,$4)',
+      [referrer.id, referredEmail, 'registered', Date.now()]);
+    await pool.end();
+  } catch (e) {
+    console.error('[Referral] Erro ao registrar indicação:', e.message);
+  }
+}
+
+// Marca indicação como convertida quando assina Pro (chamado no webhook Stripe)
+async function convertReferral(email) {
+  try {
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false });
+    const result = await pool.query(
+      "UPDATE referrals SET status='converted' WHERE referred_email=$1 AND status!='converted' RETURNING referrer_id",
+      [email]
+    );
+    // Dá 7 dias extras pro referrer
+    if (result.rows.length) {
+      const referrerId = result.rows[0].referrer_id;
+      await pool.query(
+        "UPDATE users SET plan_expires_at = COALESCE(plan_expires_at, $1) + $2 WHERE id = $3",
+        [Date.now(), 7 * 24 * 60 * 60 * 1000, referrerId]
+      );
+      console.log(`[Referral] +7 dias para referrer ${referrerId}`);
+    }
+    await pool.end();
+  } catch (e) {
+    console.error('[Referral] Erro ao converter indicação:', e.message);
+  }
+}
 
 app.get('/api/admin/reports', requireAdmin, async (req, res) => {
   const { Pool } = require('pg');
