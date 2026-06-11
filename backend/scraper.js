@@ -664,7 +664,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
   };
 
   const CITY_SLUGS = {
-    'sao paulo':'saopaulo','rio de janeiro':'rio-de-janeiro','belo horizonte':'belo-horizonte',
+    'sao paulo':'saopaulo','rio de janeiro':'riodejaneiro','belo horizonte':'belo-horizonte',
     'salvador':'salvador','fortaleza':'fortaleza','curitiba':'curitiba','manaus':'manaus',
     'recife':'recife','porto alegre':'porto-alegre','belem':'belem','goiania':'goiania',
     'guarulhos':'guarulhos','campinas':'campinas','sao luis':'sao-luis','maceio':'maceio',
@@ -710,7 +710,7 @@ async function scrapeMarketplaceAttempt(sessionId, keyword, location, maxItems =
     'vitoria':'102864356451860','vila velha':'104064876297545','cariacica':'103075926400033',
     'cachoeiro de itapemirim':'114301671919784','arapiraca':'105600829474777',
     'campina grande':'103137026393957','serra':'103108113062617',
-    'rio de janeiro — centro':'rio-de-janeiro',
+    'rio de janeiro — centro':'riodejaneiro',
     'rio de janeiro — zona sul (copacabana, ipanema)':'copacabana',
     'rio de janeiro — barra da tijuca':'barra-da-tijuca',
     'rio de janeiro — zona norte (tijuca, vila isabel)':'tijuca-rio-de-janeiro',
