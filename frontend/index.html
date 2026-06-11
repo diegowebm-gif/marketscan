@@ -3243,6 +3243,11 @@ function updateChatUnread() {
 
 function connectChatWs() {
   if (!authToken) return;
+  // Fecha conexão anterior se existir
+  if (chatWs && chatWs.readyState <= 1) {
+    chatWs.onclose = null; // evita loop de reconexão
+    chatWs.close();
+  }
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const wsUrl = `${proto}://${location.host}/ws/chat?token=${authToken}`;
   chatWs = new WebSocket(wsUrl);
@@ -3361,7 +3366,8 @@ function initChat() {
     const banner = document.getElementById('chat-free-banner');
     if (banner) banner.style.display = 'flex';
   }
-  connectChatWs();
+  // Só conecta se não há conexão ativa
+  if (!chatWs || chatWs.readyState > 1) connectChatWs();
 }
 
 

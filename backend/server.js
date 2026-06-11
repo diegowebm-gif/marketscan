@@ -1635,6 +1635,13 @@ wss.on('connection', async (ws, req) => {
   const user = await getUserByToken(token).catch(() => null);
   if (!user) { ws.close(1008, 'Não autenticado'); return; }
 
+  // Fecha conexão anterior do mesmo usuário para evitar duplicatas
+  wss.clients.forEach(client => {
+    if (client !== ws && client._user?.id === user.id && client.readyState <= 1) {
+      client.close(1000, 'Nova conexão aberta');
+    }
+  });
+
   ws._user = user;
 
   // Envia histórico das últimas 80 mensagens
