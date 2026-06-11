@@ -49,7 +49,8 @@ function closeProfileModal() {
 }
 
 function switchProfileTab(tab, btn) {
-  ['email','senha','whatsapp'].forEach(t => {
+  if (tab === 'indicacoes') loadReferralProfile();
+  ['email','senha','whatsapp','indicacoes'].forEach(t => {
     document.getElementById('profile-tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
@@ -1068,6 +1069,11 @@ header {
       <div class="stats-grid" id="stats-grid" style="display:none"></div>
 
       <!-- Banner Alertas de Preço -->
+      <div id="referral-banner" style="display:none;align-items:center;gap:8px;background:rgba(74,222,128,0.05);border:1px solid rgba(74,222,128,0.2);border-radius:var(--radius);padding:.6rem 1rem;margin-bottom:1rem">
+        <span style="font-size:16px;flex-shrink:0">🎁</span>
+        <p style="margin:0;font-size:12px;color:var(--text2);flex:1;min-width:0"><strong style="color:var(--text)">Indique e ganhe 7 dias grátis</strong> quando seu amigo assinar</p>
+        <button onclick="copyRefLinkBanner()" id="btn-copy-ref-banner" style="padding:5px 12px;border-radius:var(--radius-sm);border:1px solid #4ade80;background:transparent;color:#4ade80;font-weight:600;font-size:11px;font-family:'Inter',sans-serif;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .2s">Copiar link</button>
+      </div>
       <div id="price-alert-banner" style="display:none;align-items:center;gap:16px;background:linear-gradient(135deg,rgba(106,13,173,0.07),rgba(106,13,173,0.03));border:1.5px solid rgba(106,13,173,0.28);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;flex-wrap:wrap">
         <div style="width:38px;height:38px;border-radius:50%;background:rgba(106,13,173,0.12);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🔔</div>
         <div style="flex:1;min-width:200px">
@@ -2450,6 +2456,7 @@ function showAuth() {
   document.getElementById('btn-saved').style.display = 'none';
   document.getElementById('btn-chat').style.display = 'none';
   if (chatWs) { chatWs.close(); chatWs = null; }
+  const rb2 = document.getElementById('referral-banner'); if(rb2) rb2.style.display = 'none';
   setAuthStatus('');
 }
 
@@ -2472,6 +2479,9 @@ async function showApp() {
   document.getElementById('btn-saved').style.display = 'inline-block';
   initChat();
   showCommunityBanner();
+  // Referral banner
+  const rb = document.getElementById('referral-banner');
+  if (rb) rb.style.display = 'flex';
   const badge = document.getElementById('plan-badge');
   if (badge) {
     badge.style.display = 'inline-block';
@@ -2709,7 +2719,8 @@ function closeProfileModal() {
 }
 
 function switchProfileTab(tab, btn) {
-  ['email','senha','whatsapp'].forEach(t => {
+  if (tab === 'indicacoes') loadReferralProfile();
+  ['email','senha','whatsapp','indicacoes'].forEach(t => {
     document.getElementById('profile-tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.profile-tab').forEach(b => b.classList.remove('active'));
@@ -2947,6 +2958,7 @@ document.addEventListener('DOMContentLoaded', updateSavedBadge);
       <button class="profile-tab active" onclick="switchProfileTab('email', this)">E-mail</button>
       <button class="profile-tab" onclick="switchProfileTab('senha', this)">Senha</button>
       <button class="profile-tab" onclick="switchProfileTab('whatsapp', this)">WhatsApp</button>
+      <button class="profile-tab" onclick="switchProfileTab('indicacoes', this)">Indicações</button>
     </div>
     <div class="profile-body">
       <!-- Aba E-mail -->
@@ -2993,6 +3005,32 @@ document.addEventListener('DOMContentLoaded', updateSavedBadge);
         <button class="profile-save" style="background:#25d366" onclick="saveProfileWhatsapp()">Salvar WhatsApp</button>
         <p class="profile-msg" id="msg-whatsapp"></p>
       </div>
+
+      <!-- Aba Indicações -->
+      <div id="profile-tab-indicacoes" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;text-align:center">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Indicados</div>
+            <div id="ref-total-profile" style="font-size:24px;font-weight:700;color:var(--text)">0</div>
+          </div>
+          <div style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:var(--radius-sm);padding:12px;text-align:center">
+            <div style="font-size:11px;color:#4ade80;margin-bottom:4px">Dias ganhos</div>
+            <div id="ref-days-profile" style="font-size:24px;font-weight:700;color:#4ade80">0</div>
+          </div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Seu link de indicação</div>
+          <div style="display:flex;gap:6px">
+            <input id="ref-link-profile" readonly style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:12px;color:var(--accent);font-family:'Inter',sans-serif;outline:none" value="Carregando..."/>
+            <button onclick="copyRefLinkProfile()" id="btn-copy-ref-profile" style="background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">Copiar</button>
+          </div>
+          <p style="font-size:11px;color:var(--text2);margin:6px 0 0">Ganhe 7 dias grátis quando seu amigo assinar o Pro</p>
+        </div>
+        <div id="ref-list-profile" style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto">
+          <p style="font-size:12px;color:var(--text2);text-align:center;padding:.75rem">Você ainda não indicou ninguém. Compartilhe seu link!</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -3342,6 +3380,60 @@ function closeCommunityBanner(openChat) {
   document.getElementById('community-banner').classList.remove('show');
   if (openChat) showChat();
 }
+
+
+// ── Sistema de Indicações ─────────────────────────────────
+async function loadReferralProfile() {
+  const [linkRes, refRes] = await Promise.all([
+    api('GET', '/api/referral/my-link'),
+    api('GET', '/api/referral/my-referrals')
+  ]);
+  if (linkRes?.ok) document.getElementById('ref-link-profile').value = linkRes.url;
+  if (refRes?.ok) {
+    document.getElementById('ref-total-profile').textContent = refRes.referrals.length;
+    document.getElementById('ref-days-profile').textContent = refRes.totalDaysEarned || 0;
+    const list = document.getElementById('ref-list-profile');
+    if (!refRes.referrals.length) {
+      list.innerHTML = '<p style="font-size:12px;color:var(--text2);text-align:center;padding:.75rem">Você ainda não indicou ninguém. Compartilhe seu link!</p>';
+    } else {
+      list.innerHTML = refRes.referrals.map(r => {
+        const sc = r.status==='converted'?'#4ade80':r.status==='trial'?'#f59e0b':'var(--text2)';
+        const sl = r.status==='converted'?'Pro ✓':r.status==='trial'?'Trial':'Cadastrado';
+        const masked = r.referred_email.replace(/(.{3}).+(@.+)/,'$1***$2');
+        const date = new Date(parseInt(r.created_at)).toLocaleDateString('pt-BR');
+        const reward = r.status==='converted'?' <span style="font-size:10px;color:#4ade80">+7 dias</span>':'';
+        return `<div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px"><div><div style="font-size:12px;color:var(--text)">${masked}</div><div style="font-size:10px;color:var(--text2)">${date}</div></div><div style="font-size:12px;color:${sc};font-weight:600">${sl}${reward}</div></div>`;
+      }).join('');
+    }
+  }
+}
+
+async function copyRefLinkProfile() {
+  const link = document.getElementById('ref-link-profile').value;
+  navigator.clipboard.writeText(link).then(() => {
+    const btn = document.getElementById('btn-copy-ref-profile');
+    btn.textContent='✓ Copiado!'; setTimeout(()=>btn.textContent='Copiar',2000);
+  });
+}
+
+async function copyRefLinkBanner() {
+  const btn = document.getElementById('btn-copy-ref-banner');
+  if (!btn) return;
+  const res = await api('GET', '/api/referral/my-link');
+  if (res?.ok) {
+    navigator.clipboard.writeText(res.url).then(() => {
+      btn.textContent='Copiado! ✓'; btn.style.background='#4ade80'; btn.style.color='#051a0a';
+      setTimeout(()=>{ btn.textContent='Copiar link'; btn.style.background='transparent'; btn.style.color='#4ade80'; },2000);
+    });
+  }
+}
+
+// Captura código de indicação da URL
+(function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
+  if (refCode) { localStorage.setItem('mkt_ref', refCode); window.history.replaceState({}, '', '/'); }
+})();
 
 </script>
 
